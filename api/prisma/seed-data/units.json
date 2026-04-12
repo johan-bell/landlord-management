@@ -1,0 +1,26 @@
+[
+  {
+    "id": "seed_unit_akwa_a1",
+    "propertyId": "seed_prop_residence_akwa",
+    "label": "Apartment A1",
+    "rentAmount": 85000,
+    "currency": "XAF",
+    "status": "OCCUPIED"
+  },
+  {
+    "id": "seed_unit_akwa_b2",
+    "propertyId": "seed_prop_residence_akwa",
+    "label": "Studio B2",
+    "rentAmount": 45000,
+    "currency": "XAF",
+    "status": "VACANT"
+  },
+  {
+    "id": "seed_unit_essos_101",
+    "propertyId": "seed_prop_immeuble_essos",
+    "label": "Unit 101",
+    "rentAmount": 120000,
+    "currency": "XAF",
+    "status": "VACANT"
+  }
+]

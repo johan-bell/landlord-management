@@ -1,0 +1,14 @@
+[
+  {
+    "id": "seed_prop_residence_akwa",
+    "organizationId": "seed_org_douala",
+    "name": "Résidence Akwa",
+    "address": "Akwa, Douala, Cameroon"
+  },
+  {
+    "id": "seed_prop_immeuble_essos",
+    "organizationId": "seed_org_yaounde",
+    "name": "Immeuble Essos",
+    "address": "Essos, Yaoundé, Cameroon"
+  }
+]

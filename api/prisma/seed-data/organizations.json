@@ -1,0 +1,12 @@
+[
+  {
+    "id": "seed_org_douala",
+    "name": "Douala Rentals Demo",
+    "slug": "douala-rentals-demo"
+  },
+  {
+    "id": "seed_org_yaounde",
+    "name": "Yaoundé Property Hub",
+    "slug": "yaounde-property-hub"
+  }
+]

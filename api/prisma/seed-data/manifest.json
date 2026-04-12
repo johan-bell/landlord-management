@@ -1,0 +1,18 @@
+{
+  "description": "Sample records for local development, demos, and Prisma seeding. IDs use the seed_ prefix so they are easy to spot in the database.",
+  "notes": [
+    "Apply migrations before seeding: npx prisma migrate deploy",
+    "Load order matters for foreign keys; the seed script follows loadOrder.",
+    "Currency XAF is illustrative (Central African CFA franc)."
+  ],
+  "loadOrder": [
+    "organizations.json",
+    "users.json",
+    "organization_members.json",
+    "properties.json",
+    "units.json",
+    "renters.json",
+    "leases.json",
+    "payments.json"
+  ]
+}

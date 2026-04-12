@@ -1,0 +1,13 @@
+{
+  "name": "landlord-management",
+  "private": true,
+  "scripts": {
+    "dev:api": "npm run start:dev --prefix api",
+    "dev:admin": "npm run dev --prefix admin",
+    "dev:web": "npm run dev --prefix admin",
+    "dev:tenant": "npm run dev --prefix tenant",
+    "dev:platform": "npm run dev --prefix platform",
+    "build": "npm run build --prefix api && npm run build --prefix admin && npm run build --prefix tenant && npm run build --prefix platform",
+    "db:up": "docker compose up -d postgres"
+  }
+}

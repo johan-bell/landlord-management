@@ -1,0 +1,12 @@
+[
+  {
+    "id": "seed_lease_akwa_a1",
+    "unitId": "seed_unit_akwa_a1",
+    "renterId": "seed_renter_jean",
+    "startDate": "2025-01-01T00:00:00.000Z",
+    "endDate": null,
+    "rentAmount": 85000,
+    "currency": "XAF",
+    "dueDay": 5
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "seed_mem_owner_douala",
+    "userId": "seed_user_owner",
+    "organizationId": "seed_org_douala",
+    "role": "OWNER"
+  },
+  {
+    "id": "seed_mem_mgr_douala",
+    "userId": "seed_user_manager",
+    "organizationId": "seed_org_douala",
+    "role": "MANAGER"
+  },
+  {
+    "id": "seed_mem_owner_yaounde",
+    "userId": "seed_user_owner",
+    "organizationId": "seed_org_yaounde",
+    "role": "OWNER"
+  }
+]

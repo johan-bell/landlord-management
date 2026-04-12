@@ -1,0 +1,20 @@
+[
+  {
+    "id": "seed_renter_jean",
+    "organizationId": "seed_org_douala",
+    "fullName": "Jean Mbarga",
+    "phone": "+237690000000",
+    "email": "jean.mbarga@example.com",
+    "idDocument": "ID-CM-1990-445566",
+    "notes": "Prefers payment reminders via SMS."
+  },
+  {
+    "id": "seed_renter_ama",
+    "organizationId": "seed_org_douala",
+    "fullName": "Ama Ondoua",
+    "phone": "+237655000000",
+    "email": null,
+    "idDocument": null,
+    "notes": null
+  }
+]

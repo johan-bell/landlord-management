@@ -1,0 +1,14 @@
+[
+  {
+    "id": "seed_user_owner",
+    "email": "owner@demo.landlord.local",
+    "name": "Marie Nkomo",
+    "phone": "+237670000001"
+  },
+  {
+    "id": "seed_user_manager",
+    "email": "manager@demo.landlord.local",
+    "name": "Paul Essomba",
+    "phone": "+237670000002"
+  }
+]
