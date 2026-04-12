@@ -8,6 +8,7 @@
     "dev:tenant": "npm run dev --prefix tenant",
     "dev:platform": "npm run dev --prefix platform",
     "build": "npm run build --prefix api && npm run build --prefix admin && npm run build --prefix tenant && npm run build --prefix platform",
-    "db:up": "docker compose up -d postgres"
+    "db:up": "docker compose up -d postgres",
+    "db:reset": "npm run db:reset --prefix api"
   }
 }

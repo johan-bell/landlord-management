@@ -23,7 +23,7 @@ A diagram is kept in [`docs/architecture.drawio`](docs/architecture.drawio) (ope
 | `admin/` | Landlord staff UI (portfolio, org-scoped data) |
 | `tenant/` | Renter portal (profile + leases) |
 | `platform/` | SaaS operator UI (cross-tenant org management) |
-| `docs/` | Diagrams and other project docs |
+| `docs/` | Diagrams and other project docs ([`docs/seeding.md`](docs/seeding.md) — migrations & seed) |
 
 ---
 
@@ -90,6 +90,10 @@ Each frontend may use `VITE_API_URL` (e.g. `/api` behind the Vite dev proxy, or 
 
 ## Database & seed
 
+**Full guide:** [`docs/seeding.md`](docs/seeding.md) (migrations, demo accounts, reset vs deploy, troubleshooting).
+
+Quick start:
+
 ```bash
 # Start Postgres (if using bundled compose)
 npm run db:up
@@ -99,7 +103,15 @@ npx prisma migrate deploy
 npx prisma db seed
 ```
 
-Seeded demo users are printed at the end of the seed script (landlord, platform operator, tenant). **Use only in development.**
+**Wipe local dev DB and reseed** (destroys all data — never on production):
+
+```bash
+cd api && npx prisma migrate reset --force
+# or from repo root:
+npm run db:reset
+```
+
+Seeded demo users are printed at the end of the seed script. **Use only in development.**
 
 ---
 
@@ -113,6 +125,7 @@ Seeded demo users are printed at the end of the seed script (landlord, platform 
 | `npm run dev:platform` | Platform UI (`platform/`) |
 | `npm run build` | Build API + all three frontends |
 | `npm run db:up` | Start PostgreSQL via Docker Compose |
+| `npm run db:reset` | **Dev only:** `prisma migrate reset --force` in `api/` (drops DB, migrates, seeds) |
 
 Typical local dev: run API plus whichever UIs you need; point frontends at the API (Vite proxy to port **3000** is the usual setup).
 
