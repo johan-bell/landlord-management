@@ -72,8 +72,10 @@ Create `api/.env` (start from `api/.env.example`). Commonly:
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | PostgreSQL URL (`postgresql://USER:PASSWORD@host:port/db`). Must be real credentials — if you copied `.env.example` with placeholders like `USER:PASSWORD`, Postgres will reject the connection. Local Docker Compose in this repo uses user `postgres`, password `postgres`, database `landlord`. |
+| `PORT` | API port (default `3000`) |
 | `JWT_SECRET` | Secret for signing JWTs |
+| `CORS_ORIGIN` | JSON array of allowed browser origins, e.g. `["http://localhost:5173","http://localhost:5174"]` (in `.env`, quote the value: `'["http://localhost:5173"]'`). **If unset, invalid JSON, or empty, cross-origin browser requests are blocked.** |
 | `STRIPE_SECRET_KEY` | Optional; enables Stripe Checkout |
 | `STRIPE_PRICE_ID` | Optional; Stripe price for subscriptions |
 
