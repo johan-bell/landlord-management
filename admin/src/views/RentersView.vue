@@ -15,7 +15,13 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const showAdd = ref(false);
 const copyMsg = ref<string | null>(null);
-const form = ref({ fullName: '', phone: '', email: '' });
+const form = ref({
+  fullName: '',
+  phone: '',
+  email: '',
+  initialPassword: '',
+  initialPasswordConfirm: '',
+});
 const saving = ref(false);
 
 const PAGE_SIZE = 20;
@@ -59,17 +65,42 @@ async function copyTenantInvite(r: Renter) {
 async function save() {
   const fullName = form.value.fullName.trim();
   if (!fullName) return;
+  const pwd = form.value.initialPassword.trim();
+  const pwd2 = form.value.initialPasswordConfirm.trim();
+  if (pwd || pwd2) {
+    if (pwd !== pwd2) {
+      error.value = 'Passwords do not match';
+      return;
+    }
+    if (pwd.length < 8) {
+      error.value = 'Portal password must be at least 8 characters';
+      return;
+    }
+    if (!form.value.email.trim()) {
+      error.value = 'Email is required when setting a portal password';
+      return;
+    }
+  }
   saving.value = true;
+  error.value = null;
   try {
+    const body: Record<string, string | undefined> = {
+      fullName,
+      phone: form.value.phone.trim() || undefined,
+      email: form.value.email.trim() || undefined,
+    };
+    if (pwd) body.initialPassword = pwd;
     await api(orgApi('/renters'), {
       method: 'POST',
-      body: JSON.stringify({
-        fullName,
-        phone: form.value.phone.trim() || undefined,
-        email: form.value.email.trim() || undefined,
-      }),
+      body: JSON.stringify(body),
     });
-    form.value = { fullName: '', phone: '', email: '' };
+    form.value = {
+      fullName: '',
+      phone: '',
+      email: '',
+      initialPassword: '',
+      initialPasswordConfirm: '',
+    };
     showAdd.value = false;
     await load();
   } catch (e) {
@@ -143,6 +174,7 @@ watch(page, () => void load());
               <th class="px-4 py-3">Name</th>
               <th class="hidden px-4 py-3 sm:table-cell">Phone</th>
               <th class="hidden px-4 py-3 md:table-cell">Email</th>
+              <th class="hidden px-4 py-3 lg:table-cell">Portal</th>
               <th class="px-4 py-3 text-right">Invite / actions</th>
             </tr>
           </thead>
@@ -151,9 +183,18 @@ watch(page, () => void load());
               <td class="px-4 py-3 font-medium text-slate-900">{{ r.fullName }}</td>
               <td class="hidden px-4 py-3 text-slate-600 sm:table-cell">{{ r.phone ?? '—' }}</td>
               <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ r.email ?? '—' }}</td>
+              <td class="hidden px-4 py-3 lg:table-cell">
+                <span
+                  v-if="r.userId"
+                  class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200"
+                >
+                  Active
+                </span>
+                <span v-else class="text-xs text-slate-400">—</span>
+              </td>
               <td class="px-4 py-3 text-right">
                 <button
-                  v-if="r.email"
+                  v-if="r.email && !r.userId"
                   type="button"
                   class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
                   @click="copyTenantInvite(r)"
@@ -210,10 +251,33 @@ watch(page, () => void load());
               <input v-model="form.phone" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
             </label>
             <label class="mt-3 block">
-              <span class="text-sm font-medium">Email (optional)</span>
+              <span class="text-sm font-medium">Email</span>
               <input
                 v-model="form.email"
                 type="email"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                autocomplete="off"
+              />
+              <span class="mt-1 block text-xs text-slate-500">Required if you set a portal password below.</span>
+            </label>
+            <label class="mt-3 block">
+              <span class="text-sm font-medium">Initial portal password</span>
+              <input
+                v-model="form.initialPassword"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                placeholder="Optional — tenant signs in with this, then can change it"
+              />
+            </label>
+            <label class="mt-3 block">
+              <span class="text-sm font-medium">Confirm password</span>
+              <input
+                v-model="form.initialPasswordConfirm"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               />
             </label>

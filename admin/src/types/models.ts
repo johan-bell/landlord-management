@@ -45,6 +45,7 @@ export type Renter = {
   fullName: string;
   phone: string | null;
   email: string | null;
+  userId?: string | null;
 };
 
 export type Lease = {

@@ -1,7 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import {
   PaginationQueryDto,
   parsePagination,
@@ -13,6 +19,7 @@ import { CreateRenterDto } from './dto/create-renter.dto';
 import { UpdateRenterDto } from './dto/update-renter.dto';
 
 const RENTER_INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const BCRYPT_ROUNDS = 10;
 
 @Injectable()
 export class RentersService {
@@ -24,13 +31,51 @@ export class RentersService {
 
   async create(orgId: string, dto: CreateRenterDto) {
     await this.organizationsService.findOneOrThrow(orgId);
+
+    const pwd = dto.initialPassword?.trim();
+    const emailNormalized = dto.email?.toLowerCase().trim();
+
+    if (pwd) {
+      if (!emailNormalized) {
+        throw new BadRequestException('email is required when setting an initial portal password');
+      }
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: emailNormalized },
+      });
+      if (existingUser) {
+        throw new ConflictException('A user with this email already exists');
+      }
+      const passwordHash = await bcrypt.hash(pwd, BCRYPT_ROUNDS);
+      return this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: emailNormalized,
+            passwordHash,
+            name: dto.fullName.trim(),
+            phone: dto.phone?.trim() || undefined,
+          },
+        });
+        return tx.renter.create({
+          data: {
+            organizationId: orgId,
+            fullName: dto.fullName.trim(),
+            phone: dto.phone?.trim() || undefined,
+            email: emailNormalized,
+            idDocument: dto.idDocument?.trim(),
+            notes: dto.notes,
+            userId: user.id,
+          },
+        });
+      });
+    }
+
     return this.prisma.renter.create({
       data: {
         organizationId: orgId,
-        fullName: dto.fullName,
-        phone: dto.phone,
-        email: dto.email,
-        idDocument: dto.idDocument,
+        fullName: dto.fullName.trim(),
+        phone: dto.phone?.trim() || undefined,
+        email: emailNormalized || undefined,
+        idDocument: dto.idDocument?.trim(),
         notes: dto.notes,
       },
     });

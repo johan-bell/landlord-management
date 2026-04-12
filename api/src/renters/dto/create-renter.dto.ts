@@ -16,6 +16,13 @@ export class CreateRenterDto {
   @MaxLength(200)
   email?: string;
 
+  /** When set, creates a portal login immediately (tenant can change password later). Requires `email`. */
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  initialPassword?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(120)
