@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OrgMembershipGuard } from './guards/org-membership.guard';
 import { PlatformAdminGuard } from './guards/platform-admin.guard';
 import { TenantOnlyGuard } from './guards/tenant-only.guard';
+import { resolveJwtSecret } from './jwt-secret';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -19,7 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') ?? 'dev-insecure-change-me',
+        secret: resolveJwtSecret(config),
         signOptions: { expiresIn: '7d' },
       }),
       inject: [ConfigService],
