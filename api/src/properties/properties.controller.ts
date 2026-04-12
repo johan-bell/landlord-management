@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -16,8 +27,8 @@ export class PropertiesController {
   }
 
   @Get()
-  findAll(@Param('orgId') orgId: string) {
-    return this.propertiesService.findAll(orgId);
+  findAll(@Param('orgId') orgId: string, @Query() query: PaginationQueryDto) {
+    return this.propertiesService.findAll(orgId, query);
   }
 
   @Get(':propertyId')

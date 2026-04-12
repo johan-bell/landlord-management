@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  PaginationQueryDto,
+  parsePagination,
+  toPaginated,
+} from '../common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { RentersService } from '../renters/renters.service';
@@ -72,17 +77,43 @@ export class LeasesService {
     });
   }
 
-  async findAll(orgId: string) {
+  async findAll(orgId: string, query?: PaginationQueryDto) {
     await this.organizationsService.findOneOrThrow(orgId);
-    return this.prisma.lease.findMany({
-      where: { unit: { property: { organizationId: orgId } } },
-      include: {
-        unit: { include: { property: true } },
-        renter: true,
-        payments: { orderBy: { dueDate: 'desc' } },
-      },
-      orderBy: { startDate: 'desc' },
-    });
+    const { page, limit, skip } = parsePagination(query);
+    const search = query?.search?.trim();
+    const orgFilter = { unit: { property: { organizationId: orgId } } };
+    const where: Prisma.LeaseWhereInput = search
+      ? {
+          AND: [
+            orgFilter,
+            {
+              OR: [
+                { renter: { fullName: { contains: search, mode: 'insensitive' } } },
+                { renter: { email: { contains: search, mode: 'insensitive' } } },
+                { unit: { label: { contains: search, mode: 'insensitive' } } },
+              ],
+            },
+          ],
+        }
+      : orgFilter;
+
+    const include = {
+      unit: { include: { property: true } },
+      renter: true,
+      payments: { orderBy: { dueDate: 'desc' as const } },
+    };
+
+    const [total, items] = await Promise.all([
+      this.prisma.lease.count({ where }),
+      this.prisma.lease.findMany({
+        where,
+        include,
+        orderBy: { startDate: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+    return toPaginated(items, total, page, limit);
   }
 
   async findOne(orgId: string, leaseId: string) {

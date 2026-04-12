@@ -37,6 +37,12 @@ const error = ref<string | null>(null);
 const me = ref<MeResponse | null>(null);
 const leases = ref<LeaseRow[]>([]);
 
+const pwdCurrent = ref('');
+const pwdNew = ref('');
+const pwdMsg = ref<string | null>(null);
+const pwdErr = ref<string | null>(null);
+const pwdSaving = ref(false);
+
 function money(amount: string, currency: string) {
   const n = Number(amount);
   if (Number.isNaN(n)) return `${amount} ${currency}`;
@@ -62,6 +68,28 @@ function formatDate(iso: string) {
 function logout() {
   auth.clearSession();
   void router.push('/login');
+}
+
+async function changePassword() {
+  pwdMsg.value = null;
+  pwdErr.value = null;
+  pwdSaving.value = true;
+  try {
+    await api('/tenant/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        currentPassword: pwdCurrent.value,
+        newPassword: pwdNew.value,
+      }),
+    });
+    pwdCurrent.value = '';
+    pwdNew.value = '';
+    pwdMsg.value = 'Password updated.';
+  } catch (e) {
+    pwdErr.value = e instanceof Error ? e.message : 'Could not update password';
+  } finally {
+    pwdSaving.value = false;
+  }
 }
 
 onMounted(async () => {
@@ -114,9 +142,14 @@ onMounted(async () => {
       </div>
       <div
         v-else-if="error"
-        class="rounded-3xl border border-red-100 bg-red-50/90 p-6 text-sm text-red-800 shadow-sm"
+        class="rounded-3xl border border-red-100 bg-red-50/90 p-6 shadow-sm"
+        role="alert"
       >
-        {{ error }}
+        <p class="font-medium text-red-900">Something went wrong</p>
+        <p class="mt-2 text-sm text-red-800">{{ error }}</p>
+        <p class="mt-3 text-xs text-red-700/90">
+          If this keeps happening, confirm the API is running and your account still has access.
+        </p>
       </div>
       <template v-else-if="me">
         <section class="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-sm">
@@ -132,6 +165,42 @@ onMounted(async () => {
               <dd>{{ me.renter.phone }}</dd>
             </div>
           </dl>
+        </section>
+
+        <section class="mt-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-sm">
+          <h2 class="text-sm font-semibold text-slate-900">Change password</h2>
+          <form class="mt-4 space-y-3" @submit.prevent="changePassword">
+            <label class="block text-sm">
+              <span class="text-slate-700">Current password</span>
+              <input
+                v-model="pwdCurrent"
+                type="password"
+                required
+                autocomplete="current-password"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+            </label>
+            <label class="block text-sm">
+              <span class="text-slate-700">New password</span>
+              <input
+                v-model="pwdNew"
+                type="password"
+                required
+                minlength="8"
+                autocomplete="new-password"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+            </label>
+            <p v-if="pwdMsg" class="text-sm text-emerald-700">{{ pwdMsg }}</p>
+            <p v-if="pwdErr" class="text-sm text-red-600">{{ pwdErr }}</p>
+            <button
+              type="submit"
+              class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              :disabled="pwdSaving"
+            >
+              {{ pwdSaving ? 'Saving…' : 'Update password' }}
+            </button>
+          </form>
         </section>
 
         <section class="mt-8">

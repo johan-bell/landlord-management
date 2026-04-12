@@ -1,5 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  PaginationQueryDto,
+  parsePagination,
+  toPaginated,
+} from '../common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PropertiesService } from '../properties/properties.service';
 import { CreateUnitDto } from './dto/create-unit.dto';
@@ -24,12 +29,28 @@ export class UnitsService {
     });
   }
 
-  async findAll(orgId: string, propertyId: string) {
+  async findAll(orgId: string, propertyId: string, query?: PaginationQueryDto) {
     await this.propertiesService.findOne(orgId, propertyId);
-    return this.prisma.unit.findMany({
-      where: { propertyId },
-      orderBy: { label: 'asc' },
-    });
+    const { page, limit, skip } = parsePagination(query);
+    const search = query?.search?.trim();
+    const where: Prisma.UnitWhereInput = {
+      propertyId,
+      ...(search
+        ? {
+            label: { contains: search, mode: 'insensitive' },
+          }
+        : {}),
+    };
+    const [total, items] = await Promise.all([
+      this.prisma.unit.count({ where }),
+      this.prisma.unit.findMany({
+        where,
+        orderBy: { label: 'asc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+    return toPaginated(items, total, page, limit);
   }
 
   async findOne(orgId: string, propertyId: string, unitId: string) {

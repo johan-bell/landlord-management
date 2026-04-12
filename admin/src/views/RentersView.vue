@@ -2,28 +2,57 @@
 import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
-import type { Renter } from '../types/models';
+import type { Paginated, Renter } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
 
 const renters = ref<Renter[]>([]);
+const page = ref(1);
+const totalPages = ref(1);
+const search = ref('');
 const loading = ref(true);
 const error = ref<string | null>(null);
 const showAdd = ref(false);
+const copyMsg = ref<string | null>(null);
 const form = ref({ fullName: '', phone: '', email: '' });
 const saving = ref(false);
+
+const PAGE_SIZE = 20;
 
 async function load() {
   if (!hasOrg.value) return;
   loading.value = true;
   error.value = null;
+  copyMsg.value = null;
   try {
-    renters.value = await api<Renter[]>(orgApi('/renters'));
+    const qs = new URLSearchParams({ page: String(page.value), limit: String(PAGE_SIZE) });
+    if (search.value.trim()) qs.set('search', search.value.trim());
+    const data = await api<Paginated<Renter>>(`${orgApi('/renters')}?${qs}`);
+    renters.value = data.items;
+    totalPages.value = Math.max(1, data.totalPages);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
   } finally {
     loading.value = false;
+  }
+}
+
+function applySearch() {
+  page.value = 1;
+  void load();
+}
+
+async function copyTenantInvite(r: Renter) {
+  copyMsg.value = null;
+  try {
+    const res = await api<{ registerUrl: string }>(orgApi(`/renters/${r.id}/tenant-invite`), {
+      method: 'POST',
+    });
+    await navigator.clipboard.writeText(res.registerUrl);
+    copyMsg.value = 'Invite link copied for ' + r.fullName;
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Could not create invite';
   }
 }
 
@@ -62,6 +91,7 @@ async function remove(r: Renter) {
 
 onMounted(() => void load());
 watch(hasOrg, () => void load());
+watch(page, () => void load());
 </script>
 
 <template>
@@ -69,8 +99,24 @@ watch(hasOrg, () => void load());
     <SelectOrgPrompt v-if="!hasOrg" />
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
         <p class="text-sm text-slate-600">People who rent units under this organization.</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            v-model="search"
+            type="search"
+            placeholder="Search name, email, phone…"
+            class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            @keydown.enter.prevent="applySearch"
+          />
+          <button
+            type="button"
+            class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="applySearch"
+          >
+            Search
+          </button>
+        </div>
         <button
           type="button"
           class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
@@ -80,6 +126,7 @@ watch(hasOrg, () => void load());
         </button>
       </div>
 
+      <p v-if="copyMsg" class="mb-2 text-sm text-emerald-700">{{ copyMsg }}</p>
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
 
       <div
@@ -96,7 +143,7 @@ watch(hasOrg, () => void load());
               <th class="px-4 py-3">Name</th>
               <th class="hidden px-4 py-3 sm:table-cell">Phone</th>
               <th class="hidden px-4 py-3 md:table-cell">Email</th>
-              <th class="px-4 py-3 text-right">Actions</th>
+              <th class="px-4 py-3 text-right">Invite / actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -105,6 +152,14 @@ watch(hasOrg, () => void load());
               <td class="hidden px-4 py-3 text-slate-600 sm:table-cell">{{ r.phone ?? '—' }}</td>
               <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ r.email ?? '—' }}</td>
               <td class="px-4 py-3 text-right">
+                <button
+                  v-if="r.email"
+                  type="button"
+                  class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
+                  @click="copyTenantInvite(r)"
+                >
+                  Copy invite
+                </button>
                 <button type="button" class="text-sm font-medium text-red-600 hover:underline" @click="remove(r)">
                   Remove
                 </button>
@@ -113,6 +168,29 @@ watch(hasOrg, () => void load());
           </tbody>
         </table>
         <p v-if="!renters.length" class="px-4 py-10 text-center text-sm text-slate-500">No renters yet.</p>
+      </div>
+
+      <div
+        v-if="!loading && totalPages > 1"
+        class="mt-6 flex items-center justify-center gap-4 text-sm text-slate-600"
+      >
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page <= 1"
+          @click="page--"
+        >
+          Previous
+        </button>
+        <span>Page {{ page }} / {{ totalPages }}</span>
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page >= totalPages"
+          @click="page++"
+        >
+          Next
+        </button>
       </div>
 
       <Teleport to="body">

@@ -3,12 +3,13 @@ import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TenantAuthController } from './tenant-auth.controller';
 import { TenantAuthService } from './tenant-auth.service';
+import { TenantInvitePublicController } from './tenant-invite-public.controller';
 import { TenantPortalController } from './tenant-portal.controller';
 import { TenantPortalService } from './tenant-portal.service';
 
 @Module({
   imports: [PrismaModule, AuthModule],
-  controllers: [TenantAuthController, TenantPortalController],
+  controllers: [TenantAuthController, TenantPortalController, TenantInvitePublicController],
   providers: [TenantAuthService, TenantPortalService],
 })
 export class TenantModule {}

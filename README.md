@@ -36,26 +36,30 @@ A diagram is kept in [`docs/architecture.drawio`](docs/architecture.drawio) (ope
   - `POST /auth/register`, `POST /auth/login` — staff users (`typ: staff`) for landlord workflows; users with `isPlatformAdmin` get `typ: platform`.
   - Org-scoped routes require membership; **suspended** organizations are blocked for staff (platform can bypass where implemented).
 - **Organizations:** create/list (staff), per-org read/update/summary for members (`/organizations/...`).
-- **Domain (per organization):** CRUD-style APIs for **properties**, **units**, **renters**, **leases**, **payments** under `organizations/:orgId/...` (all protected by JWT + org membership).
-- **Tenant portal API:** `POST /tenant/auth/register`, `POST /tenant/auth/login`; `GET /tenant/me`, `GET /tenant/leases` (JWT `typ: tenant`, linked renter profile).
-- **Platform API:** `GET /platform/organizations`, `PATCH /platform/organizations/:orgId/suspend` (JWT `typ: platform` + platform admin).
+- **Org team & invitations:** list/update/remove members and roles; create/list/revoke email invitations (`/organizations/:orgId/members...`, `.../invitations...`). Public preview/accept: `GET /invitations/organization?token=`, `POST /invitations/organization/accept` (JWT staff).
+- **Domain (per organization):** CRUD-style APIs for **properties**, **units**, **renters**, **leases**, **payments** under `organizations/:orgId/...` (all protected by JWT + org membership). List endpoints for **properties**, **units**, **renters**, and **leases** support **`page`**, **`limit`**, and **`search`** and return a paginated envelope `{ items, total, page, limit }`.
+- **Renter → tenant invite:** `POST .../renters/:renterId/tenant-invite` issues a token and a **`registerUrl`** (base URL from **`TENANT_PUBLIC_URL`** in `api/.env`, default `http://localhost:5174`).
+- **Tenant portal API:** `POST /tenant/auth/register` (by **`renterId`** or **`inviteToken`**), `POST /tenant/auth/login`; `GET /tenant/invites/preview?token=`; `POST /tenant/auth/change-password`; `GET /tenant/me`, `GET /tenant/leases` (JWT `typ: tenant`, linked renter profile).
+- **Platform API:** `GET /platform/organizations`, `GET /platform/organizations/:orgId` (read-only org detail + light diagnostics), `PATCH /platform/organizations/:orgId/suspend` (JWT `typ: platform` + platform admin).
 - **Billing (optional):** `POST /billing/organizations/:orgId/checkout` — Stripe Checkout session when `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID` are set; otherwise the endpoint responds with a configuration error.
-- **Data model:** organizations (incl. suspension, subscription-related fields for Stripe), users, org membership, renters (optional link to login user), leases, payments, etc. See `api/prisma/schema.prisma`.
+- **Data model:** organizations (incl. suspension, subscription-related fields for Stripe), users, org membership, **organization invitations**, renters (optional link to login user, optional **invite token** for registration), leases, payments, etc. See `api/prisma/schema.prisma`.
 
 ### Admin app (`admin/`)
 
 - Register / login as **landlord staff**; JWT stored for API calls.
 - **Organization** selector; screens for **overview**, **properties**, **units** (per property), **renters**, **leases**, **payments** (aligned with org-scoped API).
+- **Team:** manage members and pending invitations; invite by email (`/team`). **Accept org invite:** `/invite?token=...` (after login).
+- **Lists:** properties, renters, and leases support **pagination and search**; renters can **copy tenant registration link** after creating an invite.
 
 ### Tenant app (`tenant/`)
 
-- **Register** (claim renter profile with renter id + matching email) and **login**.
-- Signed-in **home**: profile (`/tenant/me`) and **leases** list with basic payment info (`/tenant/leases`).
+- **Register** with **renter id** or an **invite link** (`?token=...`); preview when using a token.
+- **Login**; signed-in **home**: profile, **leases**, and **change password**.
 
 ### Platform app (`platform/`)
 
 - Login with a **platform administrator** account (not landlord or renter users).
-- **Organizations** table: list orgs; **suspend / unsuspend** via platform API.
+- **Organizations** table: list orgs; open **detail** for read-only diagnostics; **suspend / unsuspend** via platform API.
 
 ---
 
@@ -78,6 +82,7 @@ Create `api/.env` (start from `api/.env.example`). Commonly:
 | `CORS_ORIGIN` | JSON array of allowed browser origins, e.g. `["http://localhost:5173","http://localhost:5174"]` (in `.env`, quote the value: `'["http://localhost:5173"]'`). **If unset, invalid JSON, or empty, cross-origin browser requests are blocked.** |
 | `STRIPE_SECRET_KEY` | Optional; enables Stripe Checkout |
 | `STRIPE_PRICE_ID` | Optional; Stripe price for subscriptions |
+| `TENANT_PUBLIC_URL` | Optional; base URL for renter registration links from `tenant-invite` (e.g. `http://localhost:5174`) |
 
 Each frontend may use `VITE_API_URL` (e.g. `/api` behind the Vite dev proxy, or a full API URL).
 

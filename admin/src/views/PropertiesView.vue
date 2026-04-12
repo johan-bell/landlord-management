@@ -4,12 +4,15 @@ import { RouterLink } from 'vue-router';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatMoney } from '../composables/format';
-import type { Property, Unit } from '../types/models';
+import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
 
 const rows = ref<(Property & { units?: Unit[] })[]>([]);
+const page = ref(1);
+const totalPages = ref(1);
+const search = ref('');
 const loading = ref(true);
 const error = ref<string | null>(null);
 const showAdd = ref(false);
@@ -17,16 +20,26 @@ const newName = ref('');
 const newAddress = ref('');
 const saving = ref(false);
 
+const PAGE_SIZE = 12;
+
 async function load() {
   if (!hasOrg.value) return;
   loading.value = true;
   error.value = null;
   try {
-    const list = await api<Property[]>(orgApi('/properties'));
+    const qs = new URLSearchParams({
+      page: String(page.value),
+      limit: String(PAGE_SIZE),
+    });
+    if (search.value.trim()) qs.set('search', search.value.trim());
+    const data = await api<Paginated<Property>>(`${orgApi('/properties')}?${qs}`);
+    totalPages.value = Math.max(1, data.totalPages);
     const withUnits = await Promise.all(
-      list.map(async (p) => {
-        const units = await api<Unit[]>(orgApi(`/properties/${p.id}/units`));
-        return { ...p, units };
+      data.items.map(async (p) => {
+        const ures = await api<Paginated<Unit>>(
+          `${orgApi(`/properties/${p.id}/units`)}?limit=100`,
+        );
+        return { ...p, units: ures.items };
       }),
     );
     rows.value = withUnits;
@@ -35,6 +48,11 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+
+function applySearch() {
+  page.value = 1;
+  void load();
 }
 
 async function addProperty() {
@@ -77,6 +95,10 @@ onMounted(() => {
 watch(hasOrg, () => {
   void load();
 });
+
+watch(page, () => {
+  void load();
+});
 </script>
 
 <template>
@@ -84,10 +106,26 @@ watch(hasOrg, () => {
     <SelectOrgPrompt v-if="!hasOrg" />
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <p class="text-sm text-slate-600">
           Buildings and sites in this organization. Open a property to manage units and rent amounts.
         </p>
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            v-model="search"
+            type="search"
+            placeholder="Search name or address…"
+            class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            @keydown.enter.prevent="applySearch"
+          />
+          <button
+            type="button"
+            class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="applySearch"
+          >
+            Search
+          </button>
+        </div>
         <button
           type="button"
           class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
@@ -171,6 +209,29 @@ watch(hasOrg, () => {
             </ul>
           </div>
         </article>
+      </div>
+
+      <div
+        v-if="!loading && totalPages > 1"
+        class="mt-8 flex items-center justify-center gap-4 text-sm text-slate-600"
+      >
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page <= 1"
+          @click="page--"
+        >
+          Previous
+        </button>
+        <span>Page {{ page }} / {{ totalPages }}</span>
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page >= totalPages"
+          @click="page++"
+        >
+          Next
+        </button>
       </div>
 
       <Teleport to="body">

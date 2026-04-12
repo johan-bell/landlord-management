@@ -1,14 +1,25 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
+import {
+  PaginationQueryDto,
+  parsePagination,
+  toPaginated,
+} from '../common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { CreateRenterDto } from './dto/create-renter.dto';
 import { UpdateRenterDto } from './dto/update-renter.dto';
+
+const RENTER_INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class RentersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly organizationsService: OrganizationsService,
+    private readonly config: ConfigService,
   ) {}
 
   async create(orgId: string, dto: CreateRenterDto) {
@@ -25,12 +36,49 @@ export class RentersService {
     });
   }
 
-  async findAll(orgId: string) {
+  async findAll(orgId: string, query?: PaginationQueryDto) {
     await this.organizationsService.findOneOrThrow(orgId);
-    return this.prisma.renter.findMany({
-      where: { organizationId: orgId },
-      orderBy: { fullName: 'asc' },
+    const { page, limit, skip } = parsePagination(query);
+    const search = query?.search?.trim();
+    const where: Prisma.RenterWhereInput = {
+      organizationId: orgId,
+      ...(search
+        ? {
+            OR: [
+              { fullName: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+    const [total, items] = await Promise.all([
+      this.prisma.renter.count({ where }),
+      this.prisma.renter.findMany({
+        where,
+        orderBy: { fullName: 'asc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+    return toPaginated(items, total, page, limit);
+  }
+
+  async createTenantInviteLink(orgId: string, renterId: string) {
+    await this.findOne(orgId, renterId);
+    const token = randomBytes(24).toString('base64url');
+    const inviteTokenExpiresAt = new Date(Date.now() + RENTER_INVITE_TTL_MS);
+    await this.prisma.renter.update({
+      where: { id: renterId },
+      data: { inviteToken: token, inviteTokenExpiresAt },
     });
+    const base =
+      this.config.get<string>('TENANT_PUBLIC_URL')?.replace(/\/$/, '') ?? 'http://localhost:5174';
+    return {
+      token,
+      expiresAt: inviteTokenExpiresAt,
+      registerUrl: `${base}/register?token=${encodeURIComponent(token)}`,
+    };
   }
 
   async findOne(orgId: string, renterId: string) {

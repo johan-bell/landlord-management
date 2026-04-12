@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CreateRenterDto } from './dto/create-renter.dto';
@@ -16,8 +27,13 @@ export class RentersController {
   }
 
   @Get()
-  findAll(@Param('orgId') orgId: string) {
-    return this.rentersService.findAll(orgId);
+  findAll(@Param('orgId') orgId: string, @Query() query: PaginationQueryDto) {
+    return this.rentersService.findAll(orgId, query);
+  }
+
+  @Post(':renterId/tenant-invite')
+  tenantInvite(@Param('orgId') orgId: string, @Param('renterId') renterId: string) {
+    return this.rentersService.createTenantInviteLink(orgId, renterId);
   }
 
   @Get(':renterId')

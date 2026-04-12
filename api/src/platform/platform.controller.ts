@@ -14,6 +14,11 @@ export class PlatformController {
     return this.platform.listOrganizations();
   }
 
+  @Get('organizations/:orgId')
+  organization(@Param('orgId') orgId: string) {
+    return this.platform.getOrganization(orgId);
+  }
+
   @Patch('organizations/:orgId/suspend')
   suspend(@Param('orgId') orgId: string, @Body() dto: SuspendOrganizationDto) {
     return this.platform.setSuspended(orgId, dto.suspended);

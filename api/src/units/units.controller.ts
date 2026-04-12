@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CreateUnitDto } from './dto/create-unit.dto';
@@ -20,8 +31,12 @@ export class UnitsController {
   }
 
   @Get()
-  findAll(@Param('orgId') orgId: string, @Param('propertyId') propertyId: string) {
-    return this.unitsService.findAll(orgId, propertyId);
+  findAll(
+    @Param('orgId') orgId: string,
+    @Param('propertyId') propertyId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.unitsService.findAll(orgId, propertyId, query);
   }
 
   @Get(':unitId')

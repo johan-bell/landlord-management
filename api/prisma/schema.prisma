@@ -52,9 +52,10 @@ model Organization {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
-  members    OrganizationMember[]
-  properties Property[]
-  renters    Renter[]
+  members      OrganizationMember[]
+  invitations  OrganizationInvitation[]
+  properties   Property[]
+  renters      Renter[]
 }
 
 model User {
@@ -67,8 +68,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships OrganizationMember[]
-  renterProfile Renter?
+  memberships              OrganizationMember[]
+  renterProfile            Renter?
+  organizationInvitationsCreated OrganizationInvitation[] @relation("InvitationCreatedBy")
 }
 
 model OrganizationMember {
@@ -83,6 +85,23 @@ model OrganizationMember {
 
   @@unique([userId, organizationId])
   @@index([organizationId])
+}
+
+model OrganizationInvitation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  email           String
+  role            OrgRole  @default(STAFF)
+  token           String   @unique
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
 }
 
 model Property {
@@ -125,6 +144,8 @@ model Renter {
   idDocument     String?
   notes          String?
   userId         String?  @unique
+  inviteToken          String?   @unique
+  inviteTokenExpiresAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

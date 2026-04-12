@@ -17,6 +17,12 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue'),
     },
     {
+      path: '/invite',
+      name: 'invite',
+      meta: { public: true },
+      component: () => import('../views/InviteAcceptView.vue'),
+    },
+    {
       path: '/',
       component: () => import('../layouts/AdminLayout.vue'),
       meta: { requiresAuth: true },
@@ -57,6 +63,12 @@ const router = createRouter({
           meta: { title: 'Payments' },
           component: () => import('../views/PaymentsView.vue'),
         },
+        {
+          path: 'team',
+          name: 'team',
+          meta: { title: 'Team' },
+          component: () => import('../views/TeamView.vue'),
+        },
       ],
     },
   ],
@@ -68,7 +80,7 @@ router.beforeEach((to) => {
   if (needsAuth && !auth.accessToken) {
     return { name: 'login', query: { redirect: to.fullPath } };
   }
-  if (to.meta.public && auth.accessToken) {
+  if (to.meta.public && auth.accessToken && to.name !== 'invite') {
     return { path: '/' };
   }
   return true;

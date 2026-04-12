@@ -3,12 +3,15 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatMoney } from '../composables/format';
-import type { Lease, Property, Renter, Unit } from '../types/models';
+import type { Lease, Paginated, Property, Renter, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
 
 const leases = ref<Lease[]>([]);
+const page = ref(1);
+const totalPages = ref(1);
+const search = ref('');
 const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>([]);
 const renters = ref<Renter[]>([]);
 const loading = ref(true);
@@ -25,11 +28,11 @@ const saving = ref(false);
 
 async function loadUnitsAndRenters() {
   if (!hasOrg.value) return;
-  const props = await api<Property[]>(orgApi('/properties'));
+  const propsRes = await api<Paginated<Property>>(orgApi('/properties?limit=500'));
   const pairs: { id: string; label: string; propertyName: string }[] = [];
-  for (const p of props) {
-    const units = await api<Unit[]>(orgApi(`/properties/${p.id}/units`));
-    for (const u of units) {
+  for (const p of propsRes.items) {
+    const unitsRes = await api<Paginated<Unit>>(orgApi(`/properties/${p.id}/units?limit=500`));
+    for (const u of unitsRes.items) {
       pairs.push({
         id: u.id,
         label: u.label,
@@ -38,7 +41,8 @@ async function loadUnitsAndRenters() {
     }
   }
   unitOptions.value = pairs;
-  renters.value = await api<Renter[]>(orgApi('/renters'));
+  const renRes = await api<Paginated<Renter>>(orgApi('/renters?limit=500'));
+  renters.value = renRes.items;
 }
 
 async function load() {
@@ -47,12 +51,21 @@ async function load() {
   error.value = null;
   try {
     await loadUnitsAndRenters();
-    leases.value = await api<Lease[]>(orgApi('/leases'));
+    const qs = new URLSearchParams({ page: String(page.value), limit: '20' });
+    if (search.value.trim()) qs.set('search', search.value.trim());
+    const data = await api<Paginated<Lease>>(`${orgApi('/leases')}?${qs}`);
+    leases.value = data.items as Lease[];
+    totalPages.value = Math.max(1, data.totalPages);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
   } finally {
     loading.value = false;
   }
+}
+
+function applySearch() {
+  page.value = 1;
+  void load();
 }
 
 async function createLease() {
@@ -110,6 +123,7 @@ const canSubmit = computed(() => {
 
 onMounted(() => void load());
 watch(hasOrg, () => void load());
+watch(page, () => void load());
 </script>
 
 <template>
@@ -117,8 +131,24 @@ watch(hasOrg, () => void load());
     <SelectOrgPrompt v-if="!hasOrg" />
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
         <p class="text-sm text-slate-600">Agreements between renters and units.</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            v-model="search"
+            type="search"
+            placeholder="Search renter or unit…"
+            class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            @keydown.enter.prevent="applySearch"
+          />
+          <button
+            type="button"
+            class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="applySearch"
+          >
+            Search
+          </button>
+        </div>
         <button
           type="button"
           class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
@@ -174,6 +204,29 @@ watch(hasOrg, () => void load());
           </table>
         </div>
         <p v-if="!leases.length" class="px-4 py-10 text-center text-sm text-slate-500">No leases yet.</p>
+      </div>
+
+      <div
+        v-if="!loading && totalPages > 1"
+        class="mt-6 flex items-center justify-center gap-4 text-sm text-slate-600"
+      >
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page <= 1"
+          @click="page--"
+        >
+          Previous
+        </button>
+        <span>Page {{ page }} / {{ totalPages }}</span>
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium hover:bg-slate-50 disabled:opacity-40"
+          :disabled="page >= totalPages"
+          @click="page++"
+        >
+          Next
+        </button>
       </div>
 
       <Teleport to="body">

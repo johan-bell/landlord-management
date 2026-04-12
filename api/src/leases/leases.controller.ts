@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CreateLeaseDto } from './dto/create-lease.dto';
@@ -16,8 +27,8 @@ export class LeasesController {
   }
 
   @Get()
-  findAll(@Param('orgId') orgId: string) {
-    return this.leasesService.findAll(orgId);
+  findAll(@Param('orgId') orgId: string, @Query() query: PaginationQueryDto) {
+    return this.leasesService.findAll(orgId, query);
   }
 
   @Get(':leaseId')

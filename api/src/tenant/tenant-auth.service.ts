@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -19,14 +20,59 @@ export class TenantAuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(dto: TenantRegisterDto) {
-    const email = dto.email.toLowerCase().trim();
-    const renter = await this.prisma.renter.findUnique({
-      where: { id: dto.renterId },
+  async previewInvite(token: string) {
+    const renter = await this.prisma.renter.findFirst({
+      where: {
+        inviteToken: token,
+        inviteTokenExpiresAt: { gt: new Date() },
+      },
     });
     if (!renter) {
-      throw new NotFoundException('Renter not found');
+      throw new NotFoundException('Invalid or expired invite');
     }
+    const email = renter.email;
+    const emailHint = email
+      ? email.replace(/(^.).*(@.+$)/, (_m, a, domain) => `${a}***${domain}`)
+      : null;
+    return {
+      renterId: renter.id,
+      fullName: renter.fullName,
+      emailHint,
+    };
+  }
+
+  async register(dto: TenantRegisterDto) {
+    const email = dto.email.toLowerCase().trim();
+    const token = dto.inviteToken?.trim();
+    const rid = dto.renterId?.trim();
+
+    if (!token && !rid) {
+      throw new BadRequestException('Provide renterId or inviteToken');
+    }
+    if (token && rid) {
+      throw new BadRequestException('Provide only one of renterId or inviteToken');
+    }
+
+    let renter;
+    if (token) {
+      renter = await this.prisma.renter.findFirst({
+        where: {
+          inviteToken: token,
+          inviteTokenExpiresAt: { gt: new Date() },
+        },
+      });
+      if (!renter) {
+        throw new NotFoundException('Invalid or expired invite');
+      }
+    } else {
+      renter = await this.prisma.renter.findUnique({
+        where: { id: rid! },
+      });
+      if (!renter) {
+        throw new NotFoundException('Renter not found');
+      }
+    }
+
     if (!renter.email || renter.email.toLowerCase() !== email) {
       throw new UnauthorizedException('Email does not match this renter profile');
     }
@@ -46,12 +92,16 @@ export class TenantAuthService {
         data: {
           email,
           passwordHash,
-          name: renter.fullName,
+          name: renter!.fullName,
         },
       });
       await tx.renter.update({
-        where: { id: renter.id },
-        data: { userId: u.id },
+        where: { id: renter!.id },
+        data: {
+          userId: u.id,
+          inviteToken: null,
+          inviteTokenExpiresAt: null,
+        },
       });
       return u;
     });
@@ -59,13 +109,33 @@ export class TenantAuthService {
     const access_token = this.jwt.sign({
       sub: user.id,
       typ: 'tenant',
-      renterId: renter.id,
+      renterId: renter!.id,
     });
 
     return {
       access_token,
-      renterId: renter.id,
+      renterId: renter!.id,
     };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { renterProfile: true },
+    });
+    if (!user?.passwordHash || !user.renterProfile) {
+      throw new UnauthorizedException();
+    }
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    return { ok: true };
   }
 
   async login(dto: TenantLoginDto) {

@@ -4,7 +4,7 @@ import { RouterLink, useRoute } from 'vue-router';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatMoney } from '../composables/format';
-import type { Property, Unit } from '../types/models';
+import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const route = useRoute();
@@ -28,7 +28,10 @@ async function load() {
   error.value = null;
   try {
     property.value = await api<Property>(orgApi(`/properties/${propertyId.value}`));
-    units.value = await api<Unit[]>(orgApi(`/properties/${propertyId.value}/units`));
+    const ures = await api<Paginated<Unit>>(
+      orgApi(`/properties/${propertyId.value}/units?limit=200`),
+    );
+    units.value = ures.items;
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
     property.value = null;

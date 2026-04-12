@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
 
@@ -118,6 +118,7 @@ onMounted(() => {
             <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-4 py-3">Name</th>
+                <th class="hidden px-4 py-3 sm:table-cell">Detail</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="hidden px-4 py-3 md:table-cell">Subscription</th>
                 <th class="hidden px-4 py-3 lg:table-cell">Counts</th>
@@ -130,6 +131,14 @@ onMounted(() => {
                 <td class="px-4 py-3 font-medium text-slate-900">
                   {{ org.name }}
                   <span v-if="org.slug" class="mt-0.5 block text-xs font-normal text-slate-500">{{ org.slug }}</span>
+                </td>
+                <td class="hidden px-4 py-3 sm:table-cell">
+                  <RouterLink
+                    class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                    :to="`/organization/${org.id}`"
+                  >
+                    View
+                  </RouterLink>
                 </td>
                 <td class="px-4 py-3">
                   <span

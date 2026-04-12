@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
-import type { Lease, Payment } from '../types/models';
+import type { Lease, Paginated, Payment } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
@@ -38,7 +38,8 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    leases.value = await api<Lease[]>(orgApi('/leases'));
+    const res = await api<Paginated<Lease>>(orgApi('/leases?limit=500'));
+    leases.value = res.items as Lease[];
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
   } finally {
