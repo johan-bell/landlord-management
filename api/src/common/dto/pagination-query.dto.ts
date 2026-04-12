@@ -12,7 +12,7 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(500)
   limit?: number = 20;
 
   @IsOptional()
@@ -31,7 +31,7 @@ export type PaginatedResult<T> = {
 
 export function parsePagination(d?: PaginationQueryDto) {
   const page = d?.page ?? 1;
-  const limit = Math.min(100, Math.max(1, d?.limit ?? 20));
+  const limit = Math.min(500, Math.max(1, d?.limit ?? 20));
   return { page, limit, skip: (page - 1) * limit };
 }
 

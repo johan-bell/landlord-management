@@ -166,7 +166,7 @@ onMounted(() => {
       <main class="p-4 sm:p-6 lg:p-8">
         <RouterView v-slot="{ Component }">
           <Transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="selectedOrgId ?? '__no_org__'" />
           </Transition>
         </RouterView>
       </main>

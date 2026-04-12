@@ -29,7 +29,7 @@ async function load() {
   try {
     property.value = await api<Property>(orgApi(`/properties/${propertyId.value}`));
     const ures = await api<Paginated<Unit>>(
-      orgApi(`/properties/${propertyId.value}/units?limit=200`),
+      orgApi(`/properties/${propertyId.value}/units?limit=500`),
     );
     units.value = ures.items;
   } catch (e) {
