@@ -1,13 +1,31 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
 
-type MeResponse = {
+type MeActive = {
+  status: 'active';
   renter: { id: string; fullName: string; phone: string | null; email: string | null };
   organization: { id: string; name: string };
 };
+
+type MePending = {
+  status: 'pending';
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  organization: { id: string; name: string };
+  message: string;
+};
+
+type MeRejected = {
+  status: 'rejected';
+  organization: { id: string; name: string };
+  message: string;
+};
+
+type MeResponse = MeActive | MePending | MeRejected;
 
 type LeaseRow = {
   id: string;
@@ -42,6 +60,8 @@ const pwdNew = ref('');
 const pwdMsg = ref<string | null>(null);
 const pwdErr = ref<string | null>(null);
 const pwdSaving = ref(false);
+
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 function money(amount: string, currency: string) {
   const n = Number(amount);
@@ -92,21 +112,39 @@ async function changePassword() {
   }
 }
 
+async function refreshMe() {
+  const m = await api<MeResponse>('/tenant/me');
+  me.value = m;
+  if (m.status === 'active') {
+    leases.value = await api<LeaseRow[]>('/tenant/leases');
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  } else {
+    leases.value = [];
+  }
+}
+
 onMounted(async () => {
   loading.value = true;
   error.value = null;
   try {
-    const [m, l] = await Promise.all([
-      api<MeResponse>('/tenant/me'),
-      api<LeaseRow[]>('/tenant/leases'),
-    ]);
-    me.value = m;
-    leases.value = l;
+    await refreshMe();
+    if (me.value?.status === 'pending') {
+      pollTimer = setInterval(() => {
+        void refreshMe().catch(() => undefined);
+      }, 25000);
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Could not load your account';
   } finally {
     loading.value = false;
   }
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script>
 
@@ -151,7 +189,80 @@ onMounted(async () => {
           If this keeps happening, confirm the API is running and your account still has access.
         </p>
       </div>
-      <template v-else-if="me">
+
+      <template v-else-if="me?.status === 'pending'">
+        <div
+          class="rounded-3xl border border-amber-200 bg-amber-50/90 p-6 shadow-sm"
+          role="status"
+        >
+          <p class="text-sm font-semibold text-amber-950">Waiting for landlord approval</p>
+          <p class="mt-2 text-sm text-amber-900/95">{{ me.message }}</p>
+          <p class="mt-3 text-xs text-amber-800/90">
+            You can leave this page open or sign out and return later — we’ll show your lease here once your landlord
+            assigns your unit.
+          </p>
+        </div>
+
+        <section class="mt-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-sm">
+          <p class="text-xs font-semibold uppercase tracking-widest text-teal-600">Your details</p>
+          <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">{{ me.fullName || '—' }}</h1>
+          <dl class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+            <div v-if="me.email">
+              <dt class="text-xs text-slate-400">Email</dt>
+              <dd>{{ me.email }}</dd>
+            </div>
+            <div v-if="me.phone">
+              <dt class="text-xs text-slate-400">Phone</dt>
+              <dd>{{ me.phone }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="mt-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-sm">
+          <h2 class="text-sm font-semibold text-slate-900">Change password</h2>
+          <form class="mt-4 space-y-3" @submit.prevent="changePassword">
+            <label class="block text-sm">
+              <span class="text-slate-700">Current password</span>
+              <input
+                v-model="pwdCurrent"
+                type="password"
+                required
+                autocomplete="current-password"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+            </label>
+            <label class="block text-sm">
+              <span class="text-slate-700">New password</span>
+              <input
+                v-model="pwdNew"
+                type="password"
+                required
+                minlength="8"
+                autocomplete="new-password"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+            </label>
+            <p v-if="pwdMsg" class="text-sm text-emerald-700">{{ pwdMsg }}</p>
+            <p v-if="pwdErr" class="text-sm text-red-600">{{ pwdErr }}</p>
+            <button
+              type="submit"
+              class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              :disabled="pwdSaving"
+            >
+              {{ pwdSaving ? 'Saving…' : 'Update password' }}
+            </button>
+          </form>
+        </section>
+      </template>
+
+      <template v-else-if="me?.status === 'rejected'">
+        <div class="rounded-3xl border border-red-200 bg-red-50/90 p-6 shadow-sm" role="alert">
+          <p class="text-sm font-semibold text-red-950">Registration not approved</p>
+          <p class="mt-2 text-sm text-red-900/95">{{ me.message }}</p>
+        </div>
+      </template>
+
+      <template v-else-if="me?.status === 'active'">
         <section class="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-sm">
           <p class="text-xs font-semibold uppercase tracking-widest text-teal-600">Your profile</p>
           <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">{{ me.renter.fullName }}</h1>
@@ -260,7 +371,10 @@ onMounted(async () => {
               </div>
             </li>
           </ul>
-          <p v-else class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
+          <p
+            v-else
+            class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600"
+          >
             No leases on file yet.
           </p>
         </section>

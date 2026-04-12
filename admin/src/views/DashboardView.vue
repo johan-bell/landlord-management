@@ -14,6 +14,25 @@ const summaryLoading = ref(false);
 
 const selectedId = computed(() => orgStore.selectedOrgId);
 
+const currentOrg = computed(() =>
+  orgStore.organizations.find((o) => o.id === selectedId.value) ?? null,
+);
+
+const copyMsg = ref<string | null>(null);
+
+async function copyText(label: string, text: string) {
+  copyMsg.value = null;
+  try {
+    await navigator.clipboard.writeText(text);
+    copyMsg.value = `${label} copied`;
+    window.setTimeout(() => {
+      copyMsg.value = null;
+    }, 2000);
+  } catch {
+    copyMsg.value = 'Could not copy';
+  }
+}
+
 async function loadSummary() {
   const id = orgStore.selectedOrgId;
   if (!id) {
@@ -137,6 +156,42 @@ const statCards = computed(() => {
     </section>
 
     <section v-else>
+      <div
+        v-if="currentOrg"
+        class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tenant self-signup</p>
+        <p class="mt-1 text-sm text-slate-600">
+          Share the <strong>organization ID</strong> or <strong>slug</strong> with renters so they can request access in the tenant app.
+        </p>
+        <dl class="mt-3 space-y-2 text-sm">
+          <div class="flex flex-wrap items-center gap-2">
+            <dt class="text-slate-500">Organization ID</dt>
+            <dd class="font-mono text-xs text-slate-800">{{ currentOrg.id }}</dd>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              @click="copyText('Organization ID', currentOrg.id)"
+            >
+              Copy
+            </button>
+          </div>
+          <div v-if="currentOrg.slug" class="flex flex-wrap items-center gap-2">
+            <dt class="text-slate-500">Slug</dt>
+            <dd class="font-mono text-xs text-slate-800">{{ currentOrg.slug }}</dd>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              @click="copyText('Slug', currentOrg.slug!)"
+            >
+              Copy
+            </button>
+          </div>
+          <p v-else class="text-xs text-slate-500">No slug set — renters can use the organization ID only (or add a slug via API later).</p>
+        </dl>
+        <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">{{ copyMsg }}</p>
+      </div>
+
       <div class="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Portfolio snapshot</h2>

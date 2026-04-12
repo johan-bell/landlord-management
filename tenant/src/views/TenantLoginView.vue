@@ -17,14 +17,18 @@ async function submit() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api<{ access_token: string; renterId: string }>('/tenant/auth/login', {
+    const res = await api<{
+      access_token: string;
+      renterId: string | null;
+      accountStatus: 'active' | 'pending' | 'rejected';
+    }>('/tenant/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: email.value.trim(),
         password: password.value,
       }),
     });
-    auth.setSession(res.access_token, res.renterId);
+    auth.setSession(res.access_token, res.renterId, res.accountStatus);
     const redirect = (route.query.redirect as string) || '/';
     await router.replace(redirect);
   } catch (e) {

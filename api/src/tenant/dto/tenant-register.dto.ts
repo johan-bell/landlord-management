@@ -1,19 +1,12 @@
-import { IsEmail, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-/** Claim a renter profile with `renterId` **or** an `inviteToken` from the landlord invite link. */
+/**
+ * Three modes (exactly one):
+ * - **Organization request:** `organizationId` and/or `organizationSlug` + `fullName` — pending admin approval.
+ * - **Invite token:** `inviteToken` (from landlord link).
+ * - **Claim existing renter:** `renterId` (must match profile email).
+ */
 export class TenantRegisterDto {
-  @ValidateIf((o: TenantRegisterDto) => !o.inviteToken)
-  @IsString()
-  @MinLength(10)
-  @MaxLength(40)
-  renterId?: string;
-
-  @ValidateIf((o: TenantRegisterDto) => !o.renterId)
-  @IsString()
-  @MinLength(24)
-  @MaxLength(128)
-  inviteToken?: string;
-
   @IsEmail()
   email!: string;
 
@@ -21,4 +14,35 @@ export class TenantRegisterDto {
   @MinLength(8)
   @MaxLength(128)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  renterId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  inviteToken?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  organizationSlug?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phone?: string;
 }

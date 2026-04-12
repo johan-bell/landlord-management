@@ -12,11 +12,11 @@ export class TenantPortalController {
 
   @Get('me')
   me(@CurrentUser() user: RequestUser) {
-    return this.portal.getMe(user.renterId!);
+    return this.portal.getMe(user);
   }
 
   @Get('leases')
   leases(@CurrentUser() user: RequestUser) {
-    return this.portal.getLeases(user.renterId!);
+    return this.portal.getLeases(user);
   }
 }

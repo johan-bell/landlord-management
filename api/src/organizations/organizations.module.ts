@@ -5,11 +5,18 @@ import { OrgTeamController } from './org-team.controller';
 import { OrgTeamService } from './org-team.service';
 import { OrganizationsController } from './organizations.controller';
 import { OrganizationsService } from './organizations.service';
+import { TenantSignupsController } from './tenant-signups.controller';
+import { TenantSignupsService } from './tenant-signups.service';
 
 @Module({
   imports: [AuthModule],
-  controllers: [OrganizationsController, OrgTeamController, InvitationsPublicController],
-  providers: [OrganizationsService, OrgTeamService],
-  exports: [OrganizationsService, OrgTeamService],
+  controllers: [
+    OrganizationsController,
+    OrgTeamController,
+    InvitationsPublicController,
+    TenantSignupsController,
+  ],
+  providers: [OrganizationsService, OrgTeamService, TenantSignupsService],
+  exports: [OrganizationsService, OrgTeamService, TenantSignupsService],
 })
 export class OrganizationsModule {}

@@ -90,6 +90,8 @@ npx prisma migrate dev --name describe_your_change
 | `api/prisma/seed.ts` | Seed implementation |
 | `api/prisma/seed-data/*.json` | Fixture data (IDs use `seed_` prefix) |
 
+New migrations (e.g. tenant signup requests) are applied with `npx prisma migrate deploy` from `api/`.
+
 ---
 
 ## Troubleshooting

@@ -52,6 +52,12 @@ const router = createRouter({
           component: () => import('../views/RentersView.vue'),
         },
         {
+          path: 'tenant-signups',
+          name: 'tenant-signups',
+          meta: { title: 'Tenant signups' },
+          component: () => import('../views/TenantSignupsView.vue'),
+        },
+        {
           path: 'leases',
           name: 'leases',
           meta: { title: 'Leases' },

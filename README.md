@@ -39,7 +39,8 @@ A diagram is kept in [`docs/architecture.drawio`](docs/architecture.drawio) (ope
 - **Org team & invitations:** list/update/remove members and roles; create/list/revoke email invitations (`/organizations/:orgId/members...`, `.../invitations...`). Public preview/accept: `GET /invitations/organization?token=`, `POST /invitations/organization/accept` (JWT staff).
 - **Domain (per organization):** CRUD-style APIs for **properties**, **units**, **renters**, **leases**, **payments** under `organizations/:orgId/...` (all protected by JWT + org membership). List endpoints for **properties**, **units**, **renters**, and **leases** support **`page`**, **`limit`**, and **`search`** and return a paginated envelope `{ items, total, page, limit }`.
 - **Renter → tenant invite:** `POST .../renters/:renterId/tenant-invite` issues a token and a **`registerUrl`** (base URL from **`TENANT_PUBLIC_URL`** in `api/.env`, default `http://localhost:5174`).
-- **Tenant portal API:** `POST /tenant/auth/register` (by **`renterId`** or **`inviteToken`**), `POST /tenant/auth/login`; `GET /tenant/invites/preview?token=`; `POST /tenant/auth/change-password`; `GET /tenant/me`, `GET /tenant/leases` (JWT `typ: tenant`, linked renter profile).
+- **Tenant portal API:** `POST /tenant/auth/register` — **claim** existing renter (`renterId` / `inviteToken`) **or** **request access** with `organizationId` and/or `organizationSlug` + `fullName` (creates a pending signup for admin approval). `POST /tenant/auth/login` returns `accountStatus`: `active` | `pending` | `rejected`. Public: `GET /tenant/invites/preview?token=`, `GET /tenant/organizations/preview?id=` or `slug=`. `POST /tenant/auth/change-password`; `GET /tenant/me` (includes `status` for pending/rejected), `GET /tenant/leases` (JWT `typ: tenant`).
+- **Admin — pending tenant signups:** `GET/POST .../organizations/:orgId/tenant-signups` — list pending requests; **`POST .../:requestId/approve`** (assign `unitId`, lease terms) creates renter + lease and activates portal access; **`POST .../:requestId/reject`**. Requires owner/manager (same as team management).
 - **Platform API:** `GET /platform/organizations`, `GET /platform/organizations/:orgId` (read-only org detail + light diagnostics), `PATCH /platform/organizations/:orgId/suspend` (JWT `typ: platform` + platform admin).
 - **Billing (optional):** `POST /billing/organizations/:orgId/checkout` — Stripe Checkout session when `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID` are set; otherwise the endpoint responds with a configuration error.
 - **Data model:** organizations (incl. suspension, subscription-related fields for Stripe), users, org membership, **organization invitations**, renters (optional link to login user, optional **invite token** for registration), leases, payments, etc. See `api/prisma/schema.prisma`.
@@ -49,11 +50,12 @@ A diagram is kept in [`docs/architecture.drawio`](docs/architecture.drawio) (ope
 - Register / login as **landlord staff**; JWT stored for API calls.
 - **Organization** selector; screens for **overview**, **properties**, **units** (per property), **renters**, **leases**, **payments** (aligned with org-scoped API).
 - **Team:** manage members and pending invitations; invite by email (`/team`). **Accept org invite:** `/invite?token=...` (after login).
+- **Tenant signups:** `/tenant-signups` — approve or reject self-serve tenant requests (assign unit + rent when approving).
 - **Lists:** properties, renters, and leases support **pagination and search**; renters can **copy tenant registration link** after creating an invite.
 
 ### Tenant app (`tenant/`)
 
-- **Register** with **renter id** or an **invite link** (`?token=...`); preview when using a token.
+- **Register** — **New signup:** organization **ID** or **slug** from the landlord + your name (waits for approval). **Renter ID** / **invite link** (`?token=...`) for existing profiles. **Home** shows a clear **waiting for approval** state until the landlord approves and assigns a unit.
 - **Login**; signed-in **home**: profile, **leases**, and **change password**.
 
 ### Platform app (`platform/`)

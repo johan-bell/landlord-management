@@ -13,4 +13,10 @@ export class TenantInvitePublicController {
     }
     return this.tenantAuth.previewInvite(token.trim());
   }
+
+  /** Public: confirm organization id or slug before self-signup. */
+  @Get('organizations/preview')
+  previewOrg(@Query('id') id?: string, @Query('slug') slug?: string) {
+    return this.tenantAuth.previewOrganization(id, slug);
+  }
 }
