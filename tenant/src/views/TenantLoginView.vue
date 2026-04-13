@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
+import TenantMark from '../components/TenantMark.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -40,53 +41,61 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col justify-center px-4">
-    <div class="mx-auto w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-xl shadow-slate-200/50 backdrop-blur-sm">
-      <div class="mb-6 text-center">
-        <div
-          class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
-        >
-          LM
-        </div>
-        <h1 class="text-xl font-semibold text-slate-900">Renter sign in</h1>
-        <p class="mt-1 text-sm text-slate-500">Access your lease and payments</p>
+  <div class="tenant-auth-screen flex min-h-screen flex-col justify-center px-4 pb-16 pt-10 sm:px-6">
+    <div class="mx-auto w-full max-w-[420px]">
+      <TenantMark size="lg" class="mb-8" />
+
+      <div class="tenant-card p-8 sm:p-9">
+        <h1 class="text-center text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
+        <p class="mt-2 text-center text-sm leading-relaxed text-slate-600">
+          Sign in to view your lease, rent schedule, and messages from your landlord.
+        </p>
+
+        <form class="mt-8 space-y-5" @submit.prevent="submit">
+          <label class="block">
+            <span class="text-sm font-medium text-slate-800">Email</span>
+            <input
+              v-model="email"
+              type="email"
+              required
+              autocomplete="email"
+              class="tenant-input mt-2"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-800">Password</span>
+            <input
+              v-model="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              class="tenant-input mt-2"
+            />
+          </label>
+
+          <div
+            v-if="error"
+            class="rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+            role="alert"
+          >
+            {{ error }}
+          </div>
+
+          <button type="submit" class="tenant-btn-primary" :disabled="loading">
+            {{ loading ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+
+        <p class="mt-8 text-center text-sm text-slate-600">
+          First time here?
+          <RouterLink
+            to="/register"
+            class="font-semibold text-teal-700 underline decoration-teal-300 underline-offset-2 hover:text-teal-800"
+          >
+            Create your account
+          </RouterLink>
+        </p>
       </div>
-      <form class="space-y-4" @submit.prevent="submit">
-        <label class="block">
-          <span class="text-sm font-medium text-slate-700">Email</span>
-          <input
-            v-model="email"
-            type="email"
-            required
-            autocomplete="email"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-          />
-        </label>
-        <label class="block">
-          <span class="text-sm font-medium text-slate-700">Password</span>
-          <input
-            v-model="password"
-            type="password"
-            required
-            autocomplete="current-password"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-          />
-        </label>
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-        <button
-          type="submit"
-          class="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-          :disabled="loading"
-        >
-          {{ loading ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
-      <p class="mt-6 text-center text-sm text-slate-500">
-        First time?
-        <RouterLink to="/register" class="font-medium text-teal-600 hover:text-teal-700">
-          Claim your profile
-        </RouterLink>
-      </p>
     </div>
   </div>
 </template>

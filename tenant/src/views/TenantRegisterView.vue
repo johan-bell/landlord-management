@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
+import TenantMark from '../components/TenantMark.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -132,26 +133,28 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col justify-center px-4 pb-12 pt-8">
-    <div
-      class="mx-auto w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-xl shadow-slate-200/50 backdrop-blur-sm"
-    >
-      <div class="mb-6 text-center">
-        <div
-          class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
-        >
-          LM
-        </div>
-        <h1 class="text-xl font-semibold text-slate-900">Renter access</h1>
-        <p class="mt-1 text-sm text-slate-500">Choose how you link your account.</p>
-      </div>
+  <div class="tenant-auth-screen min-h-screen px-4 pb-16 pt-10 sm:px-6">
+    <div class="mx-auto w-full max-w-[480px]">
+      <TenantMark size="lg" class="mb-6" />
 
-      <div class="mb-6 flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-1 text-xs font-medium">
+      <div class="tenant-card p-6 sm:p-8">
+        <h1 class="text-center text-2xl font-bold tracking-tight text-slate-900">Create your access</h1>
+        <p class="mt-2 text-center text-sm text-slate-600">Pick one path — your landlord may have told you which to use.</p>
+
+      <div
+        class="mb-8 grid grid-cols-1 gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/90 p-1.5 sm:grid-cols-3"
+        role="tablist"
+        aria-label="Registration type"
+      >
         <button
           type="button"
-          class="flex-1 rounded-xl px-3 py-2 transition"
+          role="tab"
+          :aria-selected="registrationMode === 'org'"
+          class="rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:text-sm"
           :class="
-            registrationMode === 'org' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            registrationMode === 'org'
+              ? 'bg-white text-slate-900 shadow-md shadow-slate-200/50 ring-1 ring-slate-200/80'
+              : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
           "
           @click="registrationMode = 'org'"
         >
@@ -159,11 +162,13 @@ async function submit() {
         </button>
         <button
           type="button"
-          class="flex-1 rounded-xl px-3 py-2 transition"
+          role="tab"
+          :aria-selected="registrationMode === 'claim'"
+          class="rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:text-sm"
           :class="
             registrationMode === 'claim'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-white text-slate-900 shadow-md shadow-slate-200/50 ring-1 ring-slate-200/80'
+              : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
           "
           @click="registrationMode = 'claim'"
         >
@@ -171,11 +176,13 @@ async function submit() {
         </button>
         <button
           type="button"
-          class="flex-1 rounded-xl px-3 py-2 transition"
+          role="tab"
+          :aria-selected="registrationMode === 'invite'"
+          class="rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition sm:text-sm"
           :class="
             registrationMode === 'invite'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-white text-slate-900 shadow-md shadow-slate-200/50 ring-1 ring-slate-200/80'
+              : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
           "
           @click="registrationMode = 'invite'"
         >
@@ -183,18 +190,19 @@ async function submit() {
         </button>
       </div>
 
-      <p v-if="registrationMode === 'org'" class="mb-4 text-sm text-slate-600">
-        Enter the <strong>organization ID</strong> or <strong>slug</strong> from your landlord. After you sign up, they
-        assign your unit and approve your access.
+      <p v-if="registrationMode === 'org'" class="mb-5 rounded-2xl border border-teal-100/80 bg-teal-50/50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+        Enter the <strong class="text-slate-900">organization ID</strong> or <strong class="text-slate-900">slug</strong> from your landlord. After you register, they assign your unit and approve access.
       </p>
-      <p v-else-if="registrationMode === 'claim'" class="mb-4 text-sm text-slate-600">
-        Your landlord created a profile for you. Enter the renter ID they gave you — your email must match that profile.
+      <p v-else-if="registrationMode === 'claim'" class="mb-5 rounded-2xl border border-sky-100/80 bg-sky-50/50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+        Your landlord created a profile for you. Use the renter ID they shared — <strong class="text-slate-900">your email must match</strong> that profile.
       </p>
-      <p v-else class="mb-4 text-sm text-slate-600">Paste the token from the invite link your landlord sent.</p>
+      <p v-else class="mb-5 rounded-2xl border border-violet-100/80 bg-violet-50/40 px-4 py-3 text-sm leading-relaxed text-slate-700">
+        Paste the token from the invite link your landlord sent (or open the link on this device first).
+      </p>
 
       <div
         v-if="preview && registrationMode === 'invite'"
-        class="mb-4 rounded-2xl border border-teal-100 bg-teal-50/80 px-4 py-3 text-left text-sm text-slate-700"
+        class="mb-4 rounded-2xl border border-teal-200/60 bg-gradient-to-br from-teal-50 to-emerald-50/80 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
       >
         <p class="font-medium text-slate-900">{{ preview.fullName }}</p>
         <p v-if="preview.emailHint" class="mt-1 text-xs text-slate-600">Email hint: {{ preview.emailHint }}</p>
@@ -205,7 +213,7 @@ async function submit() {
 
       <div
         v-if="orgPreview && registrationMode === 'org'"
-        class="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-left text-sm text-slate-700"
+        class="mb-4 rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-teal-50/60 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
       >
         <p class="font-medium text-slate-900">{{ orgPreview.name }}</p>
         <p class="mt-1 font-mono text-xs text-slate-600">ID: {{ orgPreview.id }}</p>
@@ -222,7 +230,7 @@ async function submit() {
               v-model="organizationId"
               type="text"
               autocomplete="off"
-              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              class="tenant-input mt-2 font-mono text-sm"
               placeholder="e.g. seed_org_douala"
             />
           </label>
@@ -233,7 +241,7 @@ async function submit() {
               v-model="organizationSlug"
               type="text"
               autocomplete="off"
-              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              class="tenant-input mt-2 text-sm"
               placeholder="e.g. douala-rentals-demo"
             />
           </label>
@@ -245,7 +253,7 @@ async function submit() {
               required
               minlength="2"
               autocomplete="name"
-              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              class="tenant-input mt-2"
             />
           </label>
           <label class="block">
@@ -254,7 +262,7 @@ async function submit() {
               v-model="phone"
               type="tel"
               autocomplete="tel"
-              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              class="tenant-input mt-2"
             />
           </label>
         </template>
@@ -266,7 +274,7 @@ async function submit() {
             type="text"
             minlength="10"
             autocomplete="off"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            class="tenant-input mt-2 font-mono text-sm"
             placeholder="From your landlord"
           />
         </label>
@@ -276,7 +284,7 @@ async function submit() {
             v-model="inviteToken"
             type="text"
             autocomplete="off"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            class="tenant-input mt-2 font-mono text-xs"
             placeholder="Pasted from invite link"
           />
         </label>
@@ -287,7 +295,7 @@ async function submit() {
             type="email"
             required
             autocomplete="email"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            class="tenant-input mt-2"
           />
         </label>
         <label class="block">
@@ -298,22 +306,24 @@ async function submit() {
             required
             minlength="8"
             autocomplete="new-password"
-            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            class="tenant-input mt-2"
           />
         </label>
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-        <button
-          type="submit"
-          class="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-          :disabled="loading || !canSubmit"
-        >
+        <p v-if="error" class="rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-sm text-red-800">{{ error }}</p>
+        <button type="submit" class="tenant-btn-primary" :disabled="loading || !canSubmit">
           {{ loading ? 'Creating account…' : 'Create account' }}
         </button>
       </form>
-      <p class="mt-6 text-center text-sm text-slate-500">
+      <p class="mt-8 text-center text-sm text-slate-600">
         Already have access?
-        <RouterLink to="/login" class="font-medium text-teal-600 hover:text-teal-700">Sign in</RouterLink>
+        <RouterLink
+          to="/login"
+          class="font-semibold text-teal-700 underline decoration-teal-300 underline-offset-2 hover:text-teal-800"
+        >
+          Sign in
+        </RouterLink>
       </p>
+      </div>
     </div>
   </div>
 </template>
