@@ -37,4 +37,12 @@ export class CreateLeaseDto {
   @Min(1)
   @Max(28)
   dueDay?: number;
+
+  /** Number of consecutive months (from first due on/after start) recorded as already paid. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(60)
+  prepaidMonths?: number;
 }

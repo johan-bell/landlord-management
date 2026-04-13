@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgTeamService } from './org-team.service';
 import { ApproveTenantSignupDto } from './dto/approve-tenant-signup.dto';
@@ -80,6 +81,11 @@ export class TenantSignupsService {
     const fullName = signup.user.name?.trim() || signup.user.email.split('@')[0];
     const email = signup.user.email;
 
+    const dueDay = dto.dueDay ?? 1;
+    const prepaidMonths = dto.prepaidMonths ?? 0;
+    const rentDec = new Prisma.Decimal(dto.rentAmount);
+    const currency = dto.currency ?? 'XAF';
+
     return this.prisma.$transaction(async (tx) => {
       const renter = await tx.renter.create({
         data: {
@@ -91,21 +97,30 @@ export class TenantSignupsService {
         },
       });
 
-      await tx.lease.create({
+      const lease = await tx.lease.create({
         data: {
           unitId: dto.unitId,
           renterId: renter.id,
           startDate: start,
           endDate: end,
-          rentAmount: new Prisma.Decimal(dto.rentAmount),
-          currency: dto.currency ?? 'XAF',
-          dueDay: dto.dueDay ?? 1,
+          rentAmount: rentDec,
+          currency,
+          dueDay,
         },
       });
 
       await tx.unit.update({
         where: { id: dto.unitId },
         data: { status: 'OCCUPIED' },
+      });
+
+      await createPrepaidRentPayments(tx, {
+        leaseId: lease.id,
+        leaseStart: start,
+        dueDay,
+        rentAmount: rentDec,
+        currency,
+        prepaidMonths,
       });
 
       await tx.tenantSignupRequest.delete({ where: { id: signup.id } });

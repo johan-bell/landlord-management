@@ -316,7 +316,10 @@ onUnmounted(() => {
 
         <section class="mt-8">
           <h2 class="text-lg font-semibold text-slate-900">Leases</h2>
-          <p class="mt-1 text-sm text-slate-500">Active and past leases linked to your account.</p>
+          <p class="mt-1 text-sm text-slate-500">
+            Active and past leases linked to your account. Each row lists scheduled rent; <strong>PAID</strong> means
+            that period is settled (including months your landlord marked as prepaid when the lease started).
+          </p>
 
           <ul v-if="leases.length" class="mt-4 space-y-4">
             <li

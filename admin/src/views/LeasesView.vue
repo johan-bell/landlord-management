@@ -23,6 +23,7 @@ const form = ref({
   startDate: new Date().toISOString().slice(0, 10),
   rentAmount: '',
   dueDay: '1',
+  prepaidMonths: '0',
 });
 const saving = ref(false);
 
@@ -75,6 +76,7 @@ async function createLease() {
   if (!unitId || !renterId || Number.isNaN(rent)) return;
   saving.value = true;
   try {
+    const prepaid = Number.parseInt(form.value.prepaidMonths, 10);
     await api(orgApi('/leases'), {
       method: 'POST',
       body: JSON.stringify({
@@ -83,6 +85,7 @@ async function createLease() {
         startDate: new Date(form.value.startDate).toISOString(),
         rentAmount: rent,
         dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
+        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showAdd.value = false;
@@ -92,6 +95,7 @@ async function createLease() {
       startDate: new Date().toISOString().slice(0, 10),
       rentAmount: '',
       dueDay: '1',
+      prepaidMonths: '0',
     };
     await load();
   } catch (e) {
@@ -295,6 +299,20 @@ watch(page, () => void load());
                 max="28"
                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               />
+            </label>
+
+            <label class="mt-3 block">
+              <span class="text-sm font-medium">Months prepaid upfront (0–60)</span>
+              <input
+                v-model="form.prepaidMonths"
+                type="number"
+                min="0"
+                max="60"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
+              <span class="mt-1 block text-xs text-slate-500">
+                Records that many monthly payments as already paid (tenant sees them as paid on the portal).
+              </span>
             </label>
 
             <div class="mt-6 flex justify-end gap-2">

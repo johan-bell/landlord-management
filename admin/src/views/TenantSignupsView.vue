@@ -34,6 +34,7 @@ const form = ref({
   rentAmount: '',
   dueDay: '1',
   currency: 'XAF',
+  prepaidMonths: '0',
 });
 const saving = ref(false);
 
@@ -80,6 +81,7 @@ function openApprove(row: SignupRow) {
     rentAmount: '',
     dueDay: '1',
     currency: 'XAF',
+    prepaidMonths: '0',
   };
   showApprove.value = row;
 }
@@ -95,6 +97,7 @@ async function submitApprove() {
   saving.value = true;
   actionError.value = null;
   try {
+    const prepaid = Number.parseInt(form.value.prepaidMonths, 10);
     await api(orgApi(`/tenant-signups/${row.id}/approve`), {
       method: 'POST',
       body: JSON.stringify({
@@ -103,6 +106,7 @@ async function submitApprove() {
         rentAmount: rent,
         dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
         currency: form.value.currency.trim() || 'XAF',
+        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showApprove.value = null;
@@ -252,6 +256,17 @@ watch([hasOrg, selectedOrgId], () => void load());
                   <input v-model="form.currency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
                 </label>
               </div>
+              <label class="block text-sm">
+                <span class="font-medium text-slate-700">Months prepaid upfront (0–60)</span>
+                <input
+                  v-model="form.prepaidMonths"
+                  type="number"
+                  min="0"
+                  max="60"
+                  class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                />
+                <span class="mt-1 block text-xs text-slate-500">Optional — marks those months as paid on the tenant portal.</span>
+              </label>
             </div>
             <p v-if="actionError" class="mt-3 text-sm text-red-600">{{ actionError }}</p>
             <div class="mt-6 flex justify-end gap-2">

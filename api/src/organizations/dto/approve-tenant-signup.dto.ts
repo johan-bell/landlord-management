@@ -35,4 +35,11 @@ export class ApproveTenantSignupDto {
   @Min(1)
   @Max(28)
   dueDay?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(60)
+  prepaidMonths?: number;
 }

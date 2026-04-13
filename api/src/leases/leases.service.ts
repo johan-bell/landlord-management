@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { RentersService } from '../renters/renters.service';
+import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
 import { CreateLeaseDto } from './dto/create-lease.dto';
 import { UpdateLeaseDto } from './dto/update-lease.dto';
 
@@ -57,6 +58,11 @@ export class LeasesService {
       throw new BadRequestException('endDate must be on or after startDate');
     }
 
+    const dueDay = dto.dueDay ?? 1;
+    const prepaidMonths = dto.prepaidMonths ?? 0;
+    const rentDec = new Prisma.Decimal(dto.rentAmount);
+    const currency = dto.currency ?? 'XAF';
+
     return this.prisma.$transaction(async (tx) => {
       const lease = await tx.lease.create({
         data: {
@@ -64,14 +70,22 @@ export class LeasesService {
           renterId: dto.renterId,
           startDate: start,
           endDate: end,
-          rentAmount: new Prisma.Decimal(dto.rentAmount),
-          currency: dto.currency ?? 'XAF',
-          dueDay: dto.dueDay ?? 1,
+          rentAmount: rentDec,
+          currency,
+          dueDay,
         },
       });
       await tx.unit.update({
         where: { id: dto.unitId },
         data: { status: 'OCCUPIED' },
+      });
+      await createPrepaidRentPayments(tx, {
+        leaseId: lease.id,
+        leaseStart: start,
+        dueDay,
+        rentAmount: rentDec,
+        currency,
+        prepaidMonths,
       });
       return lease;
     });
