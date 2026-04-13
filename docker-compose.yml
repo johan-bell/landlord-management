@@ -11,6 +11,28 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  api:
+    build: ./api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/landlord
+      PORT: '3000'
+      # JSON array of browser origins for CORS (match how you open the web UI).
+      CORS_ORIGIN: '["http://localhost:5174"]'
+    depends_on:
+      - postgres
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '5174:80'
+    depends_on:
+      - api
+      - postgres
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped

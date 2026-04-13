@@ -31,7 +31,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (res.status === 401 && hadToken && !path.startsWith('/auth/')) {
     auth.clearSession();
-    window.location.href = '/login';
+    window.location.href = `${import.meta.env.BASE_URL}login`;
   }
 
   if (!res.ok) {

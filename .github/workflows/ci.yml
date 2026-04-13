@@ -81,11 +81,5 @@ jobs:
       - name: Build API image
         run: docker build -t landlord-api:ci ./api
 
-      - name: Build admin image
-        run: docker build -t landlord-admin:ci ./admin
-
-      - name: Build tenant image
-        run: docker build -t landlord-tenant:ci ./tenant
-
-      - name: Build platform image
-        run: docker build -t landlord-platform:ci ./platform
+      - name: Build combined web image (tenant /, admin /admin/, platform /platform/)
+        run: docker build -t landlord-web:ci .
