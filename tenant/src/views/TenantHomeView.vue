@@ -27,6 +27,15 @@ type MeRejected = {
 
 type MeResponse = MeActive | MePending | MeRejected;
 
+type SupportTicket = {
+  id: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  organization: { id: string; name: string } | null;
+};
+
 type LeaseRow = {
   id: string;
   startDate: string;
@@ -60,6 +69,12 @@ const pwdNew = ref('');
 const pwdMsg = ref<string | null>(null);
 const pwdErr = ref<string | null>(null);
 const pwdSaving = ref(false);
+
+const supportTickets = ref<SupportTicket[]>([]);
+const supportSubject = ref('');
+const supportMessage = ref('');
+const supportBusy = ref(false);
+const supportErr = ref<string | null>(null);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -112,6 +127,36 @@ async function changePassword() {
   }
 }
 
+async function loadSupport() {
+  try {
+    supportTickets.value = await api<SupportTicket[]>('/tenant/support-requests');
+  } catch {
+    supportTickets.value = [];
+  }
+}
+
+async function submitSupport(orgId: string) {
+  supportErr.value = null;
+  supportBusy.value = true;
+  try {
+    await api('/tenant/support-requests', {
+      method: 'POST',
+      body: JSON.stringify({
+        subject: supportSubject.value.trim(),
+        message: supportMessage.value.trim(),
+        organizationId: orgId,
+      }),
+    });
+    supportSubject.value = '';
+    supportMessage.value = '';
+    await loadSupport();
+  } catch (e) {
+    supportErr.value = e instanceof Error ? e.message : 'Could not send request';
+  } finally {
+    supportBusy.value = false;
+  }
+}
+
 async function refreshMe() {
   const m = await api<MeResponse>('/tenant/me');
   me.value = m;
@@ -123,6 +168,11 @@ async function refreshMe() {
     }
   } else {
     leases.value = [];
+  }
+  if (m.status === 'active' || m.status === 'pending') {
+    await loadSupport();
+  } else {
+    supportTickets.value = [];
   }
 }
 
@@ -382,6 +432,79 @@ onUnmounted(() => {
           </p>
         </section>
       </template>
+
+      <section
+        v-if="!loading && !error && me && (me.status === 'active' || me.status === 'pending')"
+        class="mt-8 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-sm"
+      >
+        <h2 class="text-sm font-semibold text-slate-900">Contact platform support</h2>
+        <p class="mt-1 text-xs text-slate-500">
+          Message the platform team about billing, access, or other issues. Your landlord may still be the first
+          contact for unit-specific matters.
+        </p>
+        <form
+          class="mt-4 space-y-3"
+          @submit.prevent="submitSupport(me.organization.id)"
+        >
+          <label class="block text-sm">
+            <span class="text-slate-700">Subject</span>
+            <input
+              v-model="supportSubject"
+              type="text"
+              required
+              maxlength="200"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
+          </label>
+          <label class="block text-sm">
+            <span class="text-slate-700">Message</span>
+            <textarea
+              v-model="supportMessage"
+              required
+              rows="4"
+              maxlength="8000"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
+          </label>
+          <p v-if="supportErr" class="text-sm text-red-600">{{ supportErr }}</p>
+          <button
+            type="submit"
+            class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+            :disabled="supportBusy"
+          >
+            {{ supportBusy ? 'Sending…' : 'Send request' }}
+          </button>
+        </form>
+
+        <div v-if="supportTickets.length" class="mt-6 border-t border-slate-100 pt-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Your requests</p>
+          <ul class="mt-3 space-y-3">
+            <li
+              v-for="t in supportTickets"
+              :key="t.id"
+              class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-sm"
+            >
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <span class="font-medium text-slate-900">{{ t.subject }}</span>
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="
+                    t.status === 'OPEN'
+                      ? 'bg-blue-100 text-blue-900'
+                      : t.status === 'IN_PROGRESS'
+                        ? 'bg-amber-100 text-amber-900'
+                        : 'bg-slate-200 text-slate-800'
+                  "
+                >
+                  {{ t.status }}
+                </span>
+              </div>
+              <p class="mt-1 line-clamp-2 text-xs text-slate-600">{{ t.message }}</p>
+              <p class="mt-2 text-xs text-slate-400">{{ formatDate(t.createdAt) }}</p>
+            </li>
+          </ul>
+        </div>
+      </section>
     </main>
   </div>
 </template>

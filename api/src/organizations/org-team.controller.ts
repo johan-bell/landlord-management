@@ -24,10 +24,10 @@ export class OrgTeamController {
 
   @Get('members')
   listMembers(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.listMembers(orgId, user.userId);
+    return this.team.listMembers(orgId, user);
   }
 
   @Patch('members/:memberId')
@@ -37,10 +37,10 @@ export class OrgTeamController {
     @CurrentUser() user: RequestUser,
     @Body() dto: UpdateMemberRoleDto,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.updateMemberRole(orgId, memberId, user.userId, dto.role);
+    return this.team.updateMemberRole(orgId, memberId, user, dto.role);
   }
 
   @Delete('members/:memberId')
@@ -49,18 +49,18 @@ export class OrgTeamController {
     @Param('memberId') memberId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.removeMember(orgId, memberId, user.userId);
+    return this.team.removeMember(orgId, memberId, user);
   }
 
   @Get('invitations')
   listInvitations(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.listInvitations(orgId, user.userId);
+    return this.team.listInvitations(orgId, user);
   }
 
   @Post('invitations')
@@ -69,10 +69,10 @@ export class OrgTeamController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateInvitationDto,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.createInvitation(orgId, user.userId, dto.email, dto.role);
+    return this.team.createInvitation(orgId, user, dto.email, dto.role);
   }
 
   @Delete('invitations/:invitationId')
@@ -81,9 +81,9 @@ export class OrgTeamController {
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.team.deleteInvitation(orgId, invitationId, user.userId);
+    return this.team.deleteInvitation(orgId, invitationId, user);
   }
 }

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import type { RequestUser } from '../auth/types/jwt-payload';
 import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgTeamService } from './org-team.service';
@@ -12,8 +13,8 @@ export class TenantSignupsService {
     private readonly orgTeam: OrgTeamService,
   ) {}
 
-  async listPending(orgId: string, actorUserId: string) {
-    await this.orgTeam.assertTeamManager(orgId, actorUserId);
+  async listPending(orgId: string, actor: RequestUser) {
+    await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
     return this.prisma.tenantSignupRequest.findMany({
       where: { organizationId: orgId, status: 'PENDING' },
       include: {
@@ -23,8 +24,8 @@ export class TenantSignupsService {
     });
   }
 
-  async reject(orgId: string, requestId: string, actorUserId: string) {
-    await this.orgTeam.assertTeamManager(orgId, actorUserId);
+  async reject(orgId: string, requestId: string, actor: RequestUser) {
+    await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
     const req = await this.prisma.tenantSignupRequest.findFirst({
       where: { id: requestId, organizationId: orgId, status: 'PENDING' },
     });
@@ -37,8 +38,8 @@ export class TenantSignupsService {
     });
   }
 
-  async approve(orgId: string, requestId: string, actorUserId: string, dto: ApproveTenantSignupDto) {
-    await this.orgTeam.assertTeamManager(orgId, actorUserId);
+  async approve(orgId: string, requestId: string, actor: RequestUser, dto: ApproveTenantSignupDto) {
+    await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
 
     const signup = await this.prisma.tenantSignupRequest.findFirst({
       where: { id: requestId, organizationId: orgId, status: 'PENDING' },

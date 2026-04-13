@@ -22,6 +22,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
       component: () => import('../views/OrganizationDetailView.vue'),
     },
+    {
+      path: '/support',
+      name: 'support-requests',
+      meta: { requiresAuth: true },
+      component: () => import('../views/SupportRequestsView.vue'),
+    },
   ],
 });
 

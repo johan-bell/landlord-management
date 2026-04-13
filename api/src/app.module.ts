@@ -11,6 +11,7 @@ import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PropertiesModule } from './properties/properties.module';
 import { RentersModule } from './renters/renters.module';
+import { SupportModule } from './support/support.module';
 import { TenantModule } from './tenant/tenant.module';
 import { UnitsModule } from './units/units.module';
 
@@ -31,6 +32,7 @@ import { UnitsModule } from './units/units.module';
     TenantModule,
     PlatformModule,
     BillingModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

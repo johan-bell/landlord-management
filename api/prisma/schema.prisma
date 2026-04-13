@@ -45,6 +45,13 @@ enum TenantSignupStatus {
   REJECTED
 }
 
+enum SupportRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -62,6 +69,7 @@ model Organization {
   properties           Property[]
   renters              Renter[]
   tenantSignupRequests TenantSignupRequest[]
+  supportRequests      SupportRequest[]
 }
 
 model User {
@@ -78,6 +86,8 @@ model User {
   renterProfile            Renter?
   organizationInvitationsCreated OrganizationInvitation[] @relation("InvitationCreatedBy")
   tenantSignupRequest      TenantSignupRequest?
+  supportRequestsSubmitted SupportRequest[] @relation("SupportSubmitter")
+  supportRequestsHandled   SupportRequest[] @relation("SupportHandler")
 }
 
 model OrganizationMember {
@@ -139,6 +149,30 @@ model Unit {
   leases   Lease[]
 
   @@index([propertyId])
+}
+
+model SupportRequest {
+  id             String               @id @default(cuid())
+  subject        String
+  message        String               @db.Text
+  status         SupportRequestStatus @default(OPEN)
+  fromTenant     Boolean              @default(false)
+  submitterId    String
+  organizationId String?
+  handledById    String?
+  resolutionNote String?              @db.Text
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  closedAt       DateTime?
+
+  submitter    User          @relation("SupportSubmitter", fields: [submitterId], references: [id], onDelete: Cascade)
+  handledBy    User?         @relation("SupportHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([organizationId])
+  @@index([submitterId])
+  @@index([createdAt])
 }
 
 model TenantSignupRequest {

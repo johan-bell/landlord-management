@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 
 type MemberRow = {
@@ -58,7 +58,7 @@ watch(
 <template>
   <div class="min-h-screen">
     <header class="border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur sm:px-8">
-      <div class="mx-auto flex max-w-6xl items-center gap-4">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
         <button
           type="button"
           class="text-sm font-medium text-slate-600 hover:text-slate-900"
@@ -66,6 +66,13 @@ watch(
         >
           ← Organizations
         </button>
+        <RouterLink
+          v-if="route.params.orgId"
+          class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          :to="{ name: 'support-requests', query: { organizationId: String(route.params.orgId) } }"
+        >
+          Support tickets for this org →
+        </RouterLink>
       </div>
     </header>
 

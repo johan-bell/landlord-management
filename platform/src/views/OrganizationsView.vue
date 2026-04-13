@@ -88,6 +88,12 @@ onMounted(() => {
           </div>
         </div>
         <div class="flex items-center gap-3">
+          <RouterLink
+            class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            to="/support"
+          >
+            Support
+          </RouterLink>
           <span v-if="auth.user" class="hidden text-sm text-slate-600 sm:inline">{{ auth.user.email }}</span>
           <button
             type="button"

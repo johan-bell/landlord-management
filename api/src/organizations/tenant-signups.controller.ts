@@ -21,10 +21,10 @@ export class TenantSignupsController {
 
   @Get()
   list(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.signups.listPending(orgId, user.userId);
+    return this.signups.listPending(orgId, user);
   }
 
   @Post(':requestId/approve')
@@ -34,10 +34,10 @@ export class TenantSignupsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: ApproveTenantSignupDto,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.signups.approve(orgId, requestId, user.userId, dto);
+    return this.signups.approve(orgId, requestId, user, dto);
   }
 
   @Post(':requestId/reject')
@@ -46,9 +46,9 @@ export class TenantSignupsController {
     @Param('requestId') requestId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    if (user.typ !== 'staff') {
+    if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }
-    return this.signups.reject(orgId, requestId, user.userId);
+    return this.signups.reject(orgId, requestId, user);
   }
 }

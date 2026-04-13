@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { OrgRole } from '@prisma/client';
+import type { RequestUser } from '../auth/types/jwt-payload';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from './organizations.service';
 
@@ -33,7 +34,40 @@ export class OrgTeamService {
     return m;
   }
 
-  /** OWNER or MANAGER can manage team (invites, list). */
+  /** Platform operators bypass membership; staff must be org members. */
+  private async ensureOrgActor(orgId: string, actor: RequestUser) {
+    if (actor.typ === 'platform') {
+      await this.organizationsService.findOneOrThrow(orgId);
+      return { isPlatform: true as const, member: null };
+    }
+    if (actor.typ !== 'staff') {
+      throw new ForbiddenException();
+    }
+    const member = await this.memberOrThrow(orgId, actor.userId);
+    return { isPlatform: false as const, member };
+  }
+
+  /** OWNER or MANAGER, or platform admin. */
+  async assertTeamManagerOrPlatform(orgId: string, actor: RequestUser) {
+    await this.ensureTeamManagerActor(orgId, actor);
+  }
+
+  /** Any org member (staff), or platform — for org-scoped reads/actions that are not team-admin-only. */
+  async assertOrganizationAccess(orgId: string, actor: RequestUser) {
+    await this.ensureOrgActor(orgId, actor);
+  }
+
+  private async ensureTeamManagerActor(orgId: string, actor: RequestUser) {
+    const ctx = await this.ensureOrgActor(orgId, actor);
+    if (!ctx.isPlatform) {
+      if (ctx.member!.role !== OrgRole.OWNER && ctx.member!.role !== OrgRole.MANAGER) {
+        throw new ForbiddenException('Owner or manager role required');
+      }
+    }
+    return ctx;
+  }
+
+  /** OWNER or MANAGER, or platform admin (tenant signups, etc.). */
   async assertTeamManager(orgId: string, userId: string) {
     const m = await this.memberOrThrow(orgId, userId);
     if (m.role !== OrgRole.OWNER && m.role !== OrgRole.MANAGER) {
@@ -50,8 +84,8 @@ export class OrgTeamService {
     return m;
   }
 
-  async listMembers(orgId: string, actorUserId: string) {
-    await this.memberOrThrow(orgId, actorUserId);
+  async listMembers(orgId: string, actor: RequestUser) {
+    await this.ensureOrgActor(orgId, actor);
     return this.prisma.organizationMember.findMany({
       where: { organizationId: orgId },
       include: {
@@ -61,14 +95,9 @@ export class OrgTeamService {
     });
   }
 
-  async updateMemberRole(
-    orgId: string,
-    memberId: string,
-    actorUserId: string,
-    newRole: OrgRole,
-  ) {
-    await this.assertTeamManager(orgId, actorUserId);
-    const actor = await this.memberOrThrow(orgId, actorUserId);
+  async updateMemberRole(orgId: string, memberId: string, actor: RequestUser, newRole: OrgRole) {
+    const ctx = await this.ensureTeamManagerActor(orgId, actor);
+    const actorMember = ctx.member;
 
     const target = await this.prisma.organizationMember.findFirst({
       where: { id: memberId, organizationId: orgId },
@@ -78,12 +107,13 @@ export class OrgTeamService {
       throw new NotFoundException('Member not found');
     }
 
-    if (newRole === OrgRole.OWNER && actor.role !== OrgRole.OWNER) {
-      throw new ForbiddenException('Only an owner can assign the owner role');
-    }
-
-    if (target.role === OrgRole.OWNER && actor.role !== OrgRole.OWNER) {
-      throw new ForbiddenException('Only an owner can change another owner');
+    if (!ctx.isPlatform && actorMember) {
+      if (newRole === OrgRole.OWNER && actorMember.role !== OrgRole.OWNER) {
+        throw new ForbiddenException('Only an owner can assign the owner role');
+      }
+      if (target.role === OrgRole.OWNER && actorMember.role !== OrgRole.OWNER) {
+        throw new ForbiddenException('Only an owner can change another owner');
+      }
     }
 
     return this.prisma.organizationMember.update({
@@ -93,9 +123,9 @@ export class OrgTeamService {
     });
   }
 
-  async removeMember(orgId: string, memberId: string, actorUserId: string) {
-    await this.assertTeamManager(orgId, actorUserId);
-    const actor = await this.memberOrThrow(orgId, actorUserId);
+  async removeMember(orgId: string, memberId: string, actor: RequestUser) {
+    const ctx = await this.ensureTeamManagerActor(orgId, actor);
+    const actorMember = ctx.member;
 
     const target = await this.prisma.organizationMember.findFirst({
       where: { id: memberId, organizationId: orgId },
@@ -103,40 +133,41 @@ export class OrgTeamService {
     if (!target) {
       throw new NotFoundException('Member not found');
     }
-    if (target.userId === actorUserId) {
+    if (!ctx.isPlatform && target.userId === actor.userId) {
       throw new BadRequestException('You cannot remove yourself');
     }
-    if (target.role === OrgRole.OWNER && actor.role !== OrgRole.OWNER) {
-      throw new ForbiddenException('Only an owner can remove another owner');
+    if (!ctx.isPlatform && actorMember) {
+      if (target.role === OrgRole.OWNER && actorMember.role !== OrgRole.OWNER) {
+        throw new ForbiddenException('Only an owner can remove another owner');
+      }
     }
 
     const owners = await this.prisma.organizationMember.count({
       where: { organizationId: orgId, role: OrgRole.OWNER },
     });
-    if (target.role === OrgRole.OWNER && owners <= 1) {
+    if (target.role === OrgRole.OWNER && owners <= 1 && !ctx.isPlatform) {
       throw new BadRequestException('Cannot remove the last owner');
     }
 
     return this.prisma.organizationMember.delete({ where: { id: memberId } });
   }
 
-  async listInvitations(orgId: string, actorUserId: string) {
-    await this.assertTeamManager(orgId, actorUserId);
+  async listInvitations(orgId: string, actor: RequestUser) {
+    await this.ensureTeamManagerActor(orgId, actor);
     return this.prisma.organizationInvitation.findMany({
       where: { organizationId: orgId, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async createInvitation(
-    orgId: string,
-    actorUserId: string,
-    email: string,
-    role: OrgRole,
-  ) {
-    const actor = await this.assertTeamManager(orgId, actorUserId);
-    if (role === OrgRole.OWNER && actor.role !== OrgRole.OWNER) {
-      throw new ForbiddenException('Only an owner can invite with owner role');
+  async createInvitation(orgId: string, actor: RequestUser, email: string, role: OrgRole) {
+    const ctx = await this.ensureTeamManagerActor(orgId, actor);
+    const actorMember = ctx.member;
+
+    if (!ctx.isPlatform && actorMember) {
+      if (role === OrgRole.OWNER && actorMember.role !== OrgRole.OWNER) {
+        throw new ForbiddenException('Only an owner can invite with owner role');
+      }
     }
 
     const normalized = email.toLowerCase().trim();
@@ -166,13 +197,13 @@ export class OrgTeamService {
         role,
         token,
         expiresAt,
-        createdByUserId: actorUserId,
+        createdByUserId: actor.userId,
       },
     });
   }
 
-  async deleteInvitation(orgId: string, invitationId: string, actorUserId: string) {
-    await this.assertTeamManager(orgId, actorUserId);
+  async deleteInvitation(orgId: string, invitationId: string, actor: RequestUser) {
+    await this.ensureTeamManagerActor(orgId, actor);
     const inv = await this.prisma.organizationInvitation.findFirst({
       where: { id: invitationId, organizationId: orgId },
     });
