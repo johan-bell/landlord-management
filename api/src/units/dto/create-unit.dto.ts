@@ -1,5 +1,14 @@
+import { ElectricityBilling, WaterBilling } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUnitDto {
   @IsString()
@@ -15,4 +24,24 @@ export class CreateUnitDto {
   @IsString()
   @MaxLength(10)
   currency?: string;
+
+  @IsOptional()
+  @IsEnum(ElectricityBilling)
+  electricityBilling?: ElectricityBilling;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  electricityPricePerKwh?: number | null;
+
+  @IsOptional()
+  @IsEnum(WaterBilling)
+  waterBilling?: WaterBilling;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  waterPricePerM3?: number | null;
 }

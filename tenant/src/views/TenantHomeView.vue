@@ -48,6 +48,11 @@ type LeaseRow = {
   dueDay: number;
   unit: {
     label: string;
+    currency: string;
+    electricityBilling: 'PREPAID_EXTERNAL' | 'METERED_KWH';
+    electricityPricePerKwh: string | null;
+    waterBilling: 'NONE' | 'METERED_M3';
+    waterPricePerM3: string | null;
     property: { name: string; address: string | null };
   };
   payments: {
@@ -97,6 +102,21 @@ function money(amount: string, currency: string) {
   if (Number.isNaN(n)) return `${amount} ${currency}`;
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(n);
+  } catch {
+    return `${amount} ${currency}`;
+  }
+}
+
+function moneyPerKwh(amount: string, currency: string) {
+  const n = Number(amount);
+  if (Number.isNaN(n)) return '—';
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    }).format(n);
   } catch {
     return `${amount} ${currency}`;
   }
@@ -428,6 +448,30 @@ onUnmounted(() => {
                 <span class="text-slate-300" aria-hidden="true">—</span>
                 <span>{{ lease.endDate ? formatDate(lease.endDate) : 'Ongoing' }}</span>
               </p>
+
+              <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/90 px-4 py-3 text-xs leading-relaxed text-slate-600">
+                <p class="font-semibold text-slate-800">Utilities</p>
+                <ul class="mt-2 list-inside list-disc space-y-1">
+                  <li v-if="lease.unit.electricityBilling === 'PREPAID_EXTERNAL'">
+                    Electricity: prepaid (not tracked in this app).
+                  </li>
+                  <li v-else-if="lease.unit.electricityBilling === 'METERED_KWH'">
+                    Electricity: metered —
+                    <template v-if="lease.unit.electricityPricePerKwh">
+                      {{ moneyPerKwh(lease.unit.electricityPricePerKwh, lease.currency) }} per kWh
+                    </template>
+                    <template v-else> rate not set — ask your landlord.</template>
+                  </li>
+                  <li v-if="lease.unit.waterBilling === 'NONE'">Water: not billed through this app.</li>
+                  <li v-else-if="lease.unit.waterBilling === 'METERED_M3'">
+                    Water: metered —
+                    <template v-if="lease.unit.waterPricePerM3">
+                      {{ money(lease.unit.waterPricePerM3, lease.currency) }} per m³
+                    </template>
+                    <template v-else> rate not set — ask your landlord.</template>
+                  </li>
+                </ul>
+              </div>
 
               <div v-if="lease.payments.length" class="mt-5 border-t border-slate-100 pt-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Recent payments</p>

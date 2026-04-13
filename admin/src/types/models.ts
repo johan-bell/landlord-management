@@ -37,6 +37,10 @@ export type Unit = {
   rentAmount: string;
   currency: string;
   status: 'VACANT' | 'OCCUPIED';
+  electricityBilling: 'PREPAID_EXTERNAL' | 'METERED_KWH';
+  electricityPricePerKwh: string | null;
+  waterBilling: 'NONE' | 'METERED_M3';
+  waterPricePerM3: string | null;
 };
 
 export type Renter = {

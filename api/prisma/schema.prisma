@@ -19,6 +19,17 @@ enum UnitStatus {
   OCCUPIED
 }
 
+/// Prepaid electricity is bought outside this app and not tracked here.
+enum ElectricityBilling {
+  PREPAID_EXTERNAL
+  METERED_KWH
+}
+
+enum WaterBilling {
+  NONE
+  METERED_M3
+}
+
 enum PaymentStatus {
   PENDING
   PAID
@@ -142,8 +153,16 @@ model Unit {
   rentAmount Decimal    @db.Decimal(12, 2)
   currency   String     @default("XAF")
   status     UnitStatus @default(VACANT)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+
+  /// When METERED_KWH, bill using electricityPricePerKwh (per kWh). PREPAID_EXTERNAL = not tracked in app.
+  electricityBilling     ElectricityBilling @default(PREPAID_EXTERNAL)
+  electricityPricePerKwh Decimal?           @db.Decimal(14, 6)
+
+  waterBilling    WaterBilling @default(NONE)
+  waterPricePerM3 Decimal?     @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   leases   Lease[]
