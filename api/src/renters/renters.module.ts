@@ -6,9 +6,9 @@ import { RentersController } from './renters.controller';
 import { RentersService } from './renters.service';
 
 @Module({
-  imports: [ConfigModule, AuthModule, OrganizationsModule],
-  controllers: [RentersController],
-  providers: [RentersService],
-  exports: [RentersService],
+    imports: [ConfigModule, AuthModule, OrganizationsModule],
+    controllers: [RentersController],
+    providers: [RentersService],
+    exports: [RentersService],
 })
 export class RentersModule {}

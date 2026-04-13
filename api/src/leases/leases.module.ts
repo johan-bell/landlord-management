@@ -8,9 +8,9 @@ import { LeasesController } from './leases.controller';
 import { LeasesService } from './leases.service';
 
 @Module({
-  imports: [AuthModule, OrganizationsModule, RentersModule],
-  controllers: [LeasesController, LeaseUtilitiesController],
-  providers: [LeasesService, LeaseUtilitiesService],
-  exports: [LeasesService, LeaseUtilitiesService],
+    imports: [AuthModule, OrganizationsModule, RentersModule],
+    controllers: [LeasesController, LeaseUtilitiesController],
+    providers: [LeasesService, LeaseUtilitiesService],
+    exports: [LeasesService, LeaseUtilitiesService],
 })
 export class LeasesModule {}

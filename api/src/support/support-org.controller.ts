@@ -1,11 +1,11 @@
 import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  Post,
-  UseGuards,
+    Body,
+    Controller,
+    ForbiddenException,
+    Get,
+    Param,
+    Post,
+    UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,25 +17,25 @@ import { SupportService } from './support.service';
 @Controller('organizations/:orgId/support-requests')
 @UseGuards(JwtAuthGuard, OrgMembershipGuard)
 export class SupportOrgController {
-  constructor(private readonly support: SupportService) {}
+    constructor(private readonly support: SupportService) {}
 
-  @Get()
-  list(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
-    if (user.typ === 'tenant') {
-      throw new ForbiddenException();
+    @Get()
+    list(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
+        if (user.typ === 'tenant') {
+            throw new ForbiddenException();
+        }
+        return this.support.listForOrganization(orgId, user);
     }
-    return this.support.listForOrganization(orgId, user);
-  }
 
-  @Post()
-  create(
-    @Param('orgId') orgId: string,
-    @CurrentUser() user: RequestUser,
-    @Body() dto: CreateSupportRequestDto,
-  ) {
-    if (user.typ === 'tenant') {
-      throw new ForbiddenException();
+    @Post()
+    create(
+        @Param('orgId') orgId: string,
+        @CurrentUser() user: RequestUser,
+        @Body() dto: CreateSupportRequestDto,
+    ) {
+        if (user.typ === 'tenant') {
+            throw new ForbiddenException();
+        }
+        return this.support.createForOrgMember(orgId, user, dto);
     }
-    return this.support.createForOrgMember(orgId, user, dto);
-  }
 }

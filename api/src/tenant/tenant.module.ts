@@ -8,12 +8,12 @@ import { TenantPortalController } from './tenant-portal.controller';
 import { TenantPortalService } from './tenant-portal.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
-  controllers: [
-    TenantAuthController,
-    TenantPortalController,
-    TenantInvitePublicController,
-  ],
-  providers: [TenantAuthService, TenantPortalService],
+    imports: [PrismaModule, AuthModule],
+    controllers: [
+        TenantAuthController,
+        TenantPortalController,
+        TenantInvitePublicController,
+    ],
+    providers: [TenantAuthService, TenantPortalService],
 })
 export class TenantModule {}

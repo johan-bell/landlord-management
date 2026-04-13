@@ -13,36 +13,36 @@ import { resolveJwtSecret } from './jwt-secret';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
-  imports: [
-    ConfigModule,
-    PrismaModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: resolveJwtSecret(config),
-        signOptions: { expiresIn: '7d' },
-      }),
-      inject: [ConfigService],
-    }),
-  ],
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    OrgMembershipGuard,
-    PlatformAdminGuard,
-    TenantOnlyGuard,
-    JwtAuthGuard,
-  ],
-  exports: [
-    AuthService,
-    JwtModule,
-    PassportModule,
-    OrgMembershipGuard,
-    PlatformAdminGuard,
-    TenantOnlyGuard,
-    JwtAuthGuard,
-  ],
+    imports: [
+        ConfigModule,
+        PrismaModule,
+        PassportModule.register({ defaultStrategy: 'jwt' }),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: (config: ConfigService) => ({
+                secret: resolveJwtSecret(config),
+                signOptions: { expiresIn: '7d' },
+            }),
+            inject: [ConfigService],
+        }),
+    ],
+    controllers: [AuthController],
+    providers: [
+        AuthService,
+        JwtStrategy,
+        OrgMembershipGuard,
+        PlatformAdminGuard,
+        TenantOnlyGuard,
+        JwtAuthGuard,
+    ],
+    exports: [
+        AuthService,
+        JwtModule,
+        PassportModule,
+        OrgMembershipGuard,
+        PlatformAdminGuard,
+        TenantOnlyGuard,
+        JwtAuthGuard,
+    ],
 })
 export class AuthModule {}

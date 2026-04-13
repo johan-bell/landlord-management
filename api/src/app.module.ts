@@ -16,25 +16,25 @@ import { TenantModule } from './tenant/tenant.module';
 import { UnitsModule } from './units/units.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env', '.env.local'],
-    }),
-    PrismaModule,
-    AuthModule,
-    OrganizationsModule,
-    PropertiesModule,
-    UnitsModule,
-    RentersModule,
-    LeasesModule,
-    PaymentsModule,
-    TenantModule,
-    PlatformModule,
-    BillingModule,
-    SupportModule,
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: ['.env', '.env.local'],
+        }),
+        PrismaModule,
+        AuthModule,
+        OrganizationsModule,
+        PropertiesModule,
+        UnitsModule,
+        RentersModule,
+        LeasesModule,
+        PaymentsModule,
+        TenantModule,
+        PlatformModule,
+        BillingModule,
+        SupportModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}

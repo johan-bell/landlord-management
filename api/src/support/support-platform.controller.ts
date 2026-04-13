@@ -1,11 +1,11 @@
 import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Query,
-  UseGuards,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Query,
+    UseGuards,
 } from '@nestjs/common';
 import { SupportRequestStatus } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -18,22 +18,22 @@ import { SupportService } from './support.service';
 @Controller('platform/support-requests')
 @UseGuards(JwtAuthGuard, PlatformAdminGuard)
 export class SupportPlatformController {
-  constructor(private readonly support: SupportService) {}
+    constructor(private readonly support: SupportService) {}
 
-  @Get()
-  list(
-    @Query('status') status?: SupportRequestStatus,
-    @Query('organizationId') organizationId?: string,
-  ) {
-    return this.support.listForPlatform({ status, organizationId });
-  }
+    @Get()
+    list(
+        @Query('status') status?: SupportRequestStatus,
+        @Query('organizationId') organizationId?: string,
+    ) {
+        return this.support.listForPlatform({ status, organizationId });
+    }
 
-  @Patch(':requestId')
-  update(
-    @Param('requestId') requestId: string,
-    @CurrentUser() user: RequestUser,
-    @Body() dto: UpdateSupportRequestDto,
-  ) {
-    return this.support.updateByPlatform(requestId, user, dto);
-  }
+    @Patch(':requestId')
+    update(
+        @Param('requestId') requestId: string,
+        @CurrentUser() user: RequestUser,
+        @Body() dto: UpdateSupportRequestDto,
+    ) {
+        return this.support.updateByPlatform(requestId, user, dto);
+    }
 }

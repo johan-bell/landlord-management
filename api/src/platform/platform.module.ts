@@ -5,8 +5,8 @@ import { PlatformController } from './platform.controller';
 import { PlatformService } from './platform.service';
 
 @Module({
-  imports: [AuthModule, PrismaModule],
-  controllers: [PlatformController],
-  providers: [PlatformService],
+    imports: [AuthModule, PrismaModule],
+    controllers: [PlatformController],
+    providers: [PlatformService],
 })
 export class PlatformModule {}

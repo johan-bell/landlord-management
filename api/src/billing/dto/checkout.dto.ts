@@ -1,9 +1,9 @@
 import { IsUrl } from 'class-validator';
 
 export class CheckoutDto {
-  @IsUrl({ require_tld: false })
-  successUrl!: string;
+    @IsUrl({ require_tld: false })
+    successUrl!: string;
 
-  @IsUrl({ require_tld: false })
-  cancelUrl!: string;
+    @IsUrl({ require_tld: false })
+    cancelUrl!: string;
 }

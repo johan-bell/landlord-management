@@ -7,20 +7,23 @@ import { PlatformService } from './platform.service';
 @Controller('platform')
 @UseGuards(JwtAuthGuard, PlatformAdminGuard)
 export class PlatformController {
-  constructor(private readonly platform: PlatformService) {}
+    constructor(private readonly platform: PlatformService) {}
 
-  @Get('organizations')
-  organizations() {
-    return this.platform.listOrganizations();
-  }
+    @Get('organizations')
+    organizations() {
+        return this.platform.listOrganizations();
+    }
 
-  @Get('organizations/:orgId')
-  organization(@Param('orgId') orgId: string) {
-    return this.platform.getOrganization(orgId);
-  }
+    @Get('organizations/:orgId')
+    organization(@Param('orgId') orgId: string) {
+        return this.platform.getOrganization(orgId);
+    }
 
-  @Patch('organizations/:orgId/suspend')
-  suspend(@Param('orgId') orgId: string, @Body() dto: SuspendOrganizationDto) {
-    return this.platform.setSuspended(orgId, dto.suspended);
-  }
+    @Patch('organizations/:orgId/suspend')
+    suspend(
+        @Param('orgId') orgId: string,
+        @Body() dto: SuspendOrganizationDto,
+    ) {
+        return this.platform.setSuspended(orgId, dto.suspended);
+    }
 }

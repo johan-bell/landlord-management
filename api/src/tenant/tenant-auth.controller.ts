@@ -10,28 +10,28 @@ import { TenantRegisterDto } from './dto/tenant-register.dto';
 
 @Controller('tenant/auth')
 export class TenantAuthController {
-  constructor(private readonly tenantAuth: TenantAuthService) {}
+    constructor(private readonly tenantAuth: TenantAuthService) {}
 
-  @Post('register')
-  register(@Body() dto: TenantRegisterDto) {
-    return this.tenantAuth.register(dto);
-  }
+    @Post('register')
+    register(@Body() dto: TenantRegisterDto) {
+        return this.tenantAuth.register(dto);
+    }
 
-  @Post('login')
-  login(@Body() dto: TenantLoginDto) {
-    return this.tenantAuth.login(dto);
-  }
+    @Post('login')
+    login(@Body() dto: TenantLoginDto) {
+        return this.tenantAuth.login(dto);
+    }
 
-  @Post('change-password')
-  @UseGuards(JwtAuthGuard, TenantOnlyGuard)
-  changePassword(
-    @CurrentUser() user: RequestUser,
-    @Body() dto: TenantChangePasswordDto,
-  ) {
-    return this.tenantAuth.changePassword(
-      user.userId,
-      dto.currentPassword,
-      dto.newPassword,
-    );
-  }
+    @Post('change-password')
+    @UseGuards(JwtAuthGuard, TenantOnlyGuard)
+    changePassword(
+        @CurrentUser() user: RequestUser,
+        @Body() dto: TenantChangePasswordDto,
+    ) {
+        return this.tenantAuth.changePassword(
+            user.userId,
+            dto.currentPassword,
+            dto.newPassword,
+        );
+    }
 }

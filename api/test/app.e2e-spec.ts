@@ -5,32 +5,32 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+    let app: INestApplication<App>;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    beforeEach(async () => {
+        const moduleFixture: TestingModule = await Test.createTestingModule({
+            imports: [AppModule],
+        }).compile();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
+        app = moduleFixture.createNestApplication();
+        await app.init();
+    });
 
-  it('/ (GET) returns health', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect((res) => {
-        expect(res.body).toEqual(
-          expect.objectContaining({
-            ok: true,
-            service: 'landlord-management-api',
-          }),
-        );
-      });
-  });
+    it('/ (GET) returns health', () => {
+        return request(app.getHttpServer())
+            .get('/')
+            .expect(200)
+            .expect((res) => {
+                expect(res.body).toEqual(
+                    expect.objectContaining({
+                        ok: true,
+                        service: 'landlord-management-api',
+                    }),
+                );
+            });
+    });
 
-  afterEach(async () => {
-    await app.close();
-  });
+    afterEach(async () => {
+        await app.close();
+    });
 });

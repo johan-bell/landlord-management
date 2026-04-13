@@ -9,14 +9,14 @@ import { TenantSignupsController } from './tenant-signups.controller';
 import { TenantSignupsService } from './tenant-signups.service';
 
 @Module({
-  imports: [AuthModule],
-  controllers: [
-    OrganizationsController,
-    OrgTeamController,
-    InvitationsPublicController,
-    TenantSignupsController,
-  ],
-  providers: [OrganizationsService, OrgTeamService, TenantSignupsService],
-  exports: [OrganizationsService, OrgTeamService, TenantSignupsService],
+    imports: [AuthModule],
+    controllers: [
+        OrganizationsController,
+        OrgTeamController,
+        InvitationsPublicController,
+        TenantSignupsController,
+    ],
+    providers: [OrganizationsService, OrgTeamService, TenantSignupsService],
+    exports: [OrganizationsService, OrgTeamService, TenantSignupsService],
 })
 export class OrganizationsModule {}

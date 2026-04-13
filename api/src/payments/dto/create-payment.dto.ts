@@ -1,46 +1,46 @@
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
-  IsDateString,
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  MaxLength,
+    IsDateString,
+    IsEnum,
+    IsNumber,
+    IsOptional,
+    IsString,
+    MaxLength,
 } from 'class-validator';
 
 export class CreatePaymentDto {
-  @Type(() => Number)
-  @IsNumber()
-  amount!: number;
+    @Type(() => Number)
+    @IsNumber()
+    amount!: number;
 
-  @IsDateString()
-  dueDate!: string;
+    @IsDateString()
+    dueDate!: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(10)
-  currency?: string;
+    @IsOptional()
+    @IsString()
+    @MaxLength(10)
+    currency?: string;
 
-  @IsOptional()
-  @IsEnum(PaymentStatus)
-  status?: PaymentStatus;
+    @IsOptional()
+    @IsEnum(PaymentStatus)
+    status?: PaymentStatus;
 
-  @IsOptional()
-  @IsEnum(PaymentMethod)
-  method?: PaymentMethod;
+    @IsOptional()
+    @IsEnum(PaymentMethod)
+    method?: PaymentMethod;
 
-  @IsOptional()
-  @IsDateString()
-  paidAt?: string;
+    @IsOptional()
+    @IsDateString()
+    paidAt?: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  reference?: string;
+    @IsOptional()
+    @IsString()
+    @MaxLength(200)
+    reference?: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  notes?: string;
+    @IsOptional()
+    @IsString()
+    @MaxLength(2000)
+    notes?: string;
 }

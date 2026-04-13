@@ -5,8 +5,8 @@ import { UnitsController } from './units.controller';
 import { UnitsService } from './units.service';
 
 @Module({
-  imports: [AuthModule, PropertiesModule],
-  controllers: [UnitsController],
-  providers: [UnitsService],
+    imports: [AuthModule, PropertiesModule],
+    controllers: [UnitsController],
+    providers: [UnitsService],
 })
 export class UnitsModule {}

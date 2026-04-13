@@ -9,18 +9,18 @@ import { SupportService } from './support.service';
 @Controller('tenant/support-requests')
 @UseGuards(JwtAuthGuard, TenantOnlyGuard)
 export class SupportTenantController {
-  constructor(private readonly support: SupportService) {}
+    constructor(private readonly support: SupportService) {}
 
-  @Get()
-  list(@CurrentUser() user: RequestUser) {
-    return this.support.listMineForTenant(user);
-  }
+    @Get()
+    list(@CurrentUser() user: RequestUser) {
+        return this.support.listMineForTenant(user);
+    }
 
-  @Post()
-  create(
-    @CurrentUser() user: RequestUser,
-    @Body() dto: CreateSupportRequestDto,
-  ) {
-    return this.support.createForTenant(user, dto);
-  }
+    @Post()
+    create(
+        @CurrentUser() user: RequestUser,
+        @Body() dto: CreateSupportRequestDto,
+    ) {
+        return this.support.createForTenant(user, dto);
+    }
 }

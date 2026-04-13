@@ -1,13 +1,13 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+    UseGuards,
 } from '@nestjs/common';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -19,42 +19,45 @@ import { RentersService } from './renters.service';
 @Controller('organizations/:orgId/renters')
 @UseGuards(JwtAuthGuard, OrgMembershipGuard)
 export class RentersController {
-  constructor(private readonly rentersService: RentersService) {}
+    constructor(private readonly rentersService: RentersService) {}
 
-  @Post()
-  create(@Param('orgId') orgId: string, @Body() dto: CreateRenterDto) {
-    return this.rentersService.create(orgId, dto);
-  }
+    @Post()
+    create(@Param('orgId') orgId: string, @Body() dto: CreateRenterDto) {
+        return this.rentersService.create(orgId, dto);
+    }
 
-  @Get()
-  findAll(@Param('orgId') orgId: string, @Query() query: PaginationQueryDto) {
-    return this.rentersService.findAll(orgId, query);
-  }
+    @Get()
+    findAll(@Param('orgId') orgId: string, @Query() query: PaginationQueryDto) {
+        return this.rentersService.findAll(orgId, query);
+    }
 
-  @Post(':renterId/tenant-invite')
-  tenantInvite(
-    @Param('orgId') orgId: string,
-    @Param('renterId') renterId: string,
-  ) {
-    return this.rentersService.createTenantInviteLink(orgId, renterId);
-  }
+    @Post(':renterId/tenant-invite')
+    tenantInvite(
+        @Param('orgId') orgId: string,
+        @Param('renterId') renterId: string,
+    ) {
+        return this.rentersService.createTenantInviteLink(orgId, renterId);
+    }
 
-  @Get(':renterId')
-  findOne(@Param('orgId') orgId: string, @Param('renterId') renterId: string) {
-    return this.rentersService.findOne(orgId, renterId);
-  }
+    @Get(':renterId')
+    findOne(
+        @Param('orgId') orgId: string,
+        @Param('renterId') renterId: string,
+    ) {
+        return this.rentersService.findOne(orgId, renterId);
+    }
 
-  @Patch(':renterId')
-  update(
-    @Param('orgId') orgId: string,
-    @Param('renterId') renterId: string,
-    @Body() dto: UpdateRenterDto,
-  ) {
-    return this.rentersService.update(orgId, renterId, dto);
-  }
+    @Patch(':renterId')
+    update(
+        @Param('orgId') orgId: string,
+        @Param('renterId') renterId: string,
+        @Body() dto: UpdateRenterDto,
+    ) {
+        return this.rentersService.update(orgId, renterId, dto);
+    }
 
-  @Delete(':renterId')
-  remove(@Param('orgId') orgId: string, @Param('renterId') renterId: string) {
-    return this.rentersService.remove(orgId, renterId);
-  }
+    @Delete(':renterId')
+    remove(@Param('orgId') orgId: string, @Param('renterId') renterId: string) {
+        return this.rentersService.remove(orgId, renterId);
+    }
 }

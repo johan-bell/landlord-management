@@ -6,8 +6,8 @@ import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 
 @Module({
-  imports: [ConfigModule, AuthModule, PrismaModule],
-  controllers: [BillingController],
-  providers: [BillingService],
+    imports: [ConfigModule, AuthModule, PrismaModule],
+    controllers: [BillingController],
+    providers: [BillingService],
 })
 export class BillingModule {}

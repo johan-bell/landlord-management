@@ -8,15 +8,15 @@ import { TenantPortalService } from './tenant-portal.service';
 @Controller('tenant')
 @UseGuards(JwtAuthGuard, TenantOnlyGuard)
 export class TenantPortalController {
-  constructor(private readonly portal: TenantPortalService) {}
+    constructor(private readonly portal: TenantPortalService) {}
 
-  @Get('me')
-  me(@CurrentUser() user: RequestUser) {
-    return this.portal.getMe(user);
-  }
+    @Get('me')
+    me(@CurrentUser() user: RequestUser) {
+        return this.portal.getMe(user);
+    }
 
-  @Get('leases')
-  leases(@CurrentUser() user: RequestUser) {
-    return this.portal.getLeases(user);
-  }
+    @Get('leases')
+    leases(@CurrentUser() user: RequestUser) {
+        return this.portal.getLeases(user);
+    }
 }

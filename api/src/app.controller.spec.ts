@@ -3,25 +3,25 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 describe('AppController', () => {
-  let appController: AppController;
+    let appController: AppController;
 
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
-    }).compile();
+    beforeEach(async () => {
+        const app: TestingModule = await Test.createTestingModule({
+            controllers: [AppController],
+            providers: [AppService],
+        }).compile();
 
-    appController = app.get<AppController>(AppController);
-  });
-
-  describe('health', () => {
-    it('should return health payload', () => {
-      expect(appController.health()).toEqual(
-        expect.objectContaining({
-          ok: true,
-          service: 'landlord-management-api',
-        }),
-      );
+        appController = app.get<AppController>(AppController);
     });
-  });
+
+    describe('health', () => {
+        it('should return health payload', () => {
+            expect(appController.health()).toEqual(
+                expect.objectContaining({
+                    ok: true,
+                    service: 'landlord-management-api',
+                }),
+            );
+        });
+    });
 });
