@@ -41,7 +41,9 @@ async function submit() {
 
 <template>
   <div class="flex min-h-screen flex-col justify-center bg-slate-50 px-4">
-    <div class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div
+      class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+    >
       <div class="mb-6 text-center">
         <div
           class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-lg font-bold text-white"
@@ -49,7 +51,9 @@ async function submit() {
           LM
         </div>
         <h1 class="text-xl font-semibold text-slate-900">Landlord admin</h1>
-        <p class="mt-1 text-sm text-slate-500">Sign in to manage your portfolio</p>
+        <p class="mt-1 text-sm text-slate-500">
+          Sign in to manage your portfolio
+        </p>
       </div>
       <form class="space-y-4" @submit.prevent="submit">
         <label class="block">
@@ -83,7 +87,10 @@ async function submit() {
       </form>
       <p class="mt-6 text-center text-sm text-slate-500">
         No account?
-        <RouterLink to="/register" class="font-medium text-emerald-600 hover:text-emerald-700">
+        <RouterLink
+          to="/register"
+          class="font-medium text-emerald-600 hover:text-emerald-700"
+        >
           Register
         </RouterLink>
       </p>

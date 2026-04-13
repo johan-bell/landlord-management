@@ -26,8 +26,12 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    property.value = await api<Property>(orgApi(`/properties/${propertyId.value}`));
-    const ures = await api<Paginated<Unit>>(orgApi(`/properties/${propertyId.value}/units?limit=500`));
+    property.value = await api<Property>(
+      orgApi(`/properties/${propertyId.value}`),
+    );
+    const ures = await api<Paginated<Unit>>(
+      orgApi(`/properties/${propertyId.value}/units?limit=500`),
+    );
     units.value = ures.items;
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
@@ -65,7 +69,9 @@ async function addUnit() {
 async function removeUnit(u: Unit) {
   if (!confirm(`Remove unit “${u.label}”?`)) return;
   try {
-    await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), { method: 'DELETE' });
+    await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), {
+      method: 'DELETE',
+    });
     await load();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Delete failed';
@@ -88,8 +94,12 @@ watch(
       >
         ← Back to properties
       </RouterLink>
-      <h2 v-if="property" class="mt-2 text-xl font-semibold text-slate-900">{{ property.name }}</h2>
-      <p v-if="property?.address" class="text-sm text-slate-500">{{ property.address }}</p>
+      <h2 v-if="property" class="mt-2 text-xl font-semibold text-slate-900">
+        {{ property.name }}
+      </h2>
+      <p v-if="property?.address" class="text-sm text-slate-500">
+        {{ property.address }}
+      </p>
     </div>
 
     <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -112,9 +122,13 @@ watch(
         </button>
       </div>
 
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
         <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead
+            class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Unit</th>
               <th class="px-4 py-3">Rent</th>
@@ -124,8 +138,12 @@ watch(
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="u in units" :key="u.id" class="hover:bg-slate-50/80">
-              <td class="px-4 py-3 font-medium text-slate-900">{{ u.label }}</td>
-              <td class="px-4 py-3 tabular-nums text-slate-700">{{ formatMoney(u.rentAmount, u.currency) }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">
+                {{ u.label }}
+              </td>
+              <td class="px-4 py-3 tabular-nums text-slate-700">
+                {{ formatMoney(u.rentAmount, u.currency) }}
+              </td>
               <td class="px-4 py-3">
                 <span
                   :class="[
@@ -139,14 +157,23 @@ watch(
                 </span>
               </td>
               <td class="px-4 py-3 text-right">
-                <button type="button" class="text-sm font-medium text-red-600 hover:underline" @click="removeUnit(u)">
+                <button
+                  type="button"
+                  class="text-sm font-medium text-red-600 hover:underline"
+                  @click="removeUnit(u)"
+                >
                   Remove
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!units.length" class="px-4 py-10 text-center text-sm text-slate-500">No units yet.</p>
+        <p
+          v-if="!units.length"
+          class="px-4 py-10 text-center text-sm text-slate-500"
+        >
+          No units yet.
+        </p>
       </div>
     </template>
 
@@ -156,22 +183,42 @@ watch(
         class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
         @click.self="showAdd = false"
       >
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <div
+          class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          @click.stop
+        >
           <h3 class="text-lg font-semibold">New unit</h3>
           <label class="mt-4 block">
             <span class="text-sm font-medium text-slate-700">Label</span>
-            <input v-model="newLabel" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="newLabel"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium text-slate-700">Monthly rent</span>
-            <input v-model="newRent" type="number" step="any" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="newRent"
+              type="number"
+              step="any"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium text-slate-700">Currency</span>
-            <input v-model="newCurrency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="newCurrency"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="mt-6 flex justify-end gap-2">
-            <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showAdd = false">Cancel</button>
+            <button
+              type="button"
+              class="rounded-xl px-4 py-2 text-sm text-slate-600"
+              @click="showAdd = false"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"

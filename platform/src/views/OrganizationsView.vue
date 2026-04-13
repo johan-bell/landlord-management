@@ -63,7 +63,8 @@ async function load() {
   try {
     rows.value = await api<OrgRow[]>('/platform/organizations');
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to load organizations';
+    error.value =
+      e instanceof Error ? e.message : 'Failed to load organizations';
   } finally {
     loading.value = false;
   }
@@ -106,7 +107,8 @@ async function createOrg() {
     await load();
     await router.push(`/organization/${created.id}`);
   } catch (e) {
-    createError.value = e instanceof Error ? e.message : 'Could not create organization';
+    createError.value =
+      e instanceof Error ? e.message : 'Could not create organization';
   } finally {
     createSubmitting.value = false;
   }
@@ -119,11 +121,16 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div
+      class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Organizations</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+          Organizations
+        </h1>
         <p class="mt-1 text-sm text-slate-600">
-          Search, open an organization, suspend access, or bootstrap a new org (you become the first owner).
+          Search, open an organization, suspend access, or bootstrap a new org
+          (you become the first owner).
         </p>
       </div>
       <button
@@ -135,26 +142,45 @@ onMounted(() => {
       </button>
     </div>
 
-    <p v-if="error" class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <p
+      v-if="error"
+      class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"
+    >
       {{ error }}
     </p>
 
     <div v-if="!loading" class="mb-6 grid gap-3 sm:grid-cols-3">
-      <div class="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total</p>
+      <div
+        class="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm"
+      >
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
+          Total
+        </p>
         <p class="mt-1 text-2xl font-bold text-slate-900">{{ stats.total }}</p>
       </div>
-      <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm">
-        <p class="text-xs font-medium uppercase tracking-wide text-emerald-800">Active</p>
-        <p class="mt-1 text-2xl font-bold text-emerald-950">{{ stats.active }}</p>
+      <div
+        class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm"
+      >
+        <p class="text-xs font-medium uppercase tracking-wide text-emerald-800">
+          Active
+        </p>
+        <p class="mt-1 text-2xl font-bold text-emerald-950">
+          {{ stats.active }}
+        </p>
       </div>
       <div class="rounded-2xl border border-red-100 bg-red-50/60 p-4 shadow-sm">
-        <p class="text-xs font-medium uppercase tracking-wide text-red-800">Suspended</p>
-        <p class="mt-1 text-2xl font-bold text-red-950">{{ stats.suspended }}</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-red-800">
+          Suspended
+        </p>
+        <p class="mt-1 text-2xl font-bold text-red-950">
+          {{ stats.suspended }}
+        </p>
       </div>
     </div>
 
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <label class="block max-w-md flex-1 text-sm">
         <span class="sr-only">Search</span>
         <input
@@ -180,10 +206,15 @@ onMounted(() => {
       Loading…
     </div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      v-else
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead
+            class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Name</th>
               <th class="hidden px-4 py-3 sm:table-cell">Open</th>
@@ -195,10 +226,18 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr v-for="org in filtered" :key="org.id" class="hover:bg-slate-50/50">
+            <tr
+              v-for="org in filtered"
+              :key="org.id"
+              class="hover:bg-slate-50/50"
+            >
               <td class="px-4 py-3 font-medium text-slate-900">
                 {{ org.name }}
-                <span v-if="org.slug" class="mt-0.5 block text-xs font-normal text-slate-500">{{ org.slug }}</span>
+                <span
+                  v-if="org.slug"
+                  class="mt-0.5 block text-xs font-normal text-slate-500"
+                  >{{ org.slug }}</span
+                >
               </td>
               <td class="hidden px-4 py-3 sm:table-cell">
                 <RouterLink
@@ -211,16 +250,26 @@ onMounted(() => {
               <td class="px-4 py-3">
                 <span
                   class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                  :class="org.suspendedAt ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'"
+                  :class="
+                    org.suspendedAt
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  "
                 >
                   {{ org.suspendedAt ? 'Suspended' : 'Active' }}
                 </span>
               </td>
-              <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ org.subscriptionStatus }}</td>
-              <td class="hidden px-4 py-3 text-xs text-slate-600 lg:table-cell">
-                {{ org._count.members }} members · {{ org._count.properties }} props · {{ org._count.renters }} renters
+              <td class="hidden px-4 py-3 text-slate-600 md:table-cell">
+                {{ org.subscriptionStatus }}
               </td>
-              <td class="px-4 py-3 text-xs text-slate-500">{{ formatDate(org.suspendedAt) }}</td>
+              <td class="hidden px-4 py-3 text-xs text-slate-600 lg:table-cell">
+                {{ org._count.members }} members ·
+                {{ org._count.properties }} props ·
+                {{ org._count.renters }} renters
+              </td>
+              <td class="px-4 py-3 text-xs text-slate-500">
+                {{ formatDate(org.suspendedAt) }}
+              </td>
               <td class="px-4 py-3 text-right">
                 <button
                   type="button"
@@ -235,8 +284,15 @@ onMounted(() => {
           </tbody>
         </table>
       </div>
-      <p v-if="!loading && filtered.length === 0" class="px-4 py-8 text-center text-sm text-slate-500">
-        {{ search.trim() ? 'No organizations match your search.' : 'No organizations yet.' }}
+      <p
+        v-if="!loading && filtered.length === 0"
+        class="px-4 py-8 text-center text-sm text-slate-500"
+      >
+        {{
+          search.trim()
+            ? 'No organizations match your search.'
+            : 'No organizations yet.'
+        }}
       </p>
     </div>
 
@@ -247,11 +303,14 @@ onMounted(() => {
       aria-modal="true"
       @click.self="showCreate = false"
     >
-      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div
+        class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+      >
         <h2 class="text-lg font-semibold text-slate-900">New organization</h2>
         <p class="mt-1 text-sm text-slate-600">
-          Creates the org and adds your platform account as <strong>Owner</strong>. Use for demos or when onboarding a
-          customer; you can invite their staff afterward.
+          Creates the org and adds your platform account as
+          <strong>Owner</strong>. Use for demos or when onboarding a customer;
+          you can invite their staff afterward.
         </p>
         <form class="mt-4 space-y-3" @submit.prevent="createOrg">
           <label class="block text-sm">
@@ -270,7 +329,9 @@ onMounted(() => {
               placeholder="acme-rentals"
             />
           </label>
-          <p v-if="createError" class="text-sm text-red-600">{{ createError }}</p>
+          <p v-if="createError" class="text-sm text-red-600">
+            {{ createError }}
+          </p>
           <div class="flex justify-end gap-2 pt-2">
             <button
               type="button"

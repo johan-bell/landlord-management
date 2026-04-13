@@ -68,10 +68,15 @@ export async function createPrepaidRentPayments(
     prepaidMonths: number;
   },
 ): Promise<void> {
-  const { leaseId, leaseStart, dueDay, rentAmount, currency, prepaidMonths } = params;
+  const { leaseId, leaseStart, dueDay, rentAmount, currency, prepaidMonths } =
+    params;
   if (prepaidMonths <= 0) return;
 
-  const dueDates = computePrepaidRentDueDates(leaseStart, dueDay, prepaidMonths);
+  const dueDates = computePrepaidRentDueDates(
+    leaseStart,
+    dueDay,
+    prepaidMonths,
+  );
   const now = new Date();
   for (const dueDate of dueDates) {
     await tx.payment.create({

@@ -32,42 +32,50 @@ const router = createRouter({
             {
               path: '',
               name: 'organization-detail',
-              component: () => import('../views/platform-org/PlatformOrgOverviewView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgOverviewView.vue'),
             },
             {
               path: 'team',
               name: 'organization-team',
-              component: () => import('../views/platform-org/PlatformOrgTeamView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgTeamView.vue'),
             },
             {
               path: 'properties',
               name: 'organization-properties',
-              component: () => import('../views/platform-org/PlatformOrgPropertiesView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgPropertiesView.vue'),
             },
             {
               path: 'properties/:propertyId/units',
               name: 'organization-property-units',
-              component: () => import('../views/platform-org/PlatformOrgPropertyUnitsView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgPropertyUnitsView.vue'),
             },
             {
               path: 'renters',
               name: 'organization-renters',
-              component: () => import('../views/platform-org/PlatformOrgRentersView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgRentersView.vue'),
             },
             {
               path: 'leases',
               name: 'organization-leases',
-              component: () => import('../views/platform-org/PlatformOrgLeasesView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgLeasesView.vue'),
             },
             {
               path: 'payments',
               name: 'organization-payments',
-              component: () => import('../views/platform-org/PlatformOrgPaymentsView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgPaymentsView.vue'),
             },
             {
               path: 'signups',
               name: 'organization-signups',
-              component: () => import('../views/platform-org/PlatformOrgSignupsView.vue'),
+              component: () =>
+                import('../views/platform-org/PlatformOrgSignupsView.vue'),
             },
           ],
         },

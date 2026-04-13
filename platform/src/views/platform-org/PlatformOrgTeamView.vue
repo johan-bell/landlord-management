@@ -31,7 +31,9 @@ const inviteSaving = ref(false);
 
 const adminInviteBase = computed(() => {
   const raw = import.meta.env.VITE_ADMIN_PUBLIC_URL as string | undefined;
-  return (raw?.replace(/\/$/, '') || 'http://localhost:5173') + '/invite?token=';
+  return (
+    (raw?.replace(/\/$/, '') || 'http://localhost:5173') + '/invite?token='
+  );
 });
 
 function inviteLink(token: string) {
@@ -122,7 +124,8 @@ watch(
 <template>
   <div class="space-y-6">
     <p class="text-sm text-slate-600">
-      Landlord staff accounts and pending email invitations. Share invite links in the admin app at the URL shown.
+      Landlord staff accounts and pending email invitations. Share invite links
+      in the admin app at the URL shown.
     </p>
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
     <div v-if="loading" class="text-sm text-slate-500">Loading team…</div>
@@ -130,7 +133,10 @@ watch(
     <template v-else>
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 class="text-sm font-semibold text-slate-900">Invite by email</h3>
-        <form class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="sendInvite">
+        <form
+          class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
+          @submit.prevent="sendInvite"
+        >
           <label class="block min-w-0 flex-1 text-sm">
             <span class="text-slate-700">Email</span>
             <input
@@ -142,7 +148,10 @@ watch(
           </label>
           <label class="block text-sm">
             <span class="text-slate-700">Role</span>
-            <select v-model="inviteRole" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 sm:w-40">
+            <select
+              v-model="inviteRole"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 sm:w-40"
+            >
               <option value="STAFF">Staff</option>
               <option value="MANAGER">Manager</option>
               <option value="OWNER">Owner</option>
@@ -159,7 +168,11 @@ watch(
       </div>
 
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <h3 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900">Members</h3>
+        <h3
+          class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900"
+        >
+          Members
+        </h3>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-slate-50 text-xs font-semibold text-slate-500">
             <tr>
@@ -175,9 +188,13 @@ watch(
                 <select
                   class="rounded-lg border border-slate-200 px-2 py-1 text-xs"
                   :value="m.role"
-                  @change="changeRole(m, ($event.target as HTMLSelectElement).value)"
+                  @change="
+                    changeRole(m, ($event.target as HTMLSelectElement).value)
+                  "
                 >
-                  <option v-for="(label, r) in roleLabels" :key="r" :value="r">{{ label }}</option>
+                  <option v-for="(label, r) in roleLabels" :key="r" :value="r">
+                    {{ label }}
+                  </option>
                 </select>
               </td>
               <td class="px-4 py-2 text-right">
@@ -194,8 +211,15 @@ watch(
         </table>
       </div>
 
-      <div v-if="invitations.length" class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <h3 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900">Pending invitations</h3>
+      <div
+        v-if="invitations.length"
+        class="rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
+        <h3
+          class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900"
+        >
+          Pending invitations
+        </h3>
         <ul class="divide-y divide-slate-100">
           <li
             v-for="inv in invitations"
@@ -205,9 +229,12 @@ watch(
             <div>
               <p class="font-medium text-slate-900">{{ inv.email }}</p>
               <p class="text-xs text-slate-500">
-                {{ roleLabels[inv.role] ?? inv.role }} · expires {{ new Date(inv.expiresAt).toLocaleString() }}
+                {{ roleLabels[inv.role] ?? inv.role }} · expires
+                {{ new Date(inv.expiresAt).toLocaleString() }}
               </p>
-              <p class="mt-1 break-all text-xs text-slate-400">{{ inviteLink(inv.token) }}</p>
+              <p class="mt-1 break-all text-xs text-slate-400">
+                {{ inviteLink(inv.token) }}
+              </p>
             </div>
             <button
               type="button"

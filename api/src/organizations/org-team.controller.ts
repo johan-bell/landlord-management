@@ -56,7 +56,10 @@ export class OrgTeamController {
   }
 
   @Get('invitations')
-  listInvitations(@Param('orgId') orgId: string, @CurrentUser() user: RequestUser) {
+  listInvitations(
+    @Param('orgId') orgId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
     if (user.typ !== 'staff' && user.typ !== 'platform') {
       throw new ForbiddenException();
     }

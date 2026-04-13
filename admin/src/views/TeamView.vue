@@ -9,7 +9,12 @@ const { hasOrg, orgApi } = useOrgContext();
 type MemberRow = {
   id: string;
   role: string;
-  user: { id: string; email: string; name: string | null; phone: string | null };
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    phone: string | null;
+  };
 };
 
 type InvitationRow = {
@@ -119,8 +124,8 @@ watch(hasOrg, () => void load());
 
     <template v-else>
       <p class="mb-6 text-sm text-slate-600">
-        Invite colleagues by email. They must register or sign in with that email, then open the invite link to join
-        this organization.
+        Invite colleagues by email. They must register or sign in with that
+        email, then open the invite link to join this organization.
       </p>
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -133,7 +138,9 @@ watch(hasOrg, () => void load());
       </div>
 
       <template v-else>
-        <section class="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section
+          class="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
           <h2 class="text-lg font-semibold text-slate-900">Invite member</h2>
           <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <label class="block flex-1">
@@ -168,7 +175,9 @@ watch(hasOrg, () => void load());
         </section>
 
         <section v-if="invitations.length" class="mb-10">
-          <h2 class="mb-3 text-lg font-semibold text-slate-900">Pending invitations</h2>
+          <h2 class="mb-3 text-lg font-semibold text-slate-900">
+            Pending invitations
+          </h2>
           <ul class="space-y-3">
             <li
               v-for="inv in invitations"
@@ -181,7 +190,9 @@ watch(hasOrg, () => void load());
                   {{ roleLabels[inv.role] ?? inv.role }} · expires
                   {{ new Date(inv.expiresAt).toLocaleString() }}
                 </p>
-                <p class="mt-1 break-all font-mono text-xs text-slate-600">{{ inviteLink(inv.token) }}</p>
+                <p class="mt-1 break-all font-mono text-xs text-slate-600">
+                  {{ inviteLink(inv.token) }}
+                </p>
               </div>
               <button
                 type="button"
@@ -196,9 +207,13 @@ watch(hasOrg, () => void load());
 
         <section>
           <h2 class="mb-3 text-lg font-semibold text-slate-900">Members</h2>
-          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          >
             <table class="min-w-full text-left text-sm">
-              <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+              <thead
+                class="bg-slate-50 text-xs font-semibold uppercase text-slate-500"
+              >
                 <tr>
                   <th class="px-4 py-3">User</th>
                   <th class="px-4 py-3">Role</th>
@@ -206,17 +221,26 @@ watch(hasOrg, () => void load());
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                <tr v-for="m in members" :key="m.id" class="hover:bg-slate-50/80">
+                <tr
+                  v-for="m in members"
+                  :key="m.id"
+                  class="hover:bg-slate-50/80"
+                >
                   <td class="px-4 py-3">
                     <p class="font-medium text-slate-900">{{ m.user.email }}</p>
-                    <p v-if="m.user.name" class="text-xs text-slate-500">{{ m.user.name }}</p>
+                    <p v-if="m.user.name" class="text-xs text-slate-500">
+                      {{ m.user.name }}
+                    </p>
                   </td>
                   <td class="px-4 py-3">
                     <select
                       class="rounded-lg border border-slate-200 px-2 py-1 text-sm"
                       :value="m.role"
                       @change="
-                        changeRole(m, ($event.target as HTMLSelectElement).value)
+                        changeRole(
+                          m,
+                          ($event.target as HTMLSelectElement).value,
+                        )
                       "
                     >
                       <option value="STAFF">Staff</option>
@@ -236,7 +260,12 @@ watch(hasOrg, () => void load());
                 </tr>
               </tbody>
             </table>
-            <p v-if="!members.length" class="px-4 py-8 text-center text-sm text-slate-500">No members.</p>
+            <p
+              v-if="!members.length"
+              class="px-4 py-8 text-center text-sm text-slate-500"
+            >
+              No members.
+            </p>
           </div>
         </section>
       </template>

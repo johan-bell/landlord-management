@@ -9,7 +9,11 @@ import { SupportService } from './support.service';
 
 @Module({
   imports: [PrismaModule, AuthModule, OrganizationsModule],
-  controllers: [SupportTenantController, SupportOrgController, SupportPlatformController],
+  controllers: [
+    SupportTenantController,
+    SupportOrgController,
+    SupportPlatformController,
+  ],
   providers: [SupportService],
 })
 export class SupportModule {}

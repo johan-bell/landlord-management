@@ -33,7 +33,9 @@ export class LeasesService {
       include: { property: true },
     });
     if (!unit) {
-      throw new NotFoundException(`Unit ${unitId} not found in this organization`);
+      throw new NotFoundException(
+        `Unit ${unitId} not found in this organization`,
+      );
     }
     return unit;
   }
@@ -102,8 +104,14 @@ export class LeasesService {
             orgFilter,
             {
               OR: [
-                { renter: { fullName: { contains: search, mode: 'insensitive' } } },
-                { renter: { email: { contains: search, mode: 'insensitive' } } },
+                {
+                  renter: {
+                    fullName: { contains: search, mode: 'insensitive' },
+                  },
+                },
+                {
+                  renter: { email: { contains: search, mode: 'insensitive' } },
+                },
                 { unit: { label: { contains: search, mode: 'insensitive' } } },
               ],
             },
@@ -151,7 +159,9 @@ export class LeasesService {
   async update(orgId: string, leaseId: string, dto: UpdateLeaseDto) {
     const existing = await this.findOne(orgId, leaseId);
     if (dto.unitId && dto.unitId !== existing.unitId) {
-      throw new BadRequestException('Moving a lease to another unit is not supported in this version');
+      throw new BadRequestException(
+        'Moving a lease to another unit is not supported in this version',
+      );
     }
     if (dto.renterId) {
       await this.rentersService.findOne(orgId, dto.renterId);
@@ -159,12 +169,17 @@ export class LeasesService {
 
     const data: Prisma.LeaseUpdateInput = {};
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
-    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
-    if (dto.rentAmount !== undefined) data.rentAmount = new Prisma.Decimal(dto.rentAmount);
+    if (dto.endDate !== undefined)
+      data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.rentAmount !== undefined)
+      data.rentAmount = new Prisma.Decimal(dto.rentAmount);
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.dueDay !== undefined) data.dueDay = dto.dueDay;
 
-    const start = dto.startDate !== undefined ? new Date(dto.startDate) : existing.startDate;
+    const start =
+      dto.startDate !== undefined
+        ? new Date(dto.startDate)
+        : existing.startDate;
     const end =
       dto.endDate !== undefined
         ? dto.endDate

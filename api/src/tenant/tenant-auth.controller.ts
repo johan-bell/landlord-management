@@ -24,7 +24,14 @@ export class TenantAuthController {
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard, TenantOnlyGuard)
-  changePassword(@CurrentUser() user: RequestUser, @Body() dto: TenantChangePasswordDto) {
-    return this.tenantAuth.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+  changePassword(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: TenantChangePasswordDto,
+  ) {
+    return this.tenantAuth.changePassword(
+      user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 }

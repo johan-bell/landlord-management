@@ -5,7 +5,10 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
-const envCandidates = [join(process.cwd(), '.env'), join(process.cwd(), 'api', '.env')];
+const envCandidates = [
+  join(process.cwd(), '.env'),
+  join(process.cwd(), 'api', '.env'),
+];
 for (const path of envCandidates) {
   if (existsSync(path)) {
     loadEnv({ path });
@@ -30,7 +33,9 @@ function corsOriginOption(): false | string[] {
     if (!Array.isArray(parsed)) {
       return false;
     }
-    const origins = parsed.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    const origins = parsed.filter(
+      (item): item is string => typeof item === 'string' && item.length > 0,
+    );
     return origins.length > 0 ? origins : false;
   } catch {
     return false;
@@ -61,4 +66,4 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 }
-bootstrap();
+void bootstrap();

@@ -60,7 +60,9 @@ export class PropertiesService {
       where: { id: propertyId, organizationId: orgId },
     });
     if (!property) {
-      throw new NotFoundException(`Property ${propertyId} not found in organization ${orgId}`);
+      throw new NotFoundException(
+        `Property ${propertyId} not found in organization ${orgId}`,
+      );
     }
     return property;
   }

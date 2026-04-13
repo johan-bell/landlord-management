@@ -12,7 +12,9 @@ export class OrgMembershipGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<{ params: { orgId?: string }; user: RequestUser }>();
+    const req = context
+      .switchToHttp()
+      .getRequest<{ params: { orgId?: string }; user: RequestUser }>();
     const user = req.user;
     const orgId = req.params.orgId;
 
@@ -28,7 +30,9 @@ export class OrgMembershipGuard implements CanActivate {
       throw new ForbiddenException('Staff access required');
     }
 
-    const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
+    const org = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+    });
     if (!org) {
       throw new ForbiddenException('Organization not found');
     }

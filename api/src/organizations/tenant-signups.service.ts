@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
@@ -18,7 +22,15 @@ export class TenantSignupsService {
     return this.prisma.tenantSignupRequest.findMany({
       where: { organizationId: orgId, status: 'PENDING' },
       include: {
-        user: { select: { id: true, email: true, name: true, phone: true, createdAt: true } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -38,7 +50,12 @@ export class TenantSignupsService {
     });
   }
 
-  async approve(orgId: string, requestId: string, actor: RequestUser, dto: ApproveTenantSignupDto) {
+  async approve(
+    orgId: string,
+    requestId: string,
+    actor: RequestUser,
+    dto: ApproveTenantSignupDto,
+  ) {
     await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
 
     const signup = await this.prisma.tenantSignupRequest.findFirst({
@@ -57,7 +74,9 @@ export class TenantSignupsService {
       include: { property: true },
     });
     if (!unit) {
-      throw new NotFoundException(`Unit ${dto.unitId} not found in this organization`);
+      throw new NotFoundException(
+        `Unit ${dto.unitId} not found in this organization`,
+      );
     }
 
     const open = await this.prisma.lease.findFirst({
@@ -79,7 +98,8 @@ export class TenantSignupsService {
       throw new BadRequestException('User already has a renter profile');
     }
 
-    const fullName = signup.user.name?.trim() || signup.user.email.split('@')[0];
+    const fullName =
+      signup.user.name?.trim() || signup.user.email.split('@')[0];
     const email = signup.user.email;
 
     const dueDay = dto.dueDay ?? 1;

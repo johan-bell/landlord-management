@@ -45,9 +45,12 @@ async function load() {
   try {
     const params = new URLSearchParams();
     if (filterStatus.value) params.set('status', filterStatus.value);
-    if (filterOrgId.value.trim()) params.set('organizationId', filterOrgId.value.trim());
+    if (filterOrgId.value.trim())
+      params.set('organizationId', filterOrgId.value.trim());
     const q = params.toString();
-    rows.value = await api<SupportRow[]>(`/platform/support-requests${q ? `?${q}` : ''}`);
+    rows.value = await api<SupportRow[]>(
+      `/platform/support-requests${q ? `?${q}` : ''}`,
+    );
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load';
     rows.value = [];
@@ -120,13 +123,19 @@ watch(
 <template>
   <div>
     <div class="mb-8">
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Support requests</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+        Support requests
+      </h1>
       <p class="mt-1 text-sm text-slate-600">
-        Tenant and landlord-originated tickets. Open a row to update status and add an internal note.
+        Tenant and landlord-originated tickets. Open a row to update status and
+        add an internal note.
       </p>
     </div>
 
-    <p v-if="error" class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <p
+      v-if="error"
+      class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"
+    >
       {{ error }}
     </p>
 
@@ -138,7 +147,9 @@ watch(
           class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
           @change="load()"
         >
-          <option v-for="s in statusOptions" :key="s || 'all'" :value="s">{{ s || 'Any' }}</option>
+          <option v-for="s in statusOptions" :key="s || 'all'" :value="s">
+            {{ s || 'Any' }}
+          </option>
         </select>
       </label>
       <label class="flex min-w-[200px] flex-1 items-center gap-2 text-sm">
@@ -167,10 +178,15 @@ watch(
       Loading…
     </div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      v-else
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
-          <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead
+            class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Subject</th>
               <th class="hidden px-4 py-3 sm:table-cell">Organization</th>
@@ -183,8 +199,12 @@ watch(
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in rows" :key="row.id" class="hover:bg-slate-50/50">
               <td class="max-w-xs px-4 py-3">
-                <p class="truncate font-medium text-slate-900">{{ row.subject }}</p>
-                <p class="line-clamp-2 text-xs text-slate-500">{{ row.message }}</p>
+                <p class="truncate font-medium text-slate-900">
+                  {{ row.subject }}
+                </p>
+                <p class="line-clamp-2 text-xs text-slate-500">
+                  {{ row.message }}
+                </p>
               </td>
               <td class="hidden max-w-[160px] px-4 py-3 text-xs sm:table-cell">
                 <RouterLink
@@ -198,7 +218,9 @@ watch(
               </td>
               <td class="px-4 py-3 text-xs text-slate-700">
                 {{ row.fromTenant ? 'Tenant' : 'Staff' }}
-                <span class="block truncate text-slate-500">{{ row.submitter.email }}</span>
+                <span class="block truncate text-slate-500">{{
+                  row.submitter.email
+                }}</span>
               </td>
               <td class="px-4 py-3">
                 <span
@@ -232,7 +254,10 @@ watch(
           </tbody>
         </table>
       </div>
-      <p v-if="!loading && rows.length === 0" class="px-4 py-8 text-center text-sm text-slate-500">
+      <p
+        v-if="!loading && rows.length === 0"
+        class="px-4 py-8 text-center text-sm text-slate-500"
+      >
         No support requests yet.
       </p>
     </div>
@@ -244,11 +269,19 @@ watch(
       aria-modal="true"
       @click.self="closeDetail"
     >
-      <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div
+        class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+      >
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ticket</p>
-            <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ detail.subject }}</h2>
+            <p
+              class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
+              Ticket
+            </p>
+            <h2 class="mt-1 text-lg font-semibold text-slate-900">
+              {{ detail.subject }}
+            </h2>
           </div>
           <button
             type="button"
@@ -258,8 +291,12 @@ watch(
             Close
           </button>
         </div>
-        <p class="mt-3 whitespace-pre-wrap text-sm text-slate-700">{{ detail.message }}</p>
-        <dl class="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+        <p class="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+          {{ detail.message }}
+        </p>
+        <dl
+          class="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-600"
+        >
           <div class="flex justify-between gap-2">
             <dt>Submitter</dt>
             <dd class="text-right">{{ detail.submitter.email }}</dd>
@@ -267,7 +304,10 @@ watch(
           <div v-if="detail.organization" class="flex justify-between gap-2">
             <dt>Organization</dt>
             <dd class="text-right">
-              <RouterLink class="text-indigo-600 hover:text-indigo-800" :to="`/organization/${detail.organization.id}`">
+              <RouterLink
+                class="text-indigo-600 hover:text-indigo-800"
+                :to="`/organization/${detail.organization.id}`"
+              >
                 {{ detail.organization.name }}
               </RouterLink>
             </dd>

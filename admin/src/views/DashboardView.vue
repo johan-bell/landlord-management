@@ -14,8 +14,8 @@ const summaryLoading = ref(false);
 
 const selectedId = computed(() => orgStore.selectedOrgId);
 
-const currentOrg = computed(() =>
-  orgStore.organizations.find((o) => o.id === selectedId.value) ?? null,
+const currentOrg = computed(
+  () => orgStore.organizations.find((o) => o.id === selectedId.value) ?? null,
 );
 
 const copyMsg = ref<string | null>(null);
@@ -64,7 +64,8 @@ async function createOrg() {
     orgStore.setOrg(created.id);
     await loadSummary();
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Could not create organization';
+    error.value =
+      e instanceof Error ? e.message : 'Could not create organization';
   } finally {
     submitting.value = false;
   }
@@ -121,14 +122,22 @@ const statCards = computed(() => {
       <div
         class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:px-8"
       >
-        <h2 class="text-base font-semibold text-slate-900">Create organization</h2>
+        <h2 class="text-base font-semibold text-slate-900">
+          Create organization
+        </h2>
         <p class="mt-1 text-sm text-slate-600">
-          Each organization is an isolated portfolio (your SaaS tenant). Add one for each landlord or agency you manage.
+          Each organization is an isolated portfolio (your SaaS tenant). Add one
+          for each landlord or agency you manage.
         </p>
       </div>
-      <form class="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:px-8 sm:pb-8" @submit.prevent="createOrg">
+      <form
+        class="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:px-8 sm:pb-8"
+        @submit.prevent="createOrg"
+      >
         <label class="min-w-0 flex-1">
-          <span class="mb-1.5 block text-sm font-medium text-slate-700">Organization name</span>
+          <span class="mb-1.5 block text-sm font-medium text-slate-700"
+            >Organization name</span
+          >
           <input
             v-model="newOrgName"
             type="text"
@@ -145,11 +154,18 @@ const statCards = computed(() => {
           {{ submitting ? 'Creating…' : 'Create' }}
         </button>
       </form>
-      <p v-if="error" class="px-6 pb-4 text-sm text-red-600 sm:px-8">{{ error }}</p>
+      <p v-if="error" class="px-6 pb-4 text-sm text-red-600 sm:px-8">
+        {{ error }}
+      </p>
     </section>
 
-    <section v-if="!selectedId" class="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-6 py-8 text-center sm:px-8">
-      <p class="text-sm font-medium text-amber-900">Select an organization above</p>
+    <section
+      v-if="!selectedId"
+      class="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-6 py-8 text-center sm:px-8"
+    >
+      <p class="text-sm font-medium text-amber-900">
+        Select an organization above
+      </p>
       <p class="mt-1 text-sm text-amber-800/90">
         Overview metrics appear after you pick a portfolio from the header menu.
       </p>
@@ -160,14 +176,20 @@ const statCards = computed(() => {
         v-if="currentOrg"
         class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tenant self-signup</p>
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Tenant self-signup
+        </p>
         <p class="mt-1 text-sm text-slate-600">
-          Share the <strong>organization ID</strong> or <strong>slug</strong> with renters so they can request access in the tenant app.
+          Share the <strong>organization ID</strong> or
+          <strong>slug</strong> with renters so they can request access in the
+          tenant app.
         </p>
         <dl class="mt-3 space-y-2 text-sm">
           <div class="flex flex-wrap items-center gap-2">
             <dt class="text-slate-500">Organization ID</dt>
-            <dd class="font-mono text-xs text-slate-800">{{ currentOrg.id }}</dd>
+            <dd class="font-mono text-xs text-slate-800">
+              {{ currentOrg.id }}
+            </dd>
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
@@ -178,7 +200,9 @@ const statCards = computed(() => {
           </div>
           <div v-if="currentOrg.slug" class="flex flex-wrap items-center gap-2">
             <dt class="text-slate-500">Slug</dt>
-            <dd class="font-mono text-xs text-slate-800">{{ currentOrg.slug }}</dd>
+            <dd class="font-mono text-xs text-slate-800">
+              {{ currentOrg.slug }}
+            </dd>
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
@@ -187,17 +211,30 @@ const statCards = computed(() => {
               Copy
             </button>
           </div>
-          <p v-else class="text-xs text-slate-500">No slug set — renters can use the organization ID only (or add a slug via API later).</p>
+          <p v-else class="text-xs text-slate-500">
+            No slug set — renters can use the organization ID only (or add a
+            slug via API later).
+          </p>
         </dl>
-        <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">{{ copyMsg }}</p>
+        <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">
+          {{ copyMsg }}
+        </p>
       </div>
 
       <div class="mb-4 flex items-end justify-between gap-4">
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Portfolio snapshot</h2>
-          <p class="text-xs text-slate-500">Live counts for the selected organization</p>
+          <h2
+            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
+          >
+            Portfolio snapshot
+          </h2>
+          <p class="text-xs text-slate-500">
+            Live counts for the selected organization
+          </p>
         </div>
-        <span v-if="summaryLoading" class="text-xs text-slate-400">Updating…</span>
+        <span v-if="summaryLoading" class="text-xs text-slate-400"
+          >Updating…</span
+        >
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -212,8 +249,16 @@ const statCards = computed(() => {
               card.tone,
             ]"
           />
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ card.label }}</p>
-          <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-slate-900">{{ card.value }}</p>
+          <p
+            class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
+            {{ card.label }}
+          </p>
+          <p
+            class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-slate-900"
+          >
+            {{ card.value }}
+          </p>
           <p class="mt-1 text-xs text-slate-500">{{ card.hint }}</p>
         </article>
       </div>
@@ -235,22 +280,29 @@ const statCards = computed(() => {
           <span class="text-sm font-medium tabular-nums text-slate-700">
             {{
               summary.unitCount
-                ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100)
+                ? Math.round(
+                    (summary.occupiedUnitCount / summary.unitCount) * 100,
+                  )
                 : 0
             }}%
           </span>
         </div>
         <p class="mt-2 text-xs text-slate-500">
-          Portfolio load — {{ summary.occupiedUnitCount }} of {{ summary.unitCount }} units occupied.
+          Portfolio load — {{ summary.occupiedUnitCount }} of
+          {{ summary.unitCount }} units occupied.
         </p>
       </div>
     </section>
 
-    <section class="rounded-2xl border border-slate-200 bg-slate-900 px-6 py-8 text-slate-300 sm:px-8">
+    <section
+      class="rounded-2xl border border-slate-200 bg-slate-900 px-6 py-8 text-slate-300 sm:px-8"
+    >
       <h3 class="text-sm font-semibold text-white">Revenue placeholder</h3>
       <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-        When you connect payment providers, this panel can show collected rent (e.g.
-        {{ formatMoney(0, 'XAF') }} this month). For now it keeps the layout ready for charts and KPIs.
+        When you connect payment providers, this panel can show collected rent
+        (e.g.
+        {{ formatMoney(0, 'XAF') }} this month). For now it keeps the layout
+        ready for charts and KPIs.
       </p>
     </section>
   </div>

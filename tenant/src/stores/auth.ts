@@ -29,8 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   ) {
     accessToken.value = token;
     renterId.value = rid;
-    const st: TenantAccountStatus =
-      status ?? (rid ? 'active' : 'pending');
+    const st: TenantAccountStatus = status ?? (rid ? 'active' : 'pending');
     accountStatus.value = st;
     localStorage.setItem(TOKEN_KEY, token);
     if (rid) {

@@ -2,7 +2,11 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
-import { formatDate, formatDateTime, formatMoney } from '../../composables/format';
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+} from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
 import type { Lease, Paginated, Payment } from '../../types/models';
 
@@ -31,7 +35,9 @@ const rows = computed<Row[]>(() => {
       });
     }
   }
-  return out.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+  return out.sort(
+    (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+  );
 });
 
 async function load() {
@@ -91,10 +97,17 @@ watch(
       Loading…
     </div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      v-else
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <div class="overflow-x-auto">
-        <table class="min-w-[720px] w-full divide-y divide-slate-200 text-left text-sm">
-          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <table
+          class="min-w-[720px] w-full divide-y divide-slate-200 text-left text-sm"
+        >
+          <thead
+            class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Due</th>
               <th class="px-4 py-3">Amount</th>
@@ -107,21 +120,30 @@ watch(
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="row in rows" :key="row.id" class="hover:bg-slate-50/80">
-              <td class="px-4 py-3 text-slate-700">{{ formatDate(row.dueDate) }}</td>
+              <td class="px-4 py-3 text-slate-700">
+                {{ formatDate(row.dueDate) }}
+              </td>
               <td class="px-4 py-3 font-medium tabular-nums text-slate-900">
                 {{ formatMoney(row.amount, row.currency) }}
               </td>
               <td class="px-4 py-3">{{ row.renterName }}</td>
               <td class="px-4 py-3 text-slate-600">
                 {{ row.unitLabel }}
-                <span class="block text-xs text-slate-400">{{ row.propertyName }}</span>
+                <span class="block text-xs text-slate-400">{{
+                  row.propertyName
+                }}</span>
               </td>
               <td class="px-4 py-3">
-                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1" :class="statusClass(row.status)">
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+                  :class="statusClass(row.status)"
+                >
                   {{ row.status }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-xs text-slate-500">{{ formatDateTime(row.paidAt) }}</td>
+              <td class="px-4 py-3 text-xs text-slate-500">
+                {{ formatDateTime(row.paidAt) }}
+              </td>
               <td class="px-4 py-3 text-right">
                 <button
                   v-if="row.status !== 'PAID'"
@@ -137,7 +159,12 @@ watch(
           </tbody>
         </table>
       </div>
-      <p v-if="!rows.length" class="px-4 py-10 text-center text-sm text-slate-500">No payment records.</p>
+      <p
+        v-if="!rows.length"
+        class="px-4 py-10 text-center text-sm text-slate-500"
+      >
+        No payment records.
+      </p>
     </div>
   </div>
 </template>

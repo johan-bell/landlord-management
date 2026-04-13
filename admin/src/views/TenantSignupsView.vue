@@ -25,7 +25,9 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const actionError = ref<string | null>(null);
 
-const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>([]);
+const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
+  [],
+);
 
 const showApprove = ref<SignupRow | null>(null);
 const form = ref({
@@ -53,10 +55,14 @@ async function loadSignups() {
 
 async function loadUnits() {
   if (!hasOrg.value) return;
-  const propsRes = await api<Paginated<Property>>(orgApi('/properties?limit=100'));
+  const propsRes = await api<Paginated<Property>>(
+    orgApi('/properties?limit=100'),
+  );
   const pairs: { id: string; label: string; propertyName: string }[] = [];
   for (const p of propsRes.items) {
-    const unitsRes = await api<Paginated<Unit>>(orgApi(`/properties/${p.id}/units?limit=500`));
+    const unitsRes = await api<Paginated<Unit>>(
+      orgApi(`/properties/${p.id}/units?limit=500`),
+    );
     for (const u of unitsRes.items) {
       pairs.push({
         id: u.id,
@@ -106,7 +112,9 @@ async function submitApprove() {
         rentAmount: rent,
         dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
         currency: form.value.currency.trim() || 'XAF',
-        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
+        prepaidMonths: Number.isNaN(prepaid)
+          ? 0
+          : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showApprove.value = null;
@@ -139,14 +147,19 @@ watch([hasOrg, selectedOrgId], () => void load());
 
     <template v-else>
       <div class="mb-6">
-        <h2 class="text-xl font-semibold text-slate-900">Pending tenant signups</h2>
+        <h2 class="text-xl font-semibold text-slate-900">
+          Pending tenant signups
+        </h2>
         <p class="mt-1 text-sm text-slate-600">
-          People who requested access with your organization ID. Approve by assigning a unit and lease terms, or reject.
+          People who requested access with your organization ID. Approve by
+          assigning a unit and lease terms, or reject.
         </p>
       </div>
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
-      <p v-if="actionError" class="mb-4 text-sm text-red-600">{{ actionError }}</p>
+      <p v-if="actionError" class="mb-4 text-sm text-red-600">
+        {{ actionError }}
+      </p>
 
       <div
         v-if="loading"
@@ -155,9 +168,14 @@ watch([hasOrg, selectedOrgId], () => void load());
         Loading…
       </div>
 
-      <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div
+        v-else
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
         <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead
+            class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Requested</th>
               <th class="px-4 py-3">Name</th>
@@ -171,9 +189,13 @@ watch([hasOrg, selectedOrgId], () => void load());
               <td class="whitespace-nowrap px-4 py-3 text-slate-600">
                 {{ new Date(r.createdAt).toLocaleString() }}
               </td>
-              <td class="px-4 py-3 font-medium text-slate-900">{{ r.user.name || '—' }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">
+                {{ r.user.name || '—' }}
+              </td>
               <td class="px-4 py-3 text-slate-700">{{ r.user.email }}</td>
-              <td class="px-4 py-3 text-slate-600">{{ r.user.phone || '—' }}</td>
+              <td class="px-4 py-3 text-slate-600">
+                {{ r.user.phone || '—' }}
+              </td>
               <td class="px-4 py-3 text-right">
                 <button
                   type="button"
@@ -193,7 +215,10 @@ watch([hasOrg, selectedOrgId], () => void load());
             </tr>
           </tbody>
         </table>
-        <p v-if="!rows.length" class="px-4 py-10 text-center text-sm text-slate-500">
+        <p
+          v-if="!rows.length"
+          class="px-4 py-10 text-center text-sm text-slate-500"
+        >
           No pending signups.
         </p>
       </div>
@@ -204,9 +229,16 @@ watch([hasOrg, selectedOrgId], () => void load());
           class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
           @click.self="showApprove = null"
         >
-          <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold">Approve {{ showApprove.user.email }}</h3>
-            <p class="mt-1 text-sm text-slate-600">Creates their renter profile, lease, and portal access.</p>
+          <div
+            class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+            @click.stop
+          >
+            <h3 class="text-lg font-semibold">
+              Approve {{ showApprove.user.email }}
+            </h3>
+            <p class="mt-1 text-sm text-slate-600">
+              Creates their renter profile, lease, and portal access.
+            </p>
             <div class="mt-4 space-y-3">
               <label class="block text-sm">
                 <span class="font-medium text-slate-700">Unit</span>
@@ -253,11 +285,16 @@ watch([hasOrg, selectedOrgId], () => void load());
                 </label>
                 <label class="block text-sm">
                   <span class="font-medium text-slate-700">Currency</span>
-                  <input v-model="form.currency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+                  <input
+                    v-model="form.currency"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                  />
                 </label>
               </div>
               <label class="block text-sm">
-                <span class="font-medium text-slate-700">Months prepaid upfront (0–60)</span>
+                <span class="font-medium text-slate-700"
+                  >Months prepaid upfront (0–60)</span
+                >
                 <input
                   v-model="form.prepaidMonths"
                   type="number"
@@ -265,12 +302,21 @@ watch([hasOrg, selectedOrgId], () => void load());
                   max="60"
                   class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
                 />
-                <span class="mt-1 block text-xs text-slate-500">Optional — marks those months as paid on the tenant portal.</span>
+                <span class="mt-1 block text-xs text-slate-500"
+                  >Optional — marks those months as paid on the tenant
+                  portal.</span
+                >
               </label>
             </div>
-            <p v-if="actionError" class="mt-3 text-sm text-red-600">{{ actionError }}</p>
+            <p v-if="actionError" class="mt-3 text-sm text-red-600">
+              {{ actionError }}
+            </p>
             <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showApprove = null">
+              <button
+                type="button"
+                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                @click="showApprove = null"
+              >
                 Cancel
               </button>
               <button

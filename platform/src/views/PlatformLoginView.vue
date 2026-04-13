@@ -18,13 +18,16 @@ async function submit() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api<{ access_token: string; user: AuthUser }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: email.value.trim(),
-        password: password.value,
-      }),
-    });
+    const res = await api<{ access_token: string; user: AuthUser }>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.value.trim(),
+          password: password.value,
+        }),
+      },
+    );
     if (!res.user.isPlatformAdmin) {
       error.value = 'This account is not a platform administrator.';
       return;
@@ -42,7 +45,9 @@ async function submit() {
 
 <template>
   <div class="flex min-h-screen flex-col justify-center px-4">
-    <div class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div
+      class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+    >
       <div class="mb-6 text-center">
         <div
           class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-bold text-white"
@@ -52,8 +57,9 @@ async function submit() {
         <h1 class="text-xl font-semibold text-slate-900">Platform console</h1>
         <p class="mt-1 text-sm text-slate-500">SaaS operator access</p>
         <p class="mt-3 text-xs leading-relaxed text-slate-500">
-          Use a <span class="font-medium text-slate-600">platform administrator</span> account. Landlord and renter logins
-          cannot open this console.
+          Use a
+          <span class="font-medium text-slate-600">platform administrator</span>
+          account. Landlord and renter logins cannot open this console.
         </p>
       </div>
       <form class="space-y-4" @submit.prevent="submit">

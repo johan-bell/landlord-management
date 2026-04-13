@@ -32,7 +32,10 @@ export class PropertiesController {
   }
 
   @Get(':propertyId')
-  findOne(@Param('orgId') orgId: string, @Param('propertyId') propertyId: string) {
+  findOne(
+    @Param('orgId') orgId: string,
+    @Param('propertyId') propertyId: string,
+  ) {
     return this.propertiesService.findOne(orgId, propertyId);
   }
 
@@ -46,7 +49,10 @@ export class PropertiesController {
   }
 
   @Delete(':propertyId')
-  remove(@Param('orgId') orgId: string, @Param('propertyId') propertyId: string) {
+  remove(
+    @Param('orgId') orgId: string,
+    @Param('propertyId') propertyId: string,
+  ) {
     return this.propertiesService.remove(orgId, propertyId);
   }
 }

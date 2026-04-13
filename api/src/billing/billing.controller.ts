@@ -11,6 +11,10 @@ export class BillingController {
   @Post('organizations/:orgId/checkout')
   @UseGuards(JwtAuthGuard, OrgMembershipGuard)
   checkout(@Param('orgId') orgId: string, @Body() dto: CheckoutDto) {
-    return this.billing.createCheckoutSession(orgId, dto.successUrl, dto.cancelUrl);
+    return this.billing.createCheckoutSession(
+      orgId,
+      dto.successUrl,
+      dto.cancelUrl,
+    );
   }
 }

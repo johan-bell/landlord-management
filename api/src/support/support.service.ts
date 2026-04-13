@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { SupportRequestStatus } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { OrgTeamService } from '../organizations/org-team.service';
@@ -13,7 +17,10 @@ export class SupportService {
     private readonly orgTeam: OrgTeamService,
   ) {}
 
-  private async assertTenantCanUseOrg(user: RequestUser, organizationId: string) {
+  private async assertTenantCanUseOrg(
+    user: RequestUser,
+    organizationId: string,
+  ) {
     const renter = await this.prisma.renter.findFirst({
       where: { userId: user.userId, organizationId },
     });
@@ -50,7 +57,11 @@ export class SupportService {
     });
   }
 
-  async createForOrgMember(orgId: string, actor: RequestUser, dto: CreateSupportRequestDto) {
+  async createForOrgMember(
+    orgId: string,
+    actor: RequestUser,
+    dto: CreateSupportRequestDto,
+  ) {
     if (actor.typ === 'tenant') {
       throw new ForbiddenException();
     }
@@ -95,25 +106,39 @@ export class SupportService {
     });
   }
 
-  async listForPlatform(filters: { status?: SupportRequestStatus; organizationId?: string }) {
+  async listForPlatform(filters: {
+    status?: SupportRequestStatus;
+    organizationId?: string;
+  }) {
     return this.prisma.supportRequest.findMany({
       where: {
         ...(filters.status ? { status: filters.status } : {}),
-        ...(filters.organizationId ? { organizationId: filters.organizationId } : {}),
+        ...(filters.organizationId
+          ? { organizationId: filters.organizationId }
+          : {}),
       },
       orderBy: { createdAt: 'desc' },
       include: this.listInclude(),
     });
   }
 
-  async updateByPlatform(requestId: string, handler: RequestUser, dto: UpdateSupportRequestDto) {
-    const existing = await this.prisma.supportRequest.findUnique({ where: { id: requestId } });
+  async updateByPlatform(
+    requestId: string,
+    handler: RequestUser,
+    dto: UpdateSupportRequestDto,
+  ) {
+    const existing = await this.prisma.supportRequest.findUnique({
+      where: { id: requestId },
+    });
     if (!existing) {
       throw new NotFoundException('Support request not found');
     }
     let closedAt: Date | null | undefined;
     if (dto.status !== undefined) {
-      if (dto.status === SupportRequestStatus.RESOLVED || dto.status === SupportRequestStatus.CLOSED) {
+      if (
+        dto.status === SupportRequestStatus.RESOLVED ||
+        dto.status === SupportRequestStatus.CLOSED
+      ) {
         closedAt = new Date();
       } else {
         closedAt = null;
@@ -123,7 +148,9 @@ export class SupportService {
       where: { id: requestId },
       data: {
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.resolutionNote !== undefined ? { resolutionNote: dto.resolutionNote } : {}),
+        ...(dto.resolutionNote !== undefined
+          ? { resolutionNote: dto.resolutionNote }
+          : {}),
         handledById: handler.userId,
         ...(closedAt !== undefined ? { closedAt } : {}),
       },

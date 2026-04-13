@@ -19,7 +19,9 @@ const leases = ref<Lease[]>([]);
 const page = ref(1);
 const totalPages = ref(1);
 const search = ref('');
-const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>([]);
+const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
+  [],
+);
 const renters = ref<Renter[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -72,7 +74,11 @@ async function openUtilities(lease: Lease) {
   utilForm.value.year = now.getFullYear();
   utilForm.value.month = now.getMonth() + 1;
   utilForm.value.amount = '';
-  utilForm.value.dueDate = defaultUtilityDueIso(lease, utilForm.value.year, utilForm.value.month);
+  utilForm.value.dueDate = defaultUtilityDueIso(
+    lease,
+    utilForm.value.year,
+    utilForm.value.month,
+  );
   showUtilities.value = true;
   await loadUtilityBills();
 }
@@ -113,7 +119,8 @@ async function saveUtilityBill() {
     utilForm.value.amount = '';
     await loadUtilityBills();
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Could not save utility bill';
+    error.value =
+      e instanceof Error ? e.message : 'Could not save utility bill';
   } finally {
     utilSaving.value = false;
   }
@@ -152,7 +159,9 @@ async function removeUtilityBill(b: LeaseUtilityBill) {
   if (!lease) return;
   if (!confirm('Remove this utility charge?')) return;
   try {
-    await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), { method: 'DELETE' });
+    await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), {
+      method: 'DELETE',
+    });
     await loadUtilityBills();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Delete failed';
@@ -169,15 +178,23 @@ function utilityMonthLabel(b: LeaseUtilityBill) {
 function onUtilPeriodChange() {
   const lease = utilitiesLease.value;
   if (!lease) return;
-  utilForm.value.dueDate = defaultUtilityDueIso(lease, utilForm.value.year, utilForm.value.month);
+  utilForm.value.dueDate = defaultUtilityDueIso(
+    lease,
+    utilForm.value.year,
+    utilForm.value.month,
+  );
 }
 
 async function loadUnitsAndRenters() {
   if (!hasOrg.value) return;
-  const propsRes = await api<Paginated<Property>>(orgApi('/properties?limit=500'));
+  const propsRes = await api<Paginated<Property>>(
+    orgApi('/properties?limit=500'),
+  );
   const pairs: { id: string; label: string; propertyName: string }[] = [];
   for (const p of propsRes.items) {
-    const unitsRes = await api<Paginated<Unit>>(orgApi(`/properties/${p.id}/units?limit=500`));
+    const unitsRes = await api<Paginated<Unit>>(
+      orgApi(`/properties/${p.id}/units?limit=500`),
+    );
     for (const u of unitsRes.items) {
       pairs.push({
         id: u.id,
@@ -230,7 +247,9 @@ async function createLease() {
         startDate: new Date(form.value.startDate).toISOString(),
         rentAmount: rent,
         dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
-        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
+        prepaidMonths: Number.isNaN(prepaid)
+          ? 0
+          : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showAdd.value = false;
@@ -264,9 +283,9 @@ const canSubmit = computed(() => {
   const rent = Number.parseFloat(form.value.rentAmount);
   return Boolean(
     form.value.unitId &&
-      form.value.renterId &&
-      form.value.startDate &&
-      !Number.isNaN(rent),
+    form.value.renterId &&
+    form.value.startDate &&
+    !Number.isNaN(rent),
   );
 });
 
@@ -280,8 +299,12 @@ watch(page, () => void load());
     <SelectOrgPrompt v-if="!hasOrg" />
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-        <p class="text-sm text-slate-600">Agreements between renters and units.</p>
+      <div
+        class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
+      >
+        <p class="text-sm text-slate-600">
+          Agreements between renters and units.
+        </p>
         <div class="flex flex-wrap items-center gap-2">
           <input
             v-model="search"
@@ -316,10 +339,17 @@ watch(page, () => void load());
         Loading…
       </div>
 
-      <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div
+        v-else
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
         <div class="overflow-x-auto">
-          <table class="min-w-[640px] w-full divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <table
+            class="min-w-[640px] w-full divide-y divide-slate-200 text-left text-sm"
+          >
+            <thead
+              class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
               <tr>
                 <th class="px-4 py-3">Renter</th>
                 <th class="px-4 py-3">Unit</th>
@@ -331,13 +361,21 @@ watch(page, () => void load());
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="l in leases" :key="l.id" class="hover:bg-slate-50/80">
-                <td class="px-4 py-3 font-medium text-slate-900">{{ l.renter.fullName }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">
+                  {{ l.renter.fullName }}
+                </td>
                 <td class="px-4 py-3 text-slate-600">
                   {{ l.unit.label }}
-                  <span class="block text-xs text-slate-400">{{ l.unit.property.name }}</span>
+                  <span class="block text-xs text-slate-400">{{
+                    l.unit.property.name
+                  }}</span>
                 </td>
-                <td class="px-4 py-3 tabular-nums">{{ formatMoney(l.rentAmount, l.currency) }}</td>
-                <td class="px-4 py-3 text-slate-600">{{ formatDate(l.startDate) }}</td>
+                <td class="px-4 py-3 tabular-nums">
+                  {{ formatMoney(l.rentAmount, l.currency) }}
+                </td>
+                <td class="px-4 py-3 text-slate-600">
+                  {{ formatDate(l.startDate) }}
+                </td>
                 <td class="px-4 py-3">{{ l.dueDay }}</td>
                 <td class="px-4 py-3 text-right">
                   <button
@@ -360,7 +398,12 @@ watch(page, () => void load());
             </tbody>
           </table>
         </div>
-        <p v-if="!leases.length" class="px-4 py-10 text-center text-sm text-slate-500">No leases yet.</p>
+        <p
+          v-if="!leases.length"
+          class="px-4 py-10 text-center text-sm text-slate-500"
+        >
+          No leases yet.
+        </p>
       </div>
 
       <div
@@ -397,7 +440,9 @@ watch(page, () => void load());
             @click.stop
           >
             <h3 class="text-lg font-semibold">Create lease</h3>
-            <p class="mt-1 text-sm text-slate-500">Links a renter to a unit. The unit must be vacant.</p>
+            <p class="mt-1 text-sm text-slate-500">
+              Links a renter to a unit. The unit must be vacant.
+            </p>
 
             <label class="mt-4 block">
               <span class="text-sm font-medium">Unit</span>
@@ -419,7 +464,9 @@ watch(page, () => void load());
                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               >
                 <option value="" disabled>Select renter</option>
-                <option v-for="r in renters" :key="r.id" :value="r.id">{{ r.fullName }}</option>
+                <option v-for="r in renters" :key="r.id" :value="r.id">
+                  {{ r.fullName }}
+                </option>
               </select>
             </label>
 
@@ -444,7 +491,9 @@ watch(page, () => void load());
             </label>
 
             <label class="mt-3 block">
-              <span class="text-sm font-medium">Rent due day of month (1–28)</span>
+              <span class="text-sm font-medium"
+                >Rent due day of month (1–28)</span
+              >
               <input
                 v-model="form.dueDay"
                 type="number"
@@ -455,7 +504,9 @@ watch(page, () => void load());
             </label>
 
             <label class="mt-3 block">
-              <span class="text-sm font-medium">Months prepaid upfront (0–60)</span>
+              <span class="text-sm font-medium"
+                >Months prepaid upfront (0–60)</span
+              >
               <input
                 v-model="form.prepaidMonths"
                 type="number"
@@ -464,12 +515,17 @@ watch(page, () => void load());
                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               />
               <span class="mt-1 block text-xs text-slate-500">
-                Records that many monthly payments as already paid (tenant sees them as paid on the portal).
+                Records that many monthly payments as already paid (tenant sees
+                them as paid on the portal).
               </span>
             </label>
 
             <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showAdd = false">
+              <button
+                type="button"
+                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                @click="showAdd = false"
+              >
                 Cancel
               </button>
               <button
@@ -497,11 +553,13 @@ watch(page, () => void load());
           >
             <h3 class="text-lg font-semibold">Monthly utilities</h3>
             <p class="mt-1 text-sm text-slate-500">
-              {{ utilitiesLease.renter.fullName }} · {{ utilitiesLease.unit.property.name }} —
+              {{ utilitiesLease.renter.fullName }} ·
+              {{ utilitiesLease.unit.property.name }} —
               {{ utilitiesLease.unit.label }}
             </p>
             <p class="mt-2 text-xs text-slate-500">
-              Record electricity and water charges per month. Tenants see payment status in their portal.
+              Record electricity and water charges per month. Tenants see
+              payment status in their portal.
             </p>
 
             <div
@@ -510,9 +568,16 @@ watch(page, () => void load());
             >
               Loading…
             </div>
-            <div v-else class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-              <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div
+              v-else
+              class="mt-4 overflow-x-auto rounded-xl border border-slate-200"
+            >
+              <table
+                class="min-w-full divide-y divide-slate-200 text-left text-sm"
+              >
+                <thead
+                  class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                >
                   <tr>
                     <th class="px-3 py-2">Period</th>
                     <th class="px-3 py-2">Type</th>
@@ -523,11 +588,21 @@ watch(page, () => void load());
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  <tr v-for="b in utilityBills" :key="b.id" class="hover:bg-slate-50/80">
+                  <tr
+                    v-for="b in utilityBills"
+                    :key="b.id"
+                    class="hover:bg-slate-50/80"
+                  >
                     <td class="px-3 py-2">{{ utilityMonthLabel(b) }}</td>
-                    <td class="px-3 py-2">{{ b.kind === 'ELECTRICITY' ? 'Electricity' : 'Water' }}</td>
-                    <td class="px-3 py-2 tabular-nums">{{ formatMoney(b.amount, b.currency) }}</td>
-                    <td class="px-3 py-2 text-slate-600">{{ formatDate(b.dueDate) }}</td>
+                    <td class="px-3 py-2">
+                      {{ b.kind === 'ELECTRICITY' ? 'Electricity' : 'Water' }}
+                    </td>
+                    <td class="px-3 py-2 tabular-nums">
+                      {{ formatMoney(b.amount, b.currency) }}
+                    </td>
+                    <td class="px-3 py-2 text-slate-600">
+                      {{ formatDate(b.dueDate) }}
+                    </td>
                     <td class="px-3 py-2">
                       <span
                         :class="[
@@ -570,13 +645,21 @@ watch(page, () => void load());
                   </tr>
                 </tbody>
               </table>
-              <p v-if="!utilityBills.length" class="px-4 py-8 text-center text-sm text-slate-500">
+              <p
+                v-if="!utilityBills.length"
+                class="px-4 py-8 text-center text-sm text-slate-500"
+              >
                 No utility charges yet. Add a month below.
               </p>
             </div>
 
-            <div v-if="kindOptionsForLease(utilitiesLease).length" class="mt-6 border-t border-slate-100 pt-4">
-              <p class="text-sm font-medium text-slate-800">Add or update a month</p>
+            <div
+              v-if="kindOptionsForLease(utilitiesLease).length"
+              class="mt-6 border-t border-slate-100 pt-4"
+            >
+              <p class="text-sm font-medium text-slate-800">
+                Add or update a month
+              </p>
               <div class="mt-3 grid gap-3 sm:grid-cols-2">
                 <label class="block text-sm">
                   <span class="text-slate-600">Type</span>
@@ -646,7 +729,8 @@ watch(page, () => void load());
               </div>
             </div>
             <p v-else class="mt-4 text-sm text-amber-800">
-              This unit has no metered electricity or water configured. Set rates under Property → Units first.
+              This unit has no metered electricity or water configured. Set
+              rates under Property → Units first.
             </p>
 
             <div class="mt-6 flex justify-end">

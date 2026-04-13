@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -48,7 +52,10 @@ export class AuthService {
       return { user, organization: org };
     });
 
-    const access_token = this.signUserToken(result.user.id, this.tokenTyp(result.user));
+    const access_token = this.signUserToken(
+      result.user.id,
+      this.tokenTyp(result.user),
+    );
 
     return {
       access_token,

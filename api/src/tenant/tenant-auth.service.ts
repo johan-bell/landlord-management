@@ -78,7 +78,9 @@ export class TenantAuthService {
     const claimInvite = Boolean(token);
     const claimRenterId = Boolean(rid);
 
-    const modes = [orgRequest, claimInvite, claimRenterId].filter(Boolean).length;
+    const modes = [orgRequest, claimInvite, claimRenterId].filter(
+      Boolean,
+    ).length;
     if (modes !== 1) {
       throw new BadRequestException(
         'Use exactly one of: organization id/slug (self-signup), inviteToken, or renterId',
@@ -86,7 +88,13 @@ export class TenantAuthService {
     }
 
     if (orgRequest) {
-      return this.registerByOrganization(email, dto.password, orgId, orgSlug, dto);
+      return this.registerByOrganization(
+        email,
+        dto.password,
+        orgId,
+        orgSlug,
+        dto,
+      );
     }
     if (claimInvite) {
       return this.registerByInvite(email, dto.password, token!);
@@ -103,12 +111,16 @@ export class TenantAuthService {
   ) {
     const fullName = dto.fullName?.trim();
     if (!fullName) {
-      throw new BadRequestException('fullName is required for organization signup');
+      throw new BadRequestException(
+        'fullName is required for organization signup',
+      );
     }
 
     const org = await this.prisma.organization.findFirst({
       where: {
-        ...(organizationId ? { id: organizationId } : { slug: organizationSlug }),
+        ...(organizationId
+          ? { id: organizationId }
+          : { slug: organizationSlug }),
         suspendedAt: null,
       },
     });
@@ -116,7 +128,9 @@ export class TenantAuthService {
       throw new NotFoundException('Organization not found or suspended');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
@@ -154,7 +168,11 @@ export class TenantAuthService {
     };
   }
 
-  private async registerByInvite(email: string, password: string, token: string) {
+  private async registerByInvite(
+    email: string,
+    password: string,
+    token: string,
+  ) {
     const renter = await this.prisma.renter.findFirst({
       where: {
         inviteToken: token,
@@ -165,13 +183,17 @@ export class TenantAuthService {
       throw new NotFoundException('Invalid or expired invite');
     }
     if (!renter.email || renter.email.toLowerCase() !== email) {
-      throw new UnauthorizedException('Email does not match this renter profile');
+      throw new UnauthorizedException(
+        'Email does not match this renter profile',
+      );
     }
     if (renter.userId) {
       throw new ConflictException('This renter profile already has an account');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
@@ -210,7 +232,11 @@ export class TenantAuthService {
     };
   }
 
-  private async registerByRenterId(email: string, password: string, rid: string) {
+  private async registerByRenterId(
+    email: string,
+    password: string,
+    rid: string,
+  ) {
     const renter = await this.prisma.renter.findUnique({
       where: { id: rid },
     });
@@ -218,13 +244,17 @@ export class TenantAuthService {
       throw new NotFoundException('Renter not found');
     }
     if (!renter.email || renter.email.toLowerCase() !== email) {
-      throw new UnauthorizedException('Email does not match this renter profile');
+      throw new UnauthorizedException(
+        'Email does not match this renter profile',
+      );
     }
     if (renter.userId) {
       throw new ConflictException('This renter profile already has an account');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
@@ -259,7 +289,11 @@ export class TenantAuthService {
     };
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { renterProfile: true, tenantSignupRequest: true },
@@ -269,8 +303,10 @@ export class TenantAuthService {
     }
     const isTenant =
       user.renterProfile ||
-      (user.tenantSignupRequest && user.tenantSignupRequest.status === 'PENDING') ||
-      (user.tenantSignupRequest && user.tenantSignupRequest.status === 'REJECTED');
+      (user.tenantSignupRequest &&
+        user.tenantSignupRequest.status === 'PENDING') ||
+      (user.tenantSignupRequest &&
+        user.tenantSignupRequest.status === 'REJECTED');
     if (!isTenant) {
       throw new UnauthorizedException();
     }

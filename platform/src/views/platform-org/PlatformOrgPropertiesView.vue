@@ -31,11 +31,15 @@ async function load() {
       limit: String(PAGE_SIZE),
     });
     if (search.value.trim()) qs.set('search', search.value.trim());
-    const data = await api<Paginated<Property>>(`${orgApi('/properties')}?${qs}`);
+    const data = await api<Paginated<Property>>(
+      `${orgApi('/properties')}?${qs}`,
+    );
     totalPages.value = Math.max(1, data.totalPages);
     const withUnits = await Promise.all(
       data.items.map(async (p) => {
-        const ures = await api<Paginated<Unit>>(`${orgApi(`/properties/${p.id}/units`)}?limit=100`);
+        const ures = await api<Paginated<Unit>>(
+          `${orgApi(`/properties/${p.id}/units`)}?limit=100`,
+        );
         return { ...p, units: ures.items };
       }),
     );
@@ -76,7 +80,8 @@ async function addProperty() {
 }
 
 async function removeProperty(p: Property) {
-  if (!confirm(`Delete “${p.name}” and all its units? This cannot be undone.`)) return;
+  if (!confirm(`Delete “${p.name}” and all its units? This cannot be undone.`))
+    return;
   try {
     await api(orgApi(`/properties/${p.id}`), { method: 'DELETE' });
     await load();
@@ -95,8 +100,12 @@ watch(page, () => void load());
 
 <template>
   <div>
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <p class="text-sm text-slate-600">Buildings and sites. Open a property to manage units and rent.</p>
+    <div
+      class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+    >
+      <p class="text-sm text-slate-600">
+        Buildings and sites. Open a property to manage units and rent.
+      </p>
       <div class="flex flex-wrap items-center gap-2">
         <input
           v-model="search"
@@ -131,9 +140,16 @@ watch(page, () => void load());
       Loading…
     </div>
 
-    <div v-else-if="!rows.length" class="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
+    <div
+      v-else-if="!rows.length"
+      class="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center"
+    >
       <p class="text-slate-600">No properties yet.</p>
-      <button type="button" class="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800" @click="showAdd = true">
+      <button
+        type="button"
+        class="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+        @click="showAdd = true"
+      >
         Add your first property
       </button>
     </div>
@@ -148,9 +164,13 @@ watch(page, () => void load());
           <div class="flex items-start justify-between gap-3">
             <div>
               <h3 class="text-lg font-semibold text-slate-900">{{ p.name }}</h3>
-              <p v-if="p.address" class="mt-1 text-sm text-slate-500">{{ p.address }}</p>
+              <p v-if="p.address" class="mt-1 text-sm text-slate-500">
+                {{ p.address }}
+              </p>
             </div>
-            <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+            <span
+              class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
+            >
               {{ p.units?.length ?? 0 }} units
             </span>
           </div>
@@ -170,14 +190,30 @@ watch(page, () => void load());
             </button>
           </div>
         </div>
-        <div v-if="p.units?.length" class="border-t border-slate-100 bg-slate-50/80 px-5 py-3">
-          <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Sample units</p>
+        <div
+          v-if="p.units?.length"
+          class="border-t border-slate-100 bg-slate-50/80 px-5 py-3"
+        >
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
+            Sample units
+          </p>
           <ul class="mt-2 space-y-1">
-            <li v-for="u in p.units!.slice(0, 3)" :key="u.id" class="flex justify-between text-sm text-slate-600">
+            <li
+              v-for="u in p.units!.slice(0, 3)"
+              :key="u.id"
+              class="flex justify-between text-sm text-slate-600"
+            >
               <span>{{ u.label }}</span>
-              <span class="tabular-nums text-slate-900">{{ formatMoney(u.rentAmount, u.currency) }}</span>
+              <span class="tabular-nums text-slate-900">{{
+                formatMoney(u.rentAmount, u.currency)
+              }}</span>
             </li>
-            <li v-if="(p.units?.length ?? 0) > 3" class="text-xs text-slate-400">+ {{ (p.units?.length ?? 0) - 3 }} more</li>
+            <li
+              v-if="(p.units?.length ?? 0) > 3"
+              class="text-xs text-slate-400"
+            >
+              + {{ (p.units?.length ?? 0) - 3 }} more
+            </li>
           </ul>
         </div>
       </article>
@@ -214,7 +250,10 @@ watch(page, () => void load());
         aria-modal="true"
         @click.self="showAdd = false"
       >
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <div
+          class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          @click.stop
+        >
           <h3 class="text-lg font-semibold text-slate-900">New property</h3>
           <label class="mt-4 block">
             <span class="text-sm font-medium text-slate-700">Name</span>
@@ -225,11 +264,21 @@ watch(page, () => void load());
             />
           </label>
           <label class="mt-3 block">
-            <span class="text-sm font-medium text-slate-700">Address (optional)</span>
-            <input v-model="newAddress" type="text" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <span class="text-sm font-medium text-slate-700"
+              >Address (optional)</span
+            >
+            <input
+              v-model="newAddress"
+              type="text"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="mt-6 flex justify-end gap-2">
-            <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100" @click="showAdd = false">
+            <button
+              type="button"
+              class="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
+              @click="showAdd = false"
+            >
               Cancel
             </button>
             <button

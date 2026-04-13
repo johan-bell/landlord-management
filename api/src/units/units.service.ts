@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ElectricityBilling,
   Prisma,
@@ -74,7 +78,12 @@ export class UnitsService {
     return unit;
   }
 
-  async update(orgId: string, propertyId: string, unitId: string, dto: UpdateUnitDto) {
+  async update(
+    orgId: string,
+    propertyId: string,
+    unitId: string,
+    dto: UpdateUnitDto,
+  ) {
     const current = await this.findOne(orgId, propertyId, unitId);
     const utilities = this.utilitiesForUpdate(dto, current);
     const data: Prisma.UnitUpdateInput = {
@@ -149,7 +158,9 @@ export class UnitsService {
     let waterPricePerM3: Prisma.Decimal | null = current.waterPricePerM3;
     if (dto.waterPricePerM3 !== undefined) {
       waterPricePerM3 =
-        dto.waterPricePerM3 === null ? null : new Prisma.Decimal(dto.waterPricePerM3);
+        dto.waterPricePerM3 === null
+          ? null
+          : new Prisma.Decimal(dto.waterPricePerM3);
     }
 
     if (electricityBilling === ElectricityBilling.PREPAID_EXTERNAL) {

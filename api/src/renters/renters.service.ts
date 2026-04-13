@@ -37,7 +37,9 @@ export class RentersService {
 
     if (pwd) {
       if (!emailNormalized) {
-        throw new BadRequestException('email is required when setting an initial portal password');
+        throw new BadRequestException(
+          'email is required when setting an initial portal password',
+        );
       }
       const existingUser = await this.prisma.user.findUnique({
         where: { email: emailNormalized },
@@ -118,7 +120,8 @@ export class RentersService {
       data: { inviteToken: token, inviteTokenExpiresAt },
     });
     const base =
-      this.config.get<string>('TENANT_PUBLIC_URL')?.replace(/\/$/, '') ?? 'http://localhost:5174';
+      this.config.get<string>('TENANT_PUBLIC_URL')?.replace(/\/$/, '') ??
+      'http://localhost:5174';
     return {
       token,
       expiresAt: inviteTokenExpiresAt,

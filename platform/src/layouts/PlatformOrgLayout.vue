@@ -33,9 +33,14 @@ watch(
 
 <template>
   <div>
-    <div class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div
+      class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+    >
       <div>
-        <RouterLink class="text-sm font-medium text-indigo-600 hover:text-indigo-800" to="/">
+        <RouterLink
+          class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          to="/"
+        >
           ← All organizations
         </RouterLink>
         <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">

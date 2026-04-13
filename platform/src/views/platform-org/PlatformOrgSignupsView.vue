@@ -25,7 +25,9 @@ const signups = ref<SignupRow[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const actionError = ref<string | null>(null);
-const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>([]);
+const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
+  [],
+);
 const showApprove = ref<SignupRow | null>(null);
 const approveForm = ref({
   unitId: '',
@@ -50,10 +52,14 @@ async function loadSignups() {
 }
 
 async function loadUnitsForApprove() {
-  const propsRes = await api<Paginated<Property>>(orgApi('/properties?limit=100'));
+  const propsRes = await api<Paginated<Property>>(
+    orgApi('/properties?limit=100'),
+  );
   const pairs: { id: string; label: string; propertyName: string }[] = [];
   for (const p of propsRes.items) {
-    const unitsRes = await api<Paginated<Unit>>(orgApi(`/properties/${p.id}/units?limit=500`));
+    const unitsRes = await api<Paginated<Unit>>(
+      orgApi(`/properties/${p.id}/units?limit=500`),
+    );
     for (const u of unitsRes.items) {
       pairs.push({ id: u.id, label: u.label, propertyName: p.name });
     }
@@ -95,7 +101,9 @@ async function submitApprove() {
         rentAmount: rent,
         dueDay: Number.parseInt(approveForm.value.dueDay, 10) || 1,
         currency: approveForm.value.currency.trim() || 'XAF',
-        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
+        prepaidMonths: Number.isNaN(prepaid)
+          ? 0
+          : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showApprove.value = null;
@@ -128,10 +136,13 @@ watch(
 <template>
   <div>
     <p class="text-sm text-slate-600">
-      Pending self-serve tenant registrations. Approve by assigning a unit and lease terms.
+      Pending self-serve tenant registrations. Approve by assigning a unit and
+      lease terms.
     </p>
     <p v-if="error" class="mt-4 text-sm text-red-600">{{ error }}</p>
-    <p v-if="actionError" class="mt-2 text-sm text-red-600">{{ actionError }}</p>
+    <p v-if="actionError" class="mt-2 text-sm text-red-600">
+      {{ actionError }}
+    </p>
     <div v-if="loading" class="mt-4 text-sm text-slate-500">Loading…</div>
     <div
       v-else-if="!signups.length"
@@ -148,7 +159,8 @@ watch(
         <div>
           <p class="font-medium text-slate-900">{{ row.user.email }}</p>
           <p class="text-xs text-slate-500">
-            {{ row.user.name || '—' }} · requested {{ new Date(row.createdAt).toLocaleString() }}
+            {{ row.user.name || '—' }} · requested
+            {{ new Date(row.createdAt).toLocaleString() }}
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -177,13 +189,19 @@ watch(
       aria-modal="true"
       @click.self="showApprove = null"
     >
-      <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div
+        class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+      >
         <h3 class="text-lg font-semibold text-slate-900">Approve signup</h3>
         <p class="mt-1 text-sm text-slate-600">{{ showApprove?.user.email }}</p>
         <form class="mt-4 space-y-3" @submit.prevent="submitApprove">
           <label class="block text-sm">
             <span class="text-slate-700">Unit</span>
-            <select v-model="approveForm.unitId" required class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2">
+            <select
+              v-model="approveForm.unitId"
+              required
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            >
               <option disabled value="">Select unit…</option>
               <option v-for="u in unitOptions" :key="u.id" :value="u.id">
                 {{ u.propertyName }} — {{ u.label }}
@@ -192,28 +210,60 @@ watch(
           </label>
           <label class="block text-sm">
             <span class="text-slate-700">Start date</span>
-            <input v-model="approveForm.startDate" type="date" required class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="approveForm.startDate"
+              type="date"
+              required
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="block text-sm">
             <span class="text-slate-700">Monthly rent</span>
-            <input v-model="approveForm.rentAmount" type="number" step="any" required class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="approveForm.rentAmount"
+              type="number"
+              step="any"
+              required
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="grid grid-cols-2 gap-3">
             <label class="block text-sm">
               <span class="text-slate-700">Due day</span>
-              <input v-model="approveForm.dueDay" type="number" min="1" max="28" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="approveForm.dueDay"
+                type="number"
+                min="1"
+                max="28"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
             <label class="block text-sm">
               <span class="text-slate-700">Currency</span>
-              <input v-model="approveForm.currency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="approveForm.currency"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
           </div>
           <label class="block text-sm">
             <span class="text-slate-700">Prepaid months (0–60)</span>
-            <input v-model="approveForm.prepaidMonths" type="number" min="0" max="60" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="approveForm.prepaidMonths"
+              type="number"
+              min="0"
+              max="60"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold" @click="showApprove = null">Cancel</button>
+            <button
+              type="button"
+              class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold"
+              @click="showApprove = null"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"

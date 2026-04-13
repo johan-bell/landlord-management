@@ -30,7 +30,9 @@ const rows = computed<Row[]>(() => {
       });
     }
   }
-  return out.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+  return out.sort(
+    (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+  );
 });
 
 async function load() {
@@ -49,17 +51,14 @@ async function load() {
 
 async function markPaid(row: Row) {
   try {
-    await api(
-      orgApi(`/leases/${row.leaseId}/payments/${row.id}`),
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'PAID',
-          paidAt: new Date().toISOString(),
-          method: 'CASH',
-        }),
-      },
-    );
+    await api(orgApi(`/leases/${row.leaseId}/payments/${row.id}`), {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'PAID',
+        paidAt: new Date().toISOString(),
+        method: 'CASH',
+      }),
+    });
     await load();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Update failed';
@@ -82,7 +81,8 @@ watch(hasOrg, () => void load());
 
     <template v-else>
       <p class="mb-6 text-sm text-slate-600">
-        Rent charges and receipts across all leases. Mark a row as paid to record collection.
+        Rent charges and receipts across all leases. Mark a row as paid to
+        record collection.
       </p>
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -94,10 +94,17 @@ watch(hasOrg, () => void load());
         Loading…
       </div>
 
-      <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div
+        v-else
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
         <div class="overflow-x-auto">
-          <table class="min-w-[720px] w-full divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <table
+            class="min-w-[720px] w-full divide-y divide-slate-200 text-left text-sm"
+          >
+            <thead
+              class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
               <tr>
                 <th class="px-4 py-3">Due</th>
                 <th class="px-4 py-3">Amount</th>
@@ -109,15 +116,23 @@ watch(hasOrg, () => void load());
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr v-for="row in rows" :key="row.id" class="hover:bg-slate-50/80">
-                <td class="px-4 py-3 text-slate-700">{{ formatDate(row.dueDate) }}</td>
+              <tr
+                v-for="row in rows"
+                :key="row.id"
+                class="hover:bg-slate-50/80"
+              >
+                <td class="px-4 py-3 text-slate-700">
+                  {{ formatDate(row.dueDate) }}
+                </td>
                 <td class="px-4 py-3 font-medium tabular-nums text-slate-900">
                   {{ formatMoney(row.amount, row.currency) }}
                 </td>
                 <td class="px-4 py-3">{{ row.renterName }}</td>
                 <td class="px-4 py-3 text-slate-600">
                   {{ row.unitLabel }}
-                  <span class="block text-xs text-slate-400">{{ row.propertyName }}</span>
+                  <span class="block text-xs text-slate-400">{{
+                    row.propertyName
+                  }}</span>
                 </td>
                 <td class="px-4 py-3">
                   <span
@@ -127,7 +142,9 @@ watch(hasOrg, () => void load());
                     {{ row.status }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-xs text-slate-500">{{ formatDateTime(row.paidAt) }}</td>
+                <td class="px-4 py-3 text-xs text-slate-500">
+                  {{ formatDateTime(row.paidAt) }}
+                </td>
                 <td class="px-4 py-3 text-right">
                   <button
                     v-if="row.status !== 'PAID'"
@@ -143,8 +160,12 @@ watch(hasOrg, () => void load());
             </tbody>
           </table>
         </div>
-        <p v-if="!rows.length" class="px-4 py-10 text-center text-sm text-slate-500">
-          No payment records. Add payments via the API or extend this screen with a “Record payment” flow.
+        <p
+          v-if="!rows.length"
+          class="px-4 py-10 text-center text-sm text-slate-500"
+        >
+          No payment records. Add payments via the API or extend this screen
+          with a “Record payment” flow.
         </p>
       </div>
     </template>

@@ -13,7 +13,7 @@ export class BillingService {
   ) {
     const key = this.config.get<string>('STRIPE_SECRET_KEY');
     if (key) {
-      this.stripe = new StripeSdk(key) as InstanceType<typeof StripeSdk>;
+      this.stripe = new StripeSdk(key);
     }
   }
 
@@ -21,7 +21,11 @@ export class BillingService {
     return Boolean(this.stripe && this.config.get('STRIPE_PRICE_ID'));
   }
 
-  async createCheckoutSession(orgId: string, successUrl: string, cancelUrl: string) {
+  async createCheckoutSession(
+    orgId: string,
+    successUrl: string,
+    cancelUrl: string,
+  ) {
     if (!this.stripe) {
       throw new BadRequestException(
         'Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_ID in api/.env',
@@ -32,7 +36,9 @@ export class BillingService {
       throw new BadRequestException('STRIPE_PRICE_ID is missing');
     }
 
-    const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
+    const org = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+    });
     if (!org) {
       throw new BadRequestException('Organization not found');
     }
@@ -61,5 +67,4 @@ export class BillingService {
 
     return { url: session.url };
   }
-
 }

@@ -32,7 +32,9 @@ async function load() {
       limit: String(PAGE_SIZE),
     });
     if (search.value.trim()) qs.set('search', search.value.trim());
-    const data = await api<Paginated<Property>>(`${orgApi('/properties')}?${qs}`);
+    const data = await api<Paginated<Property>>(
+      `${orgApi('/properties')}?${qs}`,
+    );
     totalPages.value = Math.max(1, data.totalPages);
     const withUnits = await Promise.all(
       data.items.map(async (p) => {
@@ -79,7 +81,8 @@ async function addProperty() {
 }
 
 async function removeProperty(p: Property) {
-  if (!confirm(`Delete “${p.name}” and all its units? This cannot be undone.`)) return;
+  if (!confirm(`Delete “${p.name}” and all its units? This cannot be undone.`))
+    return;
   try {
     await api(orgApi(`/properties/${p.id}`), { method: 'DELETE' });
     await load();
@@ -106,9 +109,12 @@ watch(page, () => {
     <SelectOrgPrompt v-if="!hasOrg" />
 
     <template v-else>
-      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div
+        class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      >
         <p class="text-sm text-slate-600">
-          Buildings and sites in this organization. Open a property to manage units and rent amounts.
+          Buildings and sites in this organization. Open a property to manage
+          units and rent amounts.
         </p>
         <div class="flex flex-wrap items-center gap-2">
           <input
@@ -144,7 +150,10 @@ watch(page, () => {
         Loading properties…
       </div>
 
-      <div v-else-if="!rows.length" class="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
+      <div
+        v-else-if="!rows.length"
+        class="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center"
+      >
         <p class="text-slate-600">No properties yet.</p>
         <button
           type="button"
@@ -164,8 +173,12 @@ watch(page, () => {
           <div class="flex flex-1 flex-col p-5">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <h3 class="text-lg font-semibold text-slate-900">{{ p.name }}</h3>
-                <p v-if="p.address" class="mt-1 text-sm text-slate-500">{{ p.address }}</p>
+                <h3 class="text-lg font-semibold text-slate-900">
+                  {{ p.name }}
+                </h3>
+                <p v-if="p.address" class="mt-1 text-sm text-slate-500">
+                  {{ p.address }}
+                </p>
               </div>
               <span
                 class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
@@ -193,7 +206,11 @@ watch(page, () => {
             v-if="p.units?.length"
             class="border-t border-slate-100 bg-slate-50/80 px-5 py-3"
           >
-            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Sample units</p>
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-slate-400"
+            >
+              Sample units
+            </p>
             <ul class="mt-2 space-y-1">
               <li
                 v-for="u in p.units!.slice(0, 3)"
@@ -201,9 +218,14 @@ watch(page, () => {
                 class="flex justify-between text-sm text-slate-600"
               >
                 <span>{{ u.label }}</span>
-                <span class="tabular-nums text-slate-900">{{ formatMoney(u.rentAmount, u.currency) }}</span>
+                <span class="tabular-nums text-slate-900">{{
+                  formatMoney(u.rentAmount, u.currency)
+                }}</span>
               </li>
-              <li v-if="(p.units?.length ?? 0) > 3" class="text-xs text-slate-400">
+              <li
+                v-if="(p.units?.length ?? 0) > 3"
+                class="text-xs text-slate-400"
+              >
                 + {{ (p.units?.length ?? 0) - 3 }} more
               </li>
             </ul>
@@ -247,7 +269,9 @@ watch(page, () => {
             @click.stop
           >
             <h3 class="text-lg font-semibold text-slate-900">New property</h3>
-            <p class="mt-1 text-sm text-slate-500">A building or site that contains rentable units.</p>
+            <p class="mt-1 text-sm text-slate-500">
+              A building or site that contains rentable units.
+            </p>
             <label class="mt-4 block">
               <span class="text-sm font-medium text-slate-700">Name</span>
               <input
@@ -258,7 +282,9 @@ watch(page, () => {
               />
             </label>
             <label class="mt-3 block">
-              <span class="text-sm font-medium text-slate-700">Address (optional)</span>
+              <span class="text-sm font-medium text-slate-700"
+                >Address (optional)</span
+              >
               <input
                 v-model="newAddress"
                 type="text"

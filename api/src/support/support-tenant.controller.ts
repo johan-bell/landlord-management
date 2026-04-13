@@ -17,7 +17,10 @@ export class SupportTenantController {
   }
 
   @Post()
-  create(@CurrentUser() user: RequestUser, @Body() dto: CreateSupportRequestDto) {
+  create(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateSupportRequestDto,
+  ) {
     return this.support.createForTenant(user, dto);
   }
 }

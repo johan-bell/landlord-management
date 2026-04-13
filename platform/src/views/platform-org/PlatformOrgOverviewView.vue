@@ -63,7 +63,9 @@ async function saveMeta() {
   metaError.value = null;
   try {
     const slug = editSlug.value.trim();
-    const body: { name: string; slug?: string } = { name: editName.value.trim() };
+    const body: { name: string; slug?: string } = {
+      name: editName.value.trim(),
+    };
     if (slug) body.slug = slug;
     await api(orgApi(''), {
       method: 'PATCH',
@@ -138,25 +140,42 @@ watch(
       <div class="flex flex-wrap items-center gap-3">
         <span
           class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-          :class="org.suspendedAt ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'"
+          :class="
+            org.suspendedAt
+              ? 'bg-red-100 text-red-800'
+              : 'bg-emerald-100 text-emerald-800'
+          "
         >
           {{ org.suspendedAt ? 'Suspended' : 'Active' }}
         </span>
-        <span class="text-xs text-slate-500">Subscription {{ org.subscriptionStatus }}</span>
+        <span class="text-xs text-slate-500"
+          >Subscription {{ org.subscriptionStatus }}</span
+        >
       </div>
 
       <div class="mt-8 grid gap-4 lg:grid-cols-2">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 class="text-sm font-semibold text-slate-900">Organization details</h2>
-          <p class="mt-1 text-xs text-slate-500">Same fields as the landlord admin.</p>
+          <h2 class="text-sm font-semibold text-slate-900">
+            Organization details
+          </h2>
+          <p class="mt-1 text-xs text-slate-500">
+            Same fields as the landlord admin.
+          </p>
           <form class="mt-4 space-y-3" @submit.prevent="saveMeta">
             <label class="block text-sm">
               <span class="text-slate-700">Name</span>
-              <input v-model="editName" required class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="editName"
+                required
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
             <label class="block text-sm">
               <span class="text-slate-700">Slug</span>
-              <input v-model="editSlug" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="editSlug"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
             <p v-if="metaError" class="text-sm text-red-600">{{ metaError }}</p>
             <button
@@ -171,7 +190,9 @@ watch(
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-sm font-semibold text-slate-900">Danger zone</h2>
-          <p class="mt-1 text-xs text-slate-500">Suspend blocks landlord staff; delete removes all org data.</p>
+          <p class="mt-1 text-xs text-slate-500">
+            Suspend blocks landlord staff; delete removes all org data.
+          </p>
           <div class="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -179,7 +200,13 @@ watch(
               :disabled="suspendBusy"
               @click="toggleSuspend"
             >
-              {{ suspendBusy ? '…' : org.suspendedAt ? 'Unsuspend organization' : 'Suspend organization' }}
+              {{
+                suspendBusy
+                  ? '…'
+                  : org.suspendedAt
+                    ? 'Unsuspend organization'
+                    : 'Suspend organization'
+              }}
             </button>
             <button
               type="button"
@@ -194,31 +221,59 @@ watch(
       </div>
 
       <div class="mt-10">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Diagnostics</h2>
+        <h2
+          class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500"
+        >
+          Diagnostics
+        </h2>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Members</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.members }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.members }}
+            </p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Properties</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.properties }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.properties }}
+            </p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Units</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.units }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.units }}
+            </p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Renters</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.renters }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.renters }}
+            </p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Leases</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.leases }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.leases }}
+            </p>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
             <p class="text-xs text-slate-500">Pending org invites</p>
-            <p class="text-2xl font-semibold text-slate-900">{{ org.diagnostics.pendingInvitations }}</p>
+            <p class="text-2xl font-semibold text-slate-900">
+              {{ org.diagnostics.pendingInvitations }}
+            </p>
           </div>
         </div>
       </div>

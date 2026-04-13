@@ -32,7 +32,10 @@ async function load() {
   error.value = null;
   copyMsg.value = null;
   try {
-    const qs = new URLSearchParams({ page: String(page.value), limit: String(PAGE_SIZE) });
+    const qs = new URLSearchParams({
+      page: String(page.value),
+      limit: String(PAGE_SIZE),
+    });
     if (search.value.trim()) qs.set('search', search.value.trim());
     const data = await api<Paginated<Renter>>(`${orgApi('/renters')}?${qs}`);
     renters.value = data.items;
@@ -52,9 +55,12 @@ function applySearch() {
 async function copyTenantInvite(r: Renter) {
   copyMsg.value = null;
   try {
-    const res = await api<{ registerUrl: string }>(orgApi(`/renters/${r.id}/tenant-invite`), {
-      method: 'POST',
-    });
+    const res = await api<{ registerUrl: string }>(
+      orgApi(`/renters/${r.id}/tenant-invite`),
+      {
+        method: 'POST',
+      },
+    );
     await navigator.clipboard.writeText(res.registerUrl);
     copyMsg.value = 'Invite link copied for ' + r.fullName;
   } catch (e) {
@@ -130,8 +136,12 @@ watch(page, () => void load());
 
 <template>
   <div>
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-      <p class="text-sm text-slate-600">People who rent units under this organization.</p>
+    <div
+      class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
+    >
+      <p class="text-sm text-slate-600">
+        People who rent units under this organization.
+      </p>
       <div class="flex flex-wrap items-center gap-2">
         <input
           v-model="search"
@@ -167,9 +177,14 @@ watch(page, () => void load());
       Loading…
     </div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      v-else
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <thead
+          class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+        >
           <tr>
             <th class="px-4 py-3">Name</th>
             <th class="hidden px-4 py-3 sm:table-cell">Phone</th>
@@ -180,9 +195,15 @@ watch(page, () => void load());
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr v-for="r in renters" :key="r.id" class="hover:bg-slate-50/80">
-            <td class="px-4 py-3 font-medium text-slate-900">{{ r.fullName }}</td>
-            <td class="hidden px-4 py-3 text-slate-600 sm:table-cell">{{ r.phone ?? '—' }}</td>
-            <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ r.email ?? '—' }}</td>
+            <td class="px-4 py-3 font-medium text-slate-900">
+              {{ r.fullName }}
+            </td>
+            <td class="hidden px-4 py-3 text-slate-600 sm:table-cell">
+              {{ r.phone ?? '—' }}
+            </td>
+            <td class="hidden px-4 py-3 text-slate-600 md:table-cell">
+              {{ r.email ?? '—' }}
+            </td>
             <td class="hidden px-4 py-3 lg:table-cell">
               <span
                 v-if="r.userId"
@@ -201,14 +222,23 @@ watch(page, () => void load());
               >
                 Copy invite
               </button>
-              <button type="button" class="text-sm font-medium text-red-600 hover:underline" @click="remove(r)">
+              <button
+                type="button"
+                class="text-sm font-medium text-red-600 hover:underline"
+                @click="remove(r)"
+              >
                 Remove
               </button>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="!renters.length" class="px-4 py-10 text-center text-sm text-slate-500">No renters yet.</p>
+      <p
+        v-if="!renters.length"
+        class="px-4 py-10 text-center text-sm text-slate-500"
+      >
+        No renters yet.
+      </p>
     </div>
 
     <div
@@ -240,30 +270,59 @@ watch(page, () => void load());
         class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
         @click.self="showAdd = false"
       >
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <div
+          class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          @click.stop
+        >
           <h3 class="text-lg font-semibold">New renter</h3>
           <label class="mt-4 block">
             <span class="text-sm font-medium">Full name</span>
-            <input v-model="form.fullName" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.fullName"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Phone (optional)</span>
-            <input v-model="form.phone" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.phone"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Email</span>
-            <input v-model="form.email" type="email" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.email"
+              type="email"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Initial portal password</span>
-            <input v-model="form.initialPassword" type="password" minlength="8" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.initialPassword"
+              type="password"
+              minlength="8"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Confirm password</span>
-            <input v-model="form.initialPasswordConfirm" type="password" minlength="8" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.initialPasswordConfirm"
+              type="password"
+              minlength="8"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="mt-6 flex justify-end gap-2">
-            <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showAdd = false">Cancel</button>
+            <button
+              type="button"
+              class="rounded-xl px-4 py-2 text-sm text-slate-600"
+              @click="showAdd = false"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"

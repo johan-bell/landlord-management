@@ -1,38 +1,38 @@
 // @ts-check
+// https://eslint.vuejs.org/user-guide/#example-configuration-with-typescript-eslint-and-prettier
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import pluginVue from 'eslint-plugin-vue';
+import eslintPluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
-import vueParser from 'vue-eslint-parser';
+import typescriptEslint from 'typescript-eslint';
 
-export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage'] },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  ...pluginVue.configs['flat/recommended'],
+export default typescriptEslint.config(
+  { ignores: ['*.d.ts', '**/coverage', '**/dist'] },
   {
+    extends: [
+      eslint.configs.recommended,
+      ...typescriptEslint.configs.recommended,
+      ...eslintPluginVue.configs['flat/recommended'],
+    ],
+    files: ['src/**/*.{ts,vue}'],
     languageOptions: {
-      globals: {
-        ...globals.browser,
-      },
-    },
-  },
-  {
-    files: ['**/*.vue'],
-    languageOptions: {
-      parser: vueParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.browser,
       parserOptions: {
-        parser: tseslint.parser,
-        extraFileExtensions: ['.vue'],
+        parser: typescriptEslint.parser,
       },
     },
   },
   {
-    files: ['vite.config.ts'],
+    extends: [eslint.configs.recommended, ...typescriptEslint.configs.recommended],
+    files: ['vite.config.ts', 'eslint.config.js'],
     languageOptions: {
-      globals: {
-        ...globals.node,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+      parserOptions: {
+        parser: typescriptEslint.parser,
       },
     },
   },

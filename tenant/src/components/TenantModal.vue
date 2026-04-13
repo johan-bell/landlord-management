@@ -38,8 +38,9 @@ watch(
         const panel = panelRef.value;
         if (!panel) return;
         const field =
-          panel.querySelector<HTMLElement>('input:not([type="hidden"]), textarea') ??
-          panel.querySelector<HTMLElement>('button:not([disabled])');
+          panel.querySelector<HTMLElement>(
+            'input:not([type="hidden"]), textarea',
+          ) ?? panel.querySelector<HTMLElement>('button:not([disabled])');
         field?.focus();
       });
     } else {
@@ -83,7 +84,10 @@ onUnmounted(() => {
           @click.stop
         >
           <div class="flex items-start justify-between gap-3">
-            <h2 :id="titleId" class="text-lg font-semibold tracking-tight text-slate-900">
+            <h2
+              :id="titleId"
+              class="text-lg font-semibold tracking-tight text-slate-900"
+            >
               {{ title }}
             </h2>
             <button
@@ -92,7 +96,12 @@ onUnmounted(() => {
               aria-label="Close"
               @click="close"
             >
-              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg
+                class="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path
                   d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
                 />

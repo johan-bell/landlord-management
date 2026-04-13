@@ -32,10 +32,13 @@ export class LeaseUtilitiesService {
     return lease;
   }
 
-  private assertKindMatchesUnit(kind: UtilityKind, unit: {
-    electricityBilling: ElectricityBilling;
-    waterBilling: WaterBilling;
-  }) {
+  private assertKindMatchesUnit(
+    kind: UtilityKind,
+    unit: {
+      electricityBilling: ElectricityBilling;
+      waterBilling: WaterBilling;
+    },
+  ) {
     if (kind === UtilityKind.ELECTRICITY) {
       if (unit.electricityBilling !== ElectricityBilling.METERED_KWH) {
         throw new BadRequestException(

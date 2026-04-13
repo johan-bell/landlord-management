@@ -32,7 +32,10 @@ export class RentersController {
   }
 
   @Post(':renterId/tenant-invite')
-  tenantInvite(@Param('orgId') orgId: string, @Param('renterId') renterId: string) {
+  tenantInvite(
+    @Param('orgId') orgId: string,
+    @Param('renterId') renterId: string,
+  ) {
     return this.rentersService.createTenantInviteLink(orgId, renterId);
   }
 

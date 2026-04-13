@@ -19,7 +19,9 @@ export class PlatformAdminGuard implements CanActivate {
       throw new ForbiddenException('Tenant cannot access platform routes');
     }
 
-    const dbUser = await this.prisma.user.findUnique({ where: { id: user.userId } });
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+    });
     if (!dbUser?.isPlatformAdmin) {
       throw new ForbiddenException('Platform admin only');
     }

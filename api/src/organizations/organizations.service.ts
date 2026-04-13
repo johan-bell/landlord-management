@@ -59,18 +59,19 @@ export class OrganizationsService {
 
   async summary(orgId: string) {
     await this.findOneOrThrow(orgId);
-    const [propertyCount, unitCount, renterCount, leaseCount] = await Promise.all([
-      this.prisma.property.count({ where: { organizationId: orgId } }),
-      this.prisma.unit.count({
-        where: { property: { organizationId: orgId } },
-      }),
-      this.prisma.renter.count({ where: { organizationId: orgId } }),
-      this.prisma.lease.count({
-        where: {
-          unit: { property: { organizationId: orgId } },
-        },
-      }),
-    ]);
+    const [propertyCount, unitCount, renterCount, leaseCount] =
+      await Promise.all([
+        this.prisma.property.count({ where: { organizationId: orgId } }),
+        this.prisma.unit.count({
+          where: { property: { organizationId: orgId } },
+        }),
+        this.prisma.renter.count({ where: { organizationId: orgId } }),
+        this.prisma.lease.count({
+          where: {
+            unit: { property: { organizationId: orgId } },
+          },
+        }),
+      ]);
 
     const occupied = await this.prisma.unit.count({
       where: {

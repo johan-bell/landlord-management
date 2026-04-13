@@ -9,7 +9,12 @@ import TenantModal from '../components/TenantModal.vue';
 
 type MeActive = {
   status: 'active';
-  renter: { id: string; fullName: string; phone: string | null; email: string | null };
+  renter: {
+    id: string;
+    fullName: string;
+    phone: string | null;
+    email: string | null;
+  };
   organization: { id: string; name: string };
 };
 
@@ -112,7 +117,10 @@ function money(amount: string, currency: string) {
   const n = Number(amount);
   if (Number.isNaN(n)) return `${amount} ${currency}`;
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(n);
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(n);
   } catch {
     return `${amount} ${currency}`;
   }
@@ -184,7 +192,8 @@ const headerMenuLabel = computed(() => {
   if (!m && error.value) return 'Account menu';
   if (!m) return 'Account menu';
   if (m.status === 'active') return `Account menu for ${m.renter.fullName}`;
-  if (m.status === 'pending') return `Account menu for ${m.fullName || 'your account'}`;
+  if (m.status === 'pending')
+    return `Account menu for ${m.fullName || 'your account'}`;
   return `Account menu for ${m.organization.name}`;
 });
 
@@ -223,7 +232,9 @@ async function changePassword() {
 
 async function loadSupport() {
   try {
-    supportTickets.value = await api<SupportTicket[]>('/tenant/support-requests');
+    supportTickets.value = await api<SupportTicket[]>(
+      '/tenant/support-requests',
+    );
   } catch {
     supportTickets.value = [];
   }
@@ -257,7 +268,8 @@ async function submitSupport(orgId: string) {
     await loadSupport();
     supportModalOpen.value = false;
   } catch (e) {
-    supportErr.value = e instanceof Error ? e.message : 'Could not send request';
+    supportErr.value =
+      e instanceof Error ? e.message : 'Could not send request';
   } finally {
     supportBusy.value = false;
   }
@@ -293,7 +305,8 @@ onMounted(async () => {
       }, 25000);
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Could not load your account';
+    error.value =
+      e instanceof Error ? e.message : 'Could not load your account';
   } finally {
     loading.value = false;
   }
@@ -341,11 +354,16 @@ onUnmounted(() => {
         <div class="h-24 animate-pulse rounded-2xl bg-slate-100/90" />
         <div class="h-32 animate-pulse rounded-2xl bg-slate-100/80" />
       </div>
-      <div v-else-if="error" class="tenant-card border-red-200/80 bg-red-50/50 p-6" role="alert">
+      <div
+        v-else-if="error"
+        class="tenant-card border-red-200/80 bg-red-50/50 p-6"
+        role="alert"
+      >
         <p class="font-semibold text-red-900">Something went wrong</p>
         <p class="mt-2 text-sm text-red-800">{{ error }}</p>
         <p class="mt-3 text-xs text-red-700/90">
-          If this keeps happening, confirm the API is running and your account still has access.
+          If this keeps happening, confirm the API is running and your account
+          still has access.
         </p>
       </div>
 
@@ -362,11 +380,13 @@ onUnmounted(() => {
               P
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-amber-950">Waiting for landlord approval</p>
+              <p class="text-sm font-semibold text-amber-950">
+                Waiting for landlord approval
+              </p>
               <p class="mt-1 text-sm text-amber-900/95">{{ me.message }}</p>
               <p class="mt-3 text-xs leading-relaxed text-amber-800/90">
-                You can leave this page open or sign out and return later — we’ll show your lease here once your
-                landlord assigns your unit.
+                You can leave this page open or sign out and return later —
+                we’ll show your lease here once your landlord assigns your unit.
               </p>
             </div>
           </div>
@@ -381,8 +401,14 @@ onUnmounted(() => {
               {{ initials(me.fullName) }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-xs font-semibold uppercase tracking-widest text-teal-600">Your details</p>
-              <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">{{ me.fullName || '—' }}</h1>
+              <p
+                class="text-xs font-semibold uppercase tracking-widest text-teal-600"
+              >
+                Your details
+              </p>
+              <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                {{ me.fullName || '—' }}
+              </h1>
               <dl class="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                 <div v-if="me.email">
                   <dt class="text-xs font-medium text-slate-400">Email</dt>
@@ -399,7 +425,10 @@ onUnmounted(() => {
       </template>
 
       <template v-else-if="me?.status === 'rejected'">
-        <div class="tenant-card border-red-200/90 bg-red-50/40 p-6" role="alert">
+        <div
+          class="tenant-card border-red-200/90 bg-red-50/40 p-6"
+          role="alert"
+        >
           <div class="flex gap-3">
             <div
               class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-lg font-bold text-red-800 ring-1 ring-red-200/80"
@@ -408,7 +437,9 @@ onUnmounted(() => {
               !
             </div>
             <div>
-              <p class="text-sm font-semibold text-red-950">Registration not approved</p>
+              <p class="text-sm font-semibold text-red-950">
+                Registration not approved
+              </p>
               <p class="mt-2 text-sm text-red-900/95">{{ me.message }}</p>
             </div>
           </div>
@@ -425,8 +456,14 @@ onUnmounted(() => {
               {{ initials(me.renter.fullName) }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-xs font-semibold uppercase tracking-widest text-teal-600">Your profile</p>
-              <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">{{ me.renter.fullName }}</h1>
+              <p
+                class="text-xs font-semibold uppercase tracking-widest text-teal-600"
+              >
+                Your profile
+              </p>
+              <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                {{ me.renter.fullName }}
+              </h1>
               <dl class="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                 <div v-if="me.renter.email">
                   <dt class="text-xs font-medium text-slate-400">Email</dt>
@@ -442,57 +479,92 @@ onUnmounted(() => {
         </section>
 
         <section class="mt-10">
-          <h2 class="text-lg font-semibold tracking-tight text-slate-900">Leases</h2>
+          <h2 class="text-lg font-semibold tracking-tight text-slate-900">
+            Leases
+          </h2>
           <p class="mt-2 max-w-prose text-sm leading-relaxed text-slate-600">
-            Active and past leases linked to your account. Each row lists scheduled rent;
-            <strong class="font-semibold text-slate-800">PAID</strong> means that period is settled (including months
-            your landlord marked as prepaid when the lease started).
+            Active and past leases linked to your account. Each row lists
+            scheduled rent;
+            <strong class="font-semibold text-slate-800">PAID</strong> means
+            that period is settled (including months your landlord marked as
+            prepaid when the lease started).
           </p>
 
           <ul v-if="leases.length" class="mt-5 space-y-4">
-            <li v-for="lease in leases" :key="lease.id" class="tenant-card p-5 sm:p-6">
+            <li
+              v-for="lease in leases"
+              :key="lease.id"
+              class="tenant-card p-5 sm:p-6"
+            >
               <div class="flex flex-wrap items-baseline justify-between gap-3">
                 <div class="min-w-0">
                   <p class="font-semibold text-slate-900">
                     {{ lease.unit.property.name }} · {{ lease.unit.label }}
                   </p>
-                  <p v-if="lease.unit.property.address" class="mt-0.5 text-xs text-slate-500">
+                  <p
+                    v-if="lease.unit.property.address"
+                    class="mt-0.5 text-xs text-slate-500"
+                  >
                     {{ lease.unit.property.address }}
                   </p>
                 </div>
                 <p class="shrink-0 text-sm font-semibold text-slate-800">
                   {{ money(lease.rentAmount, lease.currency) }}
-                  <span class="block font-normal text-slate-500 sm:inline sm:pl-1"
+                  <span
+                    class="block font-normal text-slate-500 sm:inline sm:pl-1"
                     >/ month · due day {{ lease.dueDay }}</span
                   >
                 </p>
               </div>
-              <p class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100/90 px-3 py-1 text-xs text-slate-600">
+              <p
+                class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100/90 px-3 py-1 text-xs text-slate-600"
+              >
                 <span>{{ formatDate(lease.startDate) }}</span>
                 <span class="text-slate-300" aria-hidden="true">—</span>
-                <span>{{ lease.endDate ? formatDate(lease.endDate) : 'Ongoing' }}</span>
+                <span>{{
+                  lease.endDate ? formatDate(lease.endDate) : 'Ongoing'
+                }}</span>
               </p>
 
-              <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/90 px-4 py-3 text-xs leading-relaxed text-slate-600">
+              <div
+                class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/90 px-4 py-3 text-xs leading-relaxed text-slate-600"
+              >
                 <p class="font-semibold text-slate-800">Utilities</p>
                 <ul class="mt-2 list-inside list-disc space-y-1">
-                  <li v-if="lease.unit.electricityBilling === 'PREPAID_EXTERNAL'">
+                  <li
+                    v-if="lease.unit.electricityBilling === 'PREPAID_EXTERNAL'"
+                  >
                     Electricity: prepaid (not tracked in this app).
                   </li>
-                  <li v-else-if="lease.unit.electricityBilling === 'METERED_KWH'">
+                  <li
+                    v-else-if="lease.unit.electricityBilling === 'METERED_KWH'"
+                  >
                     Electricity: metered —
                     <template v-if="lease.unit.electricityPricePerKwh">
-                      {{ moneyPerKwh(lease.unit.electricityPricePerKwh, lease.currency) }} per kWh
+                      {{
+                        moneyPerKwh(
+                          lease.unit.electricityPricePerKwh,
+                          lease.currency,
+                        )
+                      }}
+                      per kWh
                     </template>
-                    <template v-else> rate not set — ask your landlord.</template>
+                    <template v-else>
+                      rate not set — ask your landlord.</template
+                    >
                   </li>
-                  <li v-if="lease.unit.waterBilling === 'NONE'">Water: not billed through this app.</li>
+                  <li v-if="lease.unit.waterBilling === 'NONE'">
+                    Water: not billed through this app.
+                  </li>
                   <li v-else-if="lease.unit.waterBilling === 'METERED_M3'">
                     Water: metered —
                     <template v-if="lease.unit.waterPricePerM3">
-                      {{ money(lease.unit.waterPricePerM3, lease.currency) }} per m³
+                      {{ money(lease.unit.waterPricePerM3, lease.currency) }}
+                      per m³
                     </template>
-                    <template v-else> rate not set — ask your landlord.</template>
+                    <template v-else>
+                      rate not set — ask your landlord.</template
+                    >
                   </li>
                 </ul>
               </div>
@@ -504,20 +576,31 @@ onUnmounted(() => {
                 "
                 class="mt-4 rounded-2xl border border-teal-100/90 bg-gradient-to-br from-teal-50/60 to-white px-4 py-3 text-xs"
               >
-                <p class="font-semibold text-slate-800">Monthly utility charges</p>
-                <p class="mt-0.5 text-[11px] text-slate-500">Electricity and water billed each month by your landlord.</p>
+                <p class="font-semibold text-slate-800">
+                  Monthly utility charges
+                </p>
+                <p class="mt-0.5 text-[11px] text-slate-500">
+                  Electricity and water billed each month by your landlord.
+                </p>
                 <ul v-if="lease.utilityBills?.length" class="mt-3 space-y-2">
                   <li
                     v-for="ub in lease.utilityBills"
                     :key="ub.id"
                     class="rounded-xl border border-slate-100/90 bg-white/90 px-3 py-2.5 text-slate-700 shadow-sm"
                   >
-                    <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div
+                      class="flex flex-wrap items-start justify-between gap-2"
+                    >
                       <div>
                         <p class="font-medium text-slate-900">
                           {{ utilityPeriodLabel(ub.year, ub.month) }}
                           <span class="font-normal text-slate-500">
-                            · {{ ub.kind === 'ELECTRICITY' ? 'Electricity' : 'Water' }}
+                            ·
+                            {{
+                              ub.kind === 'ELECTRICITY'
+                                ? 'Electricity'
+                                : 'Water'
+                            }}
                           </span>
                         </p>
                         <p class="mt-1 text-[11px] text-slate-500">
@@ -528,9 +611,10 @@ onUnmounted(() => {
                         </p>
                       </div>
                       <div class="flex shrink-0 flex-col items-end gap-1">
-                        <span class="font-semibold tabular-nums text-slate-800">{{
-                          money(ub.amount, ub.currency)
-                        }}</span>
+                        <span
+                          class="font-semibold tabular-nums text-slate-800"
+                          >{{ money(ub.amount, ub.currency) }}</span
+                        >
                         <span
                           class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                           :class="
@@ -547,19 +631,32 @@ onUnmounted(() => {
                     </div>
                   </li>
                 </ul>
-                <p v-else class="mt-2 text-slate-500">No monthly charges recorded yet.</p>
+                <p v-else class="mt-2 text-slate-500">
+                  No monthly charges recorded yet.
+                </p>
               </div>
 
-              <div v-if="lease.payments.length" class="mt-5 border-t border-slate-100 pt-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Recent payments</p>
+              <div
+                v-if="lease.payments.length"
+                class="mt-5 border-t border-slate-100 pt-4"
+              >
+                <p
+                  class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                >
+                  Recent payments
+                </p>
                 <ul class="mt-3 space-y-2">
                   <li
                     v-for="p in lease.payments.slice(0, 5)"
                     :key="p.id"
                     class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
                   >
-                    <span class="text-slate-600">{{ formatDate(p.dueDate) }}</span>
-                    <span class="font-medium text-slate-800">{{ money(p.amount, lease.currency) }}</span>
+                    <span class="text-slate-600">{{
+                      formatDate(p.dueDate)
+                    }}</span>
+                    <span class="font-medium text-slate-800">{{
+                      money(p.amount, lease.currency)
+                    }}</span>
                     <span
                       class="rounded-full px-2 py-0.5 text-xs font-medium"
                       :class="
@@ -581,21 +678,33 @@ onUnmounted(() => {
             v-else
             class="tenant-card mt-5 border-dashed border-slate-300/80 bg-slate-50/50 px-4 py-12 text-center"
           >
-            <p class="text-sm font-medium text-slate-700">No leases on file yet</p>
-            <p class="mt-1 text-xs text-slate-500">When your landlord adds a lease, it will appear here.</p>
+            <p class="text-sm font-medium text-slate-700">
+              No leases on file yet
+            </p>
+            <p class="mt-1 text-xs text-slate-500">
+              When your landlord adds a lease, it will appear here.
+            </p>
           </div>
         </section>
       </template>
 
       <section
+        v-if="
+          !loading &&
+          !error &&
+          me &&
+          (me.status === 'active' || me.status === 'pending')
+        "
         id="tenant-support-section"
-        v-if="!loading && !error && me && (me.status === 'active' || me.status === 'pending')"
         class="tenant-card mt-10 p-6 sm:p-8"
       >
         <h2 class="text-base font-semibold text-slate-900">Support requests</h2>
         <p class="mt-2 max-w-prose text-xs leading-relaxed text-slate-500">
-          Send a new message from the account menu (<span class="font-medium text-slate-600">Support request</span>) for
-          billing, access, or platform issues. Your landlord is still the first contact for unit-specific matters.
+          Send a new message from the account menu (<span
+            class="font-medium text-slate-600"
+            >Support request</span
+          >) for billing, access, or platform issues. Your landlord is still the
+          first contact for unit-specific matters.
         </p>
 
         <div
@@ -603,7 +712,8 @@ onUnmounted(() => {
           class="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900"
           role="status"
         >
-          Thanks — your request was sent. We’ll get back to you as soon as we can.
+          Thanks — your request was sent. We’ll get back to you as soon as we
+          can.
         </div>
 
         <p
@@ -613,8 +723,15 @@ onUnmounted(() => {
           No requests yet.
         </p>
 
-        <div v-if="supportTickets.length" class="mt-6 border-t border-slate-100 pt-6">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Your requests</p>
+        <div
+          v-if="supportTickets.length"
+          class="mt-6 border-t border-slate-100 pt-6"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+          >
+            Your requests
+          </p>
           <ul class="mt-4 space-y-3">
             <li
               v-for="t in supportTickets"
@@ -636,8 +753,14 @@ onUnmounted(() => {
                   {{ t.status }}
                 </span>
               </div>
-              <p class="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600">{{ t.message }}</p>
-              <p class="mt-3 text-xs text-slate-400">{{ formatDate(t.createdAt) }}</p>
+              <p
+                class="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-600"
+              >
+                {{ t.message }}
+              </p>
+              <p class="mt-3 text-xs text-slate-400">
+                {{ formatDate(t.createdAt) }}
+              </p>
             </li>
           </ul>
         </div>
@@ -679,9 +802,14 @@ onUnmounted(() => {
       </form>
     </TenantModal>
 
-    <TenantModal v-if="headerShowSupport" v-model:open="supportModalOpen" title="Support request">
+    <TenantModal
+      v-if="headerShowSupport"
+      v-model:open="supportModalOpen"
+      title="Support request"
+    >
       <p class="mb-4 text-xs leading-relaxed text-slate-500">
-        Describe your issue for the platform team. Replies go to the email on your account when available.
+        Describe your issue for the platform team. Replies go to the email on
+        your account when available.
       </p>
       <form class="space-y-3" @submit.prevent="onSubmitSupport">
         <label class="block text-sm">
@@ -705,7 +833,11 @@ onUnmounted(() => {
           />
         </label>
         <p v-if="supportErr" class="text-sm text-red-600">{{ supportErr }}</p>
-        <button type="submit" class="tenant-btn-primary" :disabled="supportBusy">
+        <button
+          type="submit"
+          class="tenant-btn-primary"
+          :disabled="supportBusy"
+        >
           {{ supportBusy ? 'Sending…' : 'Send request' }}
         </button>
       </form>

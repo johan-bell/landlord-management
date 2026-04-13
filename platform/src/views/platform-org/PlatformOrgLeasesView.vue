@@ -4,7 +4,13 @@ import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { formatDate, formatMoney } from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
-import type { Lease, Paginated, Property, Renter, Unit } from '../../types/models';
+import type {
+  Lease,
+  Paginated,
+  Property,
+  Renter,
+  Unit,
+} from '../../types/models';
 
 const route = useRoute();
 const { orgApi } = usePlatformOrgContext();
@@ -13,7 +19,9 @@ const leases = ref<Lease[]>([]);
 const page = ref(1);
 const totalPages = ref(1);
 const search = ref('');
-const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>([]);
+const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
+  [],
+);
 const renters = ref<Renter[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -29,10 +37,14 @@ const form = ref({
 const saving = ref(false);
 
 async function loadUnitsAndRenters() {
-  const propsRes = await api<Paginated<Property>>(orgApi('/properties?limit=500'));
+  const propsRes = await api<Paginated<Property>>(
+    orgApi('/properties?limit=500'),
+  );
   const pairs: { id: string; label: string; propertyName: string }[] = [];
   for (const p of propsRes.items) {
-    const unitsRes = await api<Paginated<Unit>>(orgApi(`/properties/${p.id}/units?limit=500`));
+    const unitsRes = await api<Paginated<Unit>>(
+      orgApi(`/properties/${p.id}/units?limit=500`),
+    );
     for (const u of unitsRes.items) {
       pairs.push({ id: u.id, label: u.label, propertyName: p.name });
     }
@@ -80,7 +92,9 @@ async function createLease() {
         startDate: new Date(form.value.startDate).toISOString(),
         rentAmount: rent,
         dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
-        prepaidMonths: Number.isNaN(prepaid) ? 0 : Math.min(60, Math.max(0, prepaid)),
+        prepaidMonths: Number.isNaN(prepaid)
+          ? 0
+          : Math.min(60, Math.max(0, prepaid)),
       }),
     });
     showAdd.value = false;
@@ -113,7 +127,10 @@ async function removeLease(l: Lease) {
 const canSubmit = computed(() => {
   const rent = Number.parseFloat(form.value.rentAmount);
   return Boolean(
-    form.value.unitId && form.value.renterId && form.value.startDate && !Number.isNaN(rent),
+    form.value.unitId &&
+    form.value.renterId &&
+    form.value.startDate &&
+    !Number.isNaN(rent),
   );
 });
 
@@ -127,8 +144,12 @@ watch(page, () => void load());
 
 <template>
   <div>
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-      <p class="text-sm text-slate-600">Agreements between renters and units.</p>
+    <div
+      class="mb-6 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
+    >
+      <p class="text-sm text-slate-600">
+        Agreements between renters and units.
+      </p>
       <div class="flex flex-wrap items-center gap-2">
         <input
           v-model="search"
@@ -163,10 +184,17 @@ watch(page, () => void load());
       Loading…
     </div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      v-else
+      class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
       <div class="overflow-x-auto">
-        <table class="min-w-[640px] w-full divide-y divide-slate-200 text-left text-sm">
-          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <table
+          class="min-w-[640px] w-full divide-y divide-slate-200 text-left text-sm"
+        >
+          <thead
+            class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             <tr>
               <th class="px-4 py-3">Renter</th>
               <th class="px-4 py-3">Unit</th>
@@ -178,16 +206,28 @@ watch(page, () => void load());
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="l in leases" :key="l.id" class="hover:bg-slate-50/80">
-              <td class="px-4 py-3 font-medium text-slate-900">{{ l.renter.fullName }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">
+                {{ l.renter.fullName }}
+              </td>
               <td class="px-4 py-3 text-slate-600">
                 {{ l.unit.label }}
-                <span class="block text-xs text-slate-400">{{ l.unit.property.name }}</span>
+                <span class="block text-xs text-slate-400">{{
+                  l.unit.property.name
+                }}</span>
               </td>
-              <td class="px-4 py-3 tabular-nums">{{ formatMoney(l.rentAmount, l.currency) }}</td>
-              <td class="px-4 py-3 text-slate-600">{{ formatDate(l.startDate) }}</td>
+              <td class="px-4 py-3 tabular-nums">
+                {{ formatMoney(l.rentAmount, l.currency) }}
+              </td>
+              <td class="px-4 py-3 text-slate-600">
+                {{ formatDate(l.startDate) }}
+              </td>
               <td class="px-4 py-3">{{ l.dueDay }}</td>
               <td class="px-4 py-3 text-right">
-                <button type="button" class="text-sm font-medium text-red-600 hover:underline" @click="removeLease(l)">
+                <button
+                  type="button"
+                  class="text-sm font-medium text-red-600 hover:underline"
+                  @click="removeLease(l)"
+                >
                   Delete
                 </button>
               </td>
@@ -195,7 +235,12 @@ watch(page, () => void load());
           </tbody>
         </table>
       </div>
-      <p v-if="!leases.length" class="px-4 py-10 text-center text-sm text-slate-500">No leases yet.</p>
+      <p
+        v-if="!leases.length"
+        class="px-4 py-10 text-center text-sm text-slate-500"
+      >
+        No leases yet.
+      </p>
     </div>
 
     <div
@@ -227,40 +272,81 @@ watch(page, () => void load());
         class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
         @click.self="showAdd = false"
       >
-        <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <div
+          class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          @click.stop
+        >
           <h3 class="text-lg font-semibold">Create lease</h3>
           <label class="mt-4 block">
             <span class="text-sm font-medium">Unit</span>
-            <select v-model="form.unitId" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2">
+            <select
+              v-model="form.unitId"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            >
               <option value="" disabled>Select unit</option>
-              <option v-for="o in unitOptions" :key="o.id" :value="o.id">{{ o.propertyName }} — {{ o.label }}</option>
+              <option v-for="o in unitOptions" :key="o.id" :value="o.id">
+                {{ o.propertyName }} — {{ o.label }}
+              </option>
             </select>
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Renter</span>
-            <select v-model="form.renterId" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2">
+            <select
+              v-model="form.renterId"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            >
               <option value="" disabled>Select renter</option>
-              <option v-for="r in renters" :key="r.id" :value="r.id">{{ r.fullName }}</option>
+              <option v-for="r in renters" :key="r.id" :value="r.id">
+                {{ r.fullName }}
+              </option>
             </select>
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Start date</span>
-            <input v-model="form.startDate" type="date" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.startDate"
+              type="date"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Monthly rent</span>
-            <input v-model="form.rentAmount" type="number" min="0" step="1" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.rentAmount"
+              type="number"
+              min="0"
+              step="1"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Rent due day (1–28)</span>
-            <input v-model="form.dueDay" type="number" min="1" max="28" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.dueDay"
+              type="number"
+              min="1"
+              max="28"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <label class="mt-3 block">
             <span class="text-sm font-medium">Months prepaid (0–60)</span>
-            <input v-model="form.prepaidMonths" type="number" min="0" max="60" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <input
+              v-model="form.prepaidMonths"
+              type="number"
+              min="0"
+              max="60"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+            />
           </label>
           <div class="mt-6 flex justify-end gap-2">
-            <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showAdd = false">Cancel</button>
+            <button
+              type="button"
+              class="rounded-xl px-4 py-2 text-sm text-slate-600"
+              @click="showAdd = false"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"

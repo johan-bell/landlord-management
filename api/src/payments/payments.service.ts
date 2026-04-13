@@ -50,7 +50,12 @@ export class PaymentsService {
     return payment;
   }
 
-  async update(orgId: string, leaseId: string, paymentId: string, dto: UpdatePaymentDto) {
+  async update(
+    orgId: string,
+    leaseId: string,
+    paymentId: string,
+    dto: UpdatePaymentDto,
+  ) {
     await this.findOne(orgId, leaseId, paymentId);
     const data: Prisma.PaymentUpdateInput = {};
     if (dto.amount !== undefined) data.amount = new Prisma.Decimal(dto.amount);
@@ -58,7 +63,8 @@ export class PaymentsService {
     if (dto.dueDate !== undefined) data.dueDate = new Date(dto.dueDate);
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.method !== undefined) data.method = dto.method;
-    if (dto.paidAt !== undefined) data.paidAt = dto.paidAt ? new Date(dto.paidAt) : null;
+    if (dto.paidAt !== undefined)
+      data.paidAt = dto.paidAt ? new Date(dto.paidAt) : null;
     if (dto.reference !== undefined) data.reference = dto.reference;
     if (dto.notes !== undefined) data.notes = dto.notes;
 

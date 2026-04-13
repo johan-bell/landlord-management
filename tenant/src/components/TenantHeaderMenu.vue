@@ -114,7 +114,12 @@ onUnmounted(() => {
           role="menuitem"
           @click="onPassword"
         >
-          <svg class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg
+            class="h-4 w-4 shrink-0 text-slate-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
             <path
               fill-rule="evenodd"
               d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
@@ -130,7 +135,12 @@ onUnmounted(() => {
           role="menuitem"
           @click="onSupport"
         >
-          <svg class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg
+            class="h-4 w-4 shrink-0 text-slate-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
             <path
               d="M3.505 2.365A41.369 41.369 0 0117 2.73c.483.75.994 1.64.924 3.13-.08 1.87-.902 3.1-1.84 4.042-.962.963-2.11 1.69-3.296 2.235a.75.75 0 01-.894-.894c.35-.613.656-1.281.884-2.006a.75.75 0 00-.894-.894c-.457.22-.97.38-1.508.48A41.36 41.36 0 013 13.5c-.806 0-1.48-.25-1.995-.575a10.59 10.59 0 01-.344-.25C1.5 12.44 1 11.793 1 11.25V8.75c0-.495.253-.948.659-1.28.06-.047.122-.094.19-.136.065-.04.131-.078.2-.114.094-.052.192-.104.295-.154L1 5.5c0-.644.517-1.17 1.155-1.248l15-1.77z"
             />
@@ -150,7 +160,12 @@ onUnmounted(() => {
           role="menuitem"
           @click="onSignOut"
         >
-          <svg class="h-4 w-4 shrink-0 text-red-500/90" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg
+            class="h-4 w-4 shrink-0 text-red-500/90"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
             <path
               fill-rule="evenodd"
               d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"

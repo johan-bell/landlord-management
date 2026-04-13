@@ -11,7 +11,11 @@ withDefaults(
 <template>
   <div
     class="flex text-center"
-    :class="variant === 'inline' ? 'flex-row items-center gap-3 text-left' : 'flex-col items-center'"
+    :class="
+      variant === 'inline'
+        ? 'flex-row items-center gap-3 text-left'
+        : 'flex-col items-center'
+    "
   >
     <div
       class="flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 font-bold text-white shadow-md shadow-teal-900/20 ring-2 ring-white/20"
@@ -20,7 +24,10 @@ withDefaults(
       LM
     </div>
     <div :class="variant === 'inline' ? 'min-w-0' : ''">
-      <p v-if="variant === 'stack'" class="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700/90">
+      <p
+        v-if="variant === 'stack'"
+        class="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700/90"
+      >
         Renter portal
       </p>
       <template v-else>

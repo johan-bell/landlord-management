@@ -15,7 +15,9 @@ export class PlatformService {
   }
 
   async setSuspended(orgId: string, suspended: boolean) {
-    const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
+    const org = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+    });
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
@@ -33,7 +35,9 @@ export class PlatformService {
           take: 40,
           orderBy: { createdAt: 'desc' },
           include: {
-            user: { select: { id: true, email: true, name: true, phone: true } },
+            user: {
+              select: { id: true, email: true, name: true, phone: true },
+            },
           },
         },
         _count: {

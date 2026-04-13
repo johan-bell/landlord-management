@@ -60,7 +60,10 @@ export class OrgTeamService {
   private async ensureTeamManagerActor(orgId: string, actor: RequestUser) {
     const ctx = await this.ensureOrgActor(orgId, actor);
     if (!ctx.isPlatform) {
-      if (ctx.member!.role !== OrgRole.OWNER && ctx.member!.role !== OrgRole.MANAGER) {
+      if (
+        ctx.member.role !== OrgRole.OWNER &&
+        ctx.member.role !== OrgRole.MANAGER
+      ) {
         throw new ForbiddenException('Owner or manager role required');
       }
     }
@@ -95,7 +98,12 @@ export class OrgTeamService {
     });
   }
 
-  async updateMemberRole(orgId: string, memberId: string, actor: RequestUser, newRole: OrgRole) {
+  async updateMemberRole(
+    orgId: string,
+    memberId: string,
+    actor: RequestUser,
+    newRole: OrgRole,
+  ) {
     const ctx = await this.ensureTeamManagerActor(orgId, actor);
     const actorMember = ctx.member;
 
@@ -160,22 +168,34 @@ export class OrgTeamService {
     });
   }
 
-  async createInvitation(orgId: string, actor: RequestUser, email: string, role: OrgRole) {
+  async createInvitation(
+    orgId: string,
+    actor: RequestUser,
+    email: string,
+    role: OrgRole,
+  ) {
     const ctx = await this.ensureTeamManagerActor(orgId, actor);
     const actorMember = ctx.member;
 
     if (!ctx.isPlatform && actorMember) {
       if (role === OrgRole.OWNER && actorMember.role !== OrgRole.OWNER) {
-        throw new ForbiddenException('Only an owner can invite with owner role');
+        throw new ForbiddenException(
+          'Only an owner can invite with owner role',
+        );
       }
     }
 
     const normalized = email.toLowerCase().trim();
-    const existingUser = await this.prisma.user.findUnique({ where: { email: normalized } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalized },
+    });
     if (existingUser) {
       const already = await this.prisma.organizationMember.findUnique({
         where: {
-          userId_organizationId: { userId: existingUser.id, organizationId: orgId },
+          userId_organizationId: {
+            userId: existingUser.id,
+            organizationId: orgId,
+          },
         },
       });
       if (already) {
@@ -202,7 +222,11 @@ export class OrgTeamService {
     });
   }
 
-  async deleteInvitation(orgId: string, invitationId: string, actor: RequestUser) {
+  async deleteInvitation(
+    orgId: string,
+    invitationId: string,
+    actor: RequestUser,
+  ) {
     await this.ensureTeamManagerActor(orgId, actor);
     const inv = await this.prisma.organizationInvitation.findFirst({
       where: { id: invitationId, organizationId: orgId },
@@ -210,7 +234,9 @@ export class OrgTeamService {
     if (!inv) {
       throw new NotFoundException('Invitation not found');
     }
-    return this.prisma.organizationInvitation.delete({ where: { id: invitationId } });
+    return this.prisma.organizationInvitation.delete({
+      where: { id: invitationId },
+    });
   }
 
   async previewInvitation(token: string) {
@@ -251,8 +277,12 @@ export class OrgTeamService {
       },
     });
     if (existing) {
-      await this.prisma.organizationInvitation.delete({ where: { id: inv.id } }).catch(() => undefined);
-      throw new ConflictException('You are already a member of this organization');
+      await this.prisma.organizationInvitation
+        .delete({ where: { id: inv.id } })
+        .catch(() => undefined);
+      throw new ConflictException(
+        'You are already a member of this organization',
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {

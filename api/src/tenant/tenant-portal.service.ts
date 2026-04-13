@@ -7,7 +7,7 @@ export class TenantPortalService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMe(user: RequestUser) {
-    let renterId = user.renterId;
+    const renterId = user.renterId;
     if (!renterId) {
       const linked = await this.prisma.renter.findUnique({
         where: { userId: user.userId },
@@ -59,7 +59,9 @@ export class TenantPortalService {
     });
 
     if (signup?.status === 'PENDING') {
-      const u = await this.prisma.user.findUnique({ where: { id: user.userId } });
+      const u = await this.prisma.user.findUnique({
+        where: { id: user.userId },
+      });
       if (!u) {
         throw new NotFoundException();
       }
@@ -95,7 +97,9 @@ export class TenantPortalService {
   async getLeases(user: RequestUser) {
     let renterId = user.renterId;
     if (!renterId) {
-      const r = await this.prisma.renter.findUnique({ where: { userId: user.userId } });
+      const r = await this.prisma.renter.findUnique({
+        where: { userId: user.userId },
+      });
       renterId = r?.id;
     }
     if (!renterId) {

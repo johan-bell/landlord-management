@@ -50,12 +50,16 @@ function formatRate(amount: string, currency: string): string {
 
 function elecSummary(u: Unit): string {
   if (u.electricityBilling === 'PREPAID_EXTERNAL') return 'Prepaid (off-app)';
-  return u.electricityPricePerKwh ? `${formatRate(u.electricityPricePerKwh, u.currency)}/kWh` : '—';
+  return u.electricityPricePerKwh
+    ? `${formatRate(u.electricityPricePerKwh, u.currency)}/kWh`
+    : '—';
 }
 
 function waterSummary(u: Unit): string {
   if (u.waterBilling === 'NONE') return '—';
-  return u.waterPricePerM3 ? `${formatMoney(u.waterPricePerM3, u.currency)}/m³` : '—';
+  return u.waterPricePerM3
+    ? `${formatMoney(u.waterPricePerM3, u.currency)}/m³`
+    : '—';
 }
 
 function utilityPayload(
@@ -88,7 +92,9 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    property.value = await api<Property>(orgApi(`/properties/${propertyId.value}`));
+    property.value = await api<Property>(
+      orgApi(`/properties/${propertyId.value}`),
+    );
     const ures = await api<Paginated<Unit>>(
       orgApi(`/properties/${propertyId.value}/units?limit=500`),
     );
@@ -139,7 +145,12 @@ async function addUnit() {
         label,
         rentAmount: rent,
         currency: newCurrency.value.trim() || 'XAF',
-        ...utilityPayload(newElec.value, newElecPrice.value, newWater.value, newWaterPrice.value),
+        ...utilityPayload(
+          newElec.value,
+          newElecPrice.value,
+          newWater.value,
+          newWaterPrice.value,
+        ),
       }),
     });
     showAdd.value = false;
@@ -185,15 +196,23 @@ async function saveEdit() {
   saving.value = true;
   error.value = null;
   try {
-    await api(orgApi(`/properties/${propertyId.value}/units/${editingUnit.value.id}`), {
-      method: 'PATCH',
-      body: JSON.stringify({
-        label,
-        rentAmount: rent,
-        currency: editCurrency.value.trim() || 'XAF',
-        ...utilityPayload(editElec.value, editElecPrice.value, editWater.value, editWaterPrice.value),
-      }),
-    });
+    await api(
+      orgApi(`/properties/${propertyId.value}/units/${editingUnit.value.id}`),
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          label,
+          rentAmount: rent,
+          currency: editCurrency.value.trim() || 'XAF',
+          ...utilityPayload(
+            editElec.value,
+            editElecPrice.value,
+            editWater.value,
+            editWaterPrice.value,
+          ),
+        }),
+      },
+    );
     showEdit.value = false;
     editingUnit.value = null;
     await load();
@@ -207,7 +226,9 @@ async function saveEdit() {
 async function removeUnit(u: Unit) {
   if (!confirm(`Remove unit “${u.label}”?`)) return;
   try {
-    await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), { method: 'DELETE' });
+    await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), {
+      method: 'DELETE',
+    });
     await load();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Delete failed';
@@ -238,7 +259,9 @@ watch([hasOrg, propertyId], () => {
         <h2 v-if="property" class="mt-2 text-xl font-semibold text-slate-900">
           {{ property.name }}
         </h2>
-        <p v-if="property?.address" class="text-sm text-slate-500">{{ property.address }}</p>
+        <p v-if="property?.address" class="text-sm text-slate-500">
+          {{ property.address }}
+        </p>
       </div>
 
       <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -261,9 +284,13 @@ watch([hasOrg, propertyId], () => {
           </button>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div
+          class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+        >
           <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead
+              class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
               <tr>
                 <th class="px-4 py-3">Unit</th>
                 <th class="px-4 py-3">Rent</th>
@@ -275,14 +302,20 @@ watch([hasOrg, propertyId], () => {
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="u in units" :key="u.id" class="hover:bg-slate-50/80">
-                <td class="px-4 py-3 font-medium text-slate-900">{{ u.label }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">
+                  {{ u.label }}
+                </td>
                 <td class="px-4 py-3 tabular-nums text-slate-700">
                   {{ formatMoney(u.rentAmount, u.currency) }}
                 </td>
-                <td class="hidden max-w-[10rem] truncate px-4 py-3 text-xs text-slate-600 lg:table-cell">
+                <td
+                  class="hidden max-w-[10rem] truncate px-4 py-3 text-xs text-slate-600 lg:table-cell"
+                >
                   {{ elecSummary(u) }}
                 </td>
-                <td class="hidden px-4 py-3 text-xs text-slate-600 md:table-cell">
+                <td
+                  class="hidden px-4 py-3 text-xs text-slate-600 md:table-cell"
+                >
                   {{ waterSummary(u) }}
                 </td>
                 <td class="px-4 py-3">
@@ -316,7 +349,10 @@ watch([hasOrg, propertyId], () => {
               </tr>
             </tbody>
           </table>
-          <p v-if="!units.length" class="px-4 py-10 text-center text-sm text-slate-500">
+          <p
+            v-if="!units.length"
+            class="px-4 py-10 text-center text-sm text-slate-500"
+          >
             No units yet. Add apartments or rooms here.
           </p>
         </div>
@@ -342,7 +378,9 @@ watch([hasOrg, propertyId], () => {
               />
             </label>
             <label class="mt-3 block">
-              <span class="text-sm font-medium text-slate-700">Monthly rent</span>
+              <span class="text-sm font-medium text-slate-700"
+                >Monthly rent</span
+              >
               <input
                 v-model="newRent"
                 type="number"
@@ -354,23 +392,35 @@ watch([hasOrg, propertyId], () => {
             </label>
             <label class="mt-3 block">
               <span class="text-sm font-medium text-slate-700">Currency</span>
-              <input v-model="newCurrency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="newCurrency"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
 
             <div class="mt-5 border-t border-slate-100 pt-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Electricity</p>
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Electricity
+              </p>
               <p class="mt-1 text-xs text-slate-500">
-                Prepaid meters are managed outside this app. Choose metered only if you bill by consumption (per kWh).
+                Prepaid meters are managed outside this app. Choose metered only
+                if you bill by consumption (per kWh).
               </p>
               <select
                 v-model="newElec"
                 class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               >
-                <option value="PREPAID_EXTERNAL">Prepaid / not tracked here</option>
+                <option value="PREPAID_EXTERNAL">
+                  Prepaid / not tracked here
+                </option>
                 <option value="METERED_KWH">Metered — price per kWh</option>
               </select>
               <label v-if="newElec === 'METERED_KWH'" class="mt-2 block">
-                <span class="text-sm font-medium text-slate-700">Price per kWh</span>
+                <span class="text-sm font-medium text-slate-700"
+                  >Price per kWh</span
+                >
                 <input
                   v-model="newElecPrice"
                   type="number"
@@ -383,7 +433,11 @@ watch([hasOrg, propertyId], () => {
             </div>
 
             <div class="mt-5 border-t border-slate-100 pt-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Water</p>
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Water
+              </p>
               <select
                 v-model="newWater"
                 class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -392,7 +446,9 @@ watch([hasOrg, propertyId], () => {
                 <option value="METERED_M3">Metered — price per m³</option>
               </select>
               <label v-if="newWater === 'METERED_M3'" class="mt-2 block">
-                <span class="text-sm font-medium text-slate-700">Price per m³</span>
+                <span class="text-sm font-medium text-slate-700"
+                  >Price per m³</span
+                >
                 <input
                   v-model="newWaterPrice"
                   type="number"
@@ -405,7 +461,11 @@ watch([hasOrg, propertyId], () => {
             </div>
 
             <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showAdd = false">
+              <button
+                type="button"
+                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                @click="showAdd = false"
+              >
                 Cancel
               </button>
               <button
@@ -440,7 +500,9 @@ watch([hasOrg, propertyId], () => {
               />
             </label>
             <label class="mt-3 block">
-              <span class="text-sm font-medium text-slate-700">Monthly rent</span>
+              <span class="text-sm font-medium text-slate-700"
+                >Monthly rent</span
+              >
               <input
                 v-model="editRent"
                 type="number"
@@ -451,23 +513,35 @@ watch([hasOrg, propertyId], () => {
             </label>
             <label class="mt-3 block">
               <span class="text-sm font-medium text-slate-700">Currency</span>
-              <input v-model="editCurrency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2" />
+              <input
+                v-model="editCurrency"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              />
             </label>
 
             <div class="mt-5 border-t border-slate-100 pt-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Electricity</p>
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Electricity
+              </p>
               <p class="mt-1 text-xs text-slate-500">
-                Prepaid meters are managed outside this app. Metered = bill per kWh from readings.
+                Prepaid meters are managed outside this app. Metered = bill per
+                kWh from readings.
               </p>
               <select
                 v-model="editElec"
                 class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               >
-                <option value="PREPAID_EXTERNAL">Prepaid / not tracked here</option>
+                <option value="PREPAID_EXTERNAL">
+                  Prepaid / not tracked here
+                </option>
                 <option value="METERED_KWH">Metered — price per kWh</option>
               </select>
               <label v-if="editElec === 'METERED_KWH'" class="mt-2 block">
-                <span class="text-sm font-medium text-slate-700">Price per kWh</span>
+                <span class="text-sm font-medium text-slate-700"
+                  >Price per kWh</span
+                >
                 <input
                   v-model="editElecPrice"
                   type="number"
@@ -479,7 +553,11 @@ watch([hasOrg, propertyId], () => {
             </div>
 
             <div class="mt-5 border-t border-slate-100 pt-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Water</p>
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Water
+              </p>
               <select
                 v-model="editWater"
                 class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -488,7 +566,9 @@ watch([hasOrg, propertyId], () => {
                 <option value="METERED_M3">Metered — price per m³</option>
               </select>
               <label v-if="editWater === 'METERED_M3'" class="mt-2 block">
-                <span class="text-sm font-medium text-slate-700">Price per m³</span>
+                <span class="text-sm font-medium text-slate-700"
+                  >Price per m³</span
+                >
                 <input
                   v-model="editWaterPrice"
                   type="number"
@@ -500,7 +580,11 @@ watch([hasOrg, propertyId], () => {
             </div>
 
             <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="rounded-xl px-4 py-2 text-sm text-slate-600" @click="showEdit = false">
+              <button
+                type="button"
+                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                @click="showEdit = false"
+              >
                 Cancel
               </button>
               <button

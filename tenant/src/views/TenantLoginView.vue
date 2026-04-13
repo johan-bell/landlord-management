@@ -41,14 +41,21 @@ async function submit() {
 </script>
 
 <template>
-  <div class="tenant-auth-screen flex min-h-screen flex-col justify-center px-4 pb-16 pt-10 sm:px-6">
+  <div
+    class="tenant-auth-screen flex min-h-screen flex-col justify-center px-4 pb-16 pt-10 sm:px-6"
+  >
     <div class="mx-auto w-full max-w-[420px]">
       <TenantMark size="lg" class="mb-8" />
 
       <div class="tenant-card p-8 sm:p-9">
-        <h1 class="text-center text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
+        <h1
+          class="text-center text-2xl font-bold tracking-tight text-slate-900"
+        >
+          Welcome back
+        </h1>
         <p class="mt-2 text-center text-sm leading-relaxed text-slate-600">
-          Sign in to view your lease, rent schedule, and messages from your landlord.
+          Sign in to view your lease, rent schedule, and messages from your
+          landlord.
         </p>
 
         <form class="mt-8 space-y-5" @submit.prevent="submit">
