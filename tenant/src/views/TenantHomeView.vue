@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
 import TenantMark from '../components/TenantMark.vue';
+import TenantHeaderMenu from '../components/TenantHeaderMenu.vue';
+import TenantModal from '../components/TenantModal.vue';
 
 type MeActive = {
   status: 'active';
@@ -78,6 +80,9 @@ const supportBusy = ref(false);
 const supportErr = ref<string | null>(null);
 const supportOk = ref(false);
 
+const passwordModalOpen = ref(false);
+const supportModalOpen = ref(false);
+
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 function initials(name: string | null | undefined) {
@@ -114,6 +119,42 @@ function logout() {
   void router.push('/login');
 }
 
+const headerInitials = computed(() => {
+  if (!me.value && error.value) return '?';
+  const m = me.value;
+  if (!m) return '?';
+  if (m.status === 'active') return initials(m.renter.fullName);
+  if (m.status === 'pending') return initials(m.fullName);
+  return initials(m.organization.name);
+});
+
+const headerShowPassword = computed(() => {
+  const m = me.value;
+  return Boolean(m && (m.status === 'pending' || m.status === 'active'));
+});
+
+const headerShowSupport = computed(() => headerShowPassword.value);
+
+const headerMenuLabel = computed(() => {
+  const m = me.value;
+  if (!m && error.value) return 'Account menu';
+  if (!m) return 'Account menu';
+  if (m.status === 'active') return `Account menu for ${m.renter.fullName}`;
+  if (m.status === 'pending') return `Account menu for ${m.fullName || 'your account'}`;
+  return `Account menu for ${m.organization.name}`;
+});
+
+function openPasswordModal() {
+  pwdMsg.value = null;
+  pwdErr.value = null;
+  passwordModalOpen.value = true;
+}
+
+function openSupportModal() {
+  supportErr.value = null;
+  supportModalOpen.value = true;
+}
+
 async function changePassword() {
   pwdMsg.value = null;
   pwdErr.value = null;
@@ -144,6 +185,12 @@ async function loadSupport() {
   }
 }
 
+function onSubmitSupport() {
+  const m = me.value;
+  if (!m || (m.status !== 'active' && m.status !== 'pending')) return;
+  void submitSupport(m.organization.id);
+}
+
 async function submitSupport(orgId: string) {
   supportErr.value = null;
   supportOk.value = false;
@@ -164,6 +211,7 @@ async function submitSupport(orgId: string) {
       supportOk.value = false;
     }, 5000);
     await loadSupport();
+    supportModalOpen.value = false;
   } catch (e) {
     supportErr.value = e instanceof Error ? e.message : 'Could not send request';
   } finally {
@@ -225,7 +273,21 @@ onUnmounted(() => {
           <div class="h-10 w-10 animate-pulse rounded-2xl bg-slate-200" />
           <div class="h-4 w-28 animate-pulse rounded bg-slate-200" />
         </div>
-        <button type="button" class="tenant-btn-secondary shrink-0 text-slate-800" @click="logout">Sign out</button>
+        <TenantHeaderMenu
+          v-if="!loading && (me || error)"
+          :initials="headerInitials"
+          :menu-label="headerMenuLabel"
+          :show-password="headerShowPassword"
+          :show-support="headerShowSupport"
+          @sign-out="logout"
+          @go-password="openPasswordModal"
+          @go-support="openSupportModal"
+        />
+        <div
+          v-else
+          class="h-10 w-[4.75rem] shrink-0 animate-pulse rounded-2xl bg-slate-200/90"
+          aria-hidden="true"
+        />
       </div>
     </header>
 
@@ -290,51 +352,6 @@ onUnmounted(() => {
             </div>
           </div>
         </section>
-
-        <section class="tenant-card mt-6 overflow-hidden p-0">
-          <details class="group">
-            <summary
-              class="cursor-pointer list-none px-6 py-4 text-sm font-semibold text-slate-900 marker:hidden [&::-webkit-details-marker]:hidden"
-            >
-              <span class="flex items-center justify-between gap-2">
-                Change password
-                <span
-                  class="text-xs font-normal text-slate-400 transition group-open:rotate-180"
-                  aria-hidden="true"
-                  >▼</span
-                >
-              </span>
-            </summary>
-            <form class="space-y-3 border-t border-slate-100 px-6 pb-6 pt-2" @submit.prevent="changePassword">
-              <label class="block text-sm">
-                <span class="text-slate-700">Current password</span>
-                <input
-                  v-model="pwdCurrent"
-                  type="password"
-                  required
-                  autocomplete="current-password"
-                  class="tenant-input mt-1.5"
-                />
-              </label>
-              <label class="block text-sm">
-                <span class="text-slate-700">New password</span>
-                <input
-                  v-model="pwdNew"
-                  type="password"
-                  required
-                  minlength="8"
-                  autocomplete="new-password"
-                  class="tenant-input mt-1.5"
-                />
-              </label>
-              <p v-if="pwdMsg" class="text-sm text-emerald-700">{{ pwdMsg }}</p>
-              <p v-if="pwdErr" class="text-sm text-red-600">{{ pwdErr }}</p>
-              <button type="submit" class="tenant-btn-primary" :disabled="pwdSaving">
-                {{ pwdSaving ? 'Saving…' : 'Update password' }}
-              </button>
-            </form>
-          </details>
-        </section>
       </template>
 
       <template v-else-if="me?.status === 'rejected'">
@@ -378,51 +395,6 @@ onUnmounted(() => {
               </dl>
             </div>
           </div>
-        </section>
-
-        <section class="tenant-card mt-6 overflow-hidden p-0">
-          <details class="group">
-            <summary
-              class="cursor-pointer list-none px-6 py-4 text-sm font-semibold text-slate-900 marker:hidden [&::-webkit-details-marker]:hidden"
-            >
-              <span class="flex items-center justify-between gap-2">
-                Change password
-                <span
-                  class="text-xs font-normal text-slate-400 transition group-open:rotate-180"
-                  aria-hidden="true"
-                  >▼</span
-                >
-              </span>
-            </summary>
-            <form class="space-y-3 border-t border-slate-100 px-6 pb-6 pt-2" @submit.prevent="changePassword">
-              <label class="block text-sm">
-                <span class="text-slate-700">Current password</span>
-                <input
-                  v-model="pwdCurrent"
-                  type="password"
-                  required
-                  autocomplete="current-password"
-                  class="tenant-input mt-1.5"
-                />
-              </label>
-              <label class="block text-sm">
-                <span class="text-slate-700">New password</span>
-                <input
-                  v-model="pwdNew"
-                  type="password"
-                  required
-                  minlength="8"
-                  autocomplete="new-password"
-                  class="tenant-input mt-1.5"
-                />
-              </label>
-              <p v-if="pwdMsg" class="text-sm text-emerald-700">{{ pwdMsg }}</p>
-              <p v-if="pwdErr" class="text-sm text-red-600">{{ pwdErr }}</p>
-              <button type="submit" class="tenant-btn-primary" :disabled="pwdSaving">
-                {{ pwdSaving ? 'Saving…' : 'Update password' }}
-              </button>
-            </form>
-          </details>
         </section>
 
         <section class="mt-10">
@@ -495,13 +467,14 @@ onUnmounted(() => {
       </template>
 
       <section
+        id="tenant-support-section"
         v-if="!loading && !error && me && (me.status === 'active' || me.status === 'pending')"
         class="tenant-card mt-10 p-6 sm:p-8"
       >
-        <h2 class="text-base font-semibold text-slate-900">Contact platform support</h2>
+        <h2 class="text-base font-semibold text-slate-900">Support requests</h2>
         <p class="mt-2 max-w-prose text-xs leading-relaxed text-slate-500">
-          Message the platform team about billing, access, or other issues. Your landlord may still be the first contact
-          for unit-specific matters.
+          Send a new message from the account menu (<span class="font-medium text-slate-600">Support request</span>) for
+          billing, access, or platform issues. Your landlord is still the first contact for unit-specific matters.
         </p>
 
         <div
@@ -512,34 +485,14 @@ onUnmounted(() => {
           Thanks — your request was sent. We’ll get back to you as soon as we can.
         </div>
 
-        <form class="mt-5 space-y-3" @submit.prevent="submitSupport(me.organization.id)">
-          <label class="block text-sm">
-            <span class="text-slate-700">Subject</span>
-            <input
-              v-model="supportSubject"
-              type="text"
-              required
-              maxlength="200"
-              class="tenant-input mt-1.5"
-            />
-          </label>
-          <label class="block text-sm">
-            <span class="text-slate-700">Message</span>
-            <textarea
-              v-model="supportMessage"
-              required
-              rows="4"
-              maxlength="8000"
-              class="tenant-input mt-1.5 min-h-[7rem] resize-y"
-            />
-          </label>
-          <p v-if="supportErr" class="text-sm text-red-600">{{ supportErr }}</p>
-          <button type="submit" class="tenant-btn-primary" :disabled="supportBusy">
-            {{ supportBusy ? 'Sending…' : 'Send request' }}
-          </button>
-        </form>
+        <p
+          v-if="!supportTickets.length"
+          class="mt-5 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/50 px-4 py-8 text-center text-sm text-slate-500"
+        >
+          No requests yet.
+        </p>
 
-        <div v-if="supportTickets.length" class="mt-8 border-t border-slate-100 pt-6">
+        <div v-if="supportTickets.length" class="mt-6 border-t border-slate-100 pt-6">
           <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Your requests</p>
           <ul class="mt-4 space-y-3">
             <li
@@ -569,5 +522,72 @@ onUnmounted(() => {
         </div>
       </section>
     </main>
+
+    <TenantModal
+      v-if="headerShowPassword"
+      v-model:open="passwordModalOpen"
+      title="Change password"
+    >
+      <form class="space-y-3" @submit.prevent="changePassword">
+        <label class="block text-sm">
+          <span class="text-slate-700">Current password</span>
+          <input
+            v-model="pwdCurrent"
+            type="password"
+            required
+            autocomplete="current-password"
+            class="tenant-input mt-1.5"
+          />
+        </label>
+        <label class="block text-sm">
+          <span class="text-slate-700">New password</span>
+          <input
+            v-model="pwdNew"
+            type="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+            class="tenant-input mt-1.5"
+          />
+        </label>
+        <p v-if="pwdMsg" class="text-sm text-emerald-700">{{ pwdMsg }}</p>
+        <p v-if="pwdErr" class="text-sm text-red-600">{{ pwdErr }}</p>
+        <button type="submit" class="tenant-btn-primary" :disabled="pwdSaving">
+          {{ pwdSaving ? 'Saving…' : 'Update password' }}
+        </button>
+      </form>
+    </TenantModal>
+
+    <TenantModal v-if="headerShowSupport" v-model:open="supportModalOpen" title="Support request">
+      <p class="mb-4 text-xs leading-relaxed text-slate-500">
+        Describe your issue for the platform team. Replies go to the email on your account when available.
+      </p>
+      <form class="space-y-3" @submit.prevent="onSubmitSupport">
+        <label class="block text-sm">
+          <span class="text-slate-700">Subject</span>
+          <input
+            v-model="supportSubject"
+            type="text"
+            required
+            maxlength="200"
+            class="tenant-input mt-1.5"
+          />
+        </label>
+        <label class="block text-sm">
+          <span class="text-slate-700">Message</span>
+          <textarea
+            v-model="supportMessage"
+            required
+            rows="4"
+            maxlength="8000"
+            class="tenant-input mt-1.5 min-h-[7rem] resize-y"
+          />
+        </label>
+        <p v-if="supportErr" class="text-sm text-red-600">{{ supportErr }}</p>
+        <button type="submit" class="tenant-btn-primary" :disabled="supportBusy">
+          {{ supportBusy ? 'Sending…' : 'Send request' }}
+        </button>
+      </form>
+    </TenantModal>
   </div>
 </template>
