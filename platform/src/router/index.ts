@@ -12,21 +12,25 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'organizations',
+      component: () => import('../components/PlatformShell.vue'),
       meta: { requiresAuth: true },
-      component: () => import('../views/OrganizationsView.vue'),
-    },
-    {
-      path: '/organization/:orgId',
-      name: 'organization-detail',
-      meta: { requiresAuth: true },
-      component: () => import('../views/OrganizationDetailView.vue'),
-    },
-    {
-      path: '/support',
-      name: 'support-requests',
-      meta: { requiresAuth: true },
-      component: () => import('../views/SupportRequestsView.vue'),
+      children: [
+        {
+          path: '',
+          name: 'organizations',
+          component: () => import('../views/OrganizationsView.vue'),
+        },
+        {
+          path: 'support',
+          name: 'support-requests',
+          component: () => import('../views/SupportRequestsView.vue'),
+        },
+        {
+          path: 'organization/:orgId',
+          name: 'organization-detail',
+          component: () => import('../views/OrganizationDetailView.vue'),
+        },
+      ],
     },
   ],
 });

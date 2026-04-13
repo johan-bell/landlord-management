@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { onMounted, ref, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { api } from '../lib/api';
-import { useAuthStore } from '../stores/auth';
 
 type SupportRow = {
   id: string;
@@ -19,9 +18,7 @@ type SupportRow = {
   handledBy: { id: string; email: string | null; name: string | null } | null;
 };
 
-const router = useRouter();
 const route = useRoute();
-const auth = useAuthStore();
 
 const loading = ref(true);
 const savingId = ref<string | null>(null);
@@ -106,13 +103,6 @@ function formatDate(iso: string | null) {
   }
 }
 
-const title = computed(() => 'Support requests');
-
-function logout() {
-  auth.clearSession();
-  void router.push('/login');
-}
-
 onMounted(() => {
   syncFiltersFromRoute();
   void load();
@@ -128,156 +118,128 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <header
-      class="sticky top-0 z-10 border-b border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur-md sm:px-8"
-    >
-      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-4">
-          <RouterLink class="text-sm font-medium text-slate-600 hover:text-slate-900" to="/">
-            ← Organizations
-          </RouterLink>
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white"
-            >
-              LM
-            </div>
-            <div>
-              <h1 class="text-lg font-semibold text-slate-900">{{ title }}</h1>
-              <p class="text-xs text-slate-500">Platform administration</p>
-            </div>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <RouterLink
-            class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            to="/"
-          >
-            All orgs
-          </RouterLink>
-          <span v-if="auth.user" class="hidden text-sm text-slate-600 sm:inline">{{ auth.user.email }}</span>
-          <button
-            type="button"
-            class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            @click="logout"
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-8">
-      <p v-if="error" class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {{ error }}
+  <div>
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Support requests</h1>
+      <p class="mt-1 text-sm text-slate-600">
+        Tenant and landlord-originated tickets. Open a row to update status and add an internal note.
       </p>
+    </div>
 
-      <div class="mb-4 flex flex-wrap gap-3">
-        <label class="flex items-center gap-2 text-sm">
-          <span class="text-slate-600">Status</span>
-          <select
-            v-model="filterStatus"
-            class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
-            @change="load()"
-          >
-            <option v-for="s in statusOptions" :key="s || 'all'" :value="s">{{ s || 'Any' }}</option>
-          </select>
-        </label>
-        <label class="flex min-w-[200px] flex-1 items-center gap-2 text-sm">
-          <span class="text-slate-600">Organization ID</span>
-          <input
-            v-model="filterOrgId"
-            type="text"
-            placeholder="Filter by organization…"
-            class="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-            @keydown.enter.prevent="load()"
-          />
-        </label>
-        <button
-          type="button"
-          class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          @click="load()"
+    <p v-if="error" class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
+      {{ error }}
+    </p>
+
+    <div class="mb-4 flex flex-wrap gap-3">
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-slate-600">Status</span>
+        <select
+          v-model="filterStatus"
+          class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
+          @change="load()"
         >
-          Apply
-        </button>
-      </div>
-
-      <div
-        v-if="loading"
-        class="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-600 shadow-sm"
+          <option v-for="s in statusOptions" :key="s || 'all'" :value="s">{{ s || 'Any' }}</option>
+        </select>
+      </label>
+      <label class="flex min-w-[200px] flex-1 items-center gap-2 text-sm">
+        <span class="text-slate-600">Organization ID</span>
+        <input
+          v-model="filterOrgId"
+          type="text"
+          placeholder="Filter by organization…"
+          class="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+          @keydown.enter.prevent="load()"
+        />
+      </label>
+      <button
+        type="button"
+        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        @click="load()"
       >
-        Loading…
-      </div>
+        Apply
+      </button>
+    </div>
 
-      <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th class="px-4 py-3">Subject</th>
-                <th class="hidden px-4 py-3 sm:table-cell">Organization</th>
-                <th class="px-4 py-3">From</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="hidden px-4 py-3 lg:table-cell">Created</th>
-                <th class="px-4 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="row in rows" :key="row.id" class="hover:bg-slate-50/50">
-                <td class="max-w-xs px-4 py-3">
-                  <p class="truncate font-medium text-slate-900">{{ row.subject }}</p>
-                  <p class="line-clamp-2 text-xs text-slate-500">{{ row.message }}</p>
-                </td>
-                <td class="hidden max-w-[140px] px-4 py-3 text-xs text-slate-600 sm:table-cell">
-                  <span v-if="row.organization" class="block truncate">{{ row.organization.name }}</span>
-                  <span v-else class="text-slate-400">—</span>
-                </td>
-                <td class="px-4 py-3 text-xs text-slate-700">
-                  {{ row.fromTenant ? 'Tenant' : 'Staff' }}
-                  <span class="block truncate text-slate-500">{{ row.submitter.email }}</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                    :class="
-                      row.status === 'OPEN'
-                        ? 'bg-blue-100 text-blue-900'
-                        : row.status === 'IN_PROGRESS'
-                          ? 'bg-amber-100 text-amber-900'
-                          : row.status === 'RESOLVED' || row.status === 'CLOSED'
-                            ? 'bg-slate-200 text-slate-800'
-                            : 'bg-slate-100 text-slate-700'
-                    "
-                  >
-                    {{ row.status }}
-                  </span>
-                </td>
-                <td class="hidden px-4 py-3 text-xs text-slate-500 lg:table-cell">
-                  {{ formatDate(row.createdAt) }}
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    @click="openDetail(row)"
-                  >
-                    Manage
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="!loading && rows.length === 0" class="px-4 py-8 text-center text-sm text-slate-500">
-          No support requests yet.
-        </p>
+    <div
+      v-if="loading"
+      class="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-600 shadow-sm"
+    >
+      Loading…
+    </div>
+
+    <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="px-4 py-3">Subject</th>
+              <th class="hidden px-4 py-3 sm:table-cell">Organization</th>
+              <th class="px-4 py-3">From</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="hidden px-4 py-3 lg:table-cell">Created</th>
+              <th class="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="row in rows" :key="row.id" class="hover:bg-slate-50/50">
+              <td class="max-w-xs px-4 py-3">
+                <p class="truncate font-medium text-slate-900">{{ row.subject }}</p>
+                <p class="line-clamp-2 text-xs text-slate-500">{{ row.message }}</p>
+              </td>
+              <td class="hidden max-w-[160px] px-4 py-3 text-xs sm:table-cell">
+                <RouterLink
+                  v-if="row.organization"
+                  class="font-medium text-indigo-600 hover:text-indigo-800"
+                  :to="`/organization/${row.organization.id}`"
+                >
+                  {{ row.organization.name }}
+                </RouterLink>
+                <span v-else class="text-slate-400">—</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-slate-700">
+                {{ row.fromTenant ? 'Tenant' : 'Staff' }}
+                <span class="block truncate text-slate-500">{{ row.submitter.email }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="
+                    row.status === 'OPEN'
+                      ? 'bg-blue-100 text-blue-900'
+                      : row.status === 'IN_PROGRESS'
+                        ? 'bg-amber-100 text-amber-900'
+                        : row.status === 'RESOLVED' || row.status === 'CLOSED'
+                          ? 'bg-slate-200 text-slate-800'
+                          : 'bg-slate-100 text-slate-700'
+                  "
+                >
+                  {{ row.status }}
+                </span>
+              </td>
+              <td class="hidden px-4 py-3 text-xs text-slate-500 lg:table-cell">
+                {{ formatDate(row.createdAt) }}
+              </td>
+              <td class="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  @click="openDetail(row)"
+                >
+                  Manage
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </main>
+      <p v-if="!loading && rows.length === 0" class="px-4 py-8 text-center text-sm text-slate-500">
+        No support requests yet.
+      </p>
+    </div>
 
     <div
       v-if="detail"
-      class="fixed inset-0 z-20 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       @click.self="closeDetail"
@@ -304,7 +266,11 @@ watch(
           </div>
           <div v-if="detail.organization" class="flex justify-between gap-2">
             <dt>Organization</dt>
-            <dd class="text-right">{{ detail.organization.name }}</dd>
+            <dd class="text-right">
+              <RouterLink class="text-indigo-600 hover:text-indigo-800" :to="`/organization/${detail.organization.id}`">
+                {{ detail.organization.name }}
+              </RouterLink>
+            </dd>
           </div>
           <div class="flex justify-between gap-2">
             <dt>Created</dt>
