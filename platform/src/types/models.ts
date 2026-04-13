@@ -21,3 +21,39 @@ export type Unit = {
   currency: string;
   status: 'VACANT' | 'OCCUPIED';
 };
+
+export type Renter = {
+  id: string;
+  organizationId: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  userId?: string | null;
+};
+
+export type Lease = {
+  id: string;
+  unitId: string;
+  renterId: string;
+  startDate: string;
+  endDate: string | null;
+  rentAmount: string;
+  currency: string;
+  dueDay: number;
+  unit: Unit & { property: Property };
+  renter: Renter;
+  payments?: Payment[];
+};
+
+export type Payment = {
+  id: string;
+  leaseId: string;
+  amount: string;
+  currency: string;
+  dueDate: string;
+  paidAt: string | null;
+  status: 'PENDING' | 'PAID' | 'LATE' | 'CANCELLED';
+  method: 'CASH' | 'MOBILE_MONEY' | 'BANK' | 'OTHER';
+  reference: string | null;
+  notes: string | null;
+};
