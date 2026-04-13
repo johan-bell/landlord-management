@@ -62,6 +62,17 @@ type LeaseRow = {
     status: string;
     paidAt: string | null;
   }[];
+  utilityBills?: {
+    id: string;
+    kind: 'ELECTRICITY' | 'WATER';
+    year: number;
+    month: number;
+    amount: string;
+    currency: string;
+    dueDate: string;
+    status: string;
+    paidAt: string | null;
+  }[];
 };
 
 const router = useRouter();
@@ -132,6 +143,19 @@ function formatDate(iso: string) {
   } catch {
     return iso;
   }
+}
+
+function utilityPeriodLabel(year: number, month: number) {
+  return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+  });
+}
+
+function utilityStatusLabel(status: string) {
+  if (status === 'PAID') return 'Paid';
+  if (status === 'PENDING') return 'Unpaid';
+  return status;
 }
 
 function logout() {
@@ -471,6 +495,59 @@ onUnmounted(() => {
                     <template v-else> rate not set — ask your landlord.</template>
                   </li>
                 </ul>
+              </div>
+
+              <div
+                v-if="
+                  lease.unit.electricityBilling === 'METERED_KWH' ||
+                  lease.unit.waterBilling === 'METERED_M3'
+                "
+                class="mt-4 rounded-2xl border border-teal-100/90 bg-gradient-to-br from-teal-50/60 to-white px-4 py-3 text-xs"
+              >
+                <p class="font-semibold text-slate-800">Monthly utility charges</p>
+                <p class="mt-0.5 text-[11px] text-slate-500">Electricity and water billed each month by your landlord.</p>
+                <ul v-if="lease.utilityBills?.length" class="mt-3 space-y-2">
+                  <li
+                    v-for="ub in lease.utilityBills"
+                    :key="ub.id"
+                    class="rounded-xl border border-slate-100/90 bg-white/90 px-3 py-2.5 text-slate-700 shadow-sm"
+                  >
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p class="font-medium text-slate-900">
+                          {{ utilityPeriodLabel(ub.year, ub.month) }}
+                          <span class="font-normal text-slate-500">
+                            · {{ ub.kind === 'ELECTRICITY' ? 'Electricity' : 'Water' }}
+                          </span>
+                        </p>
+                        <p class="mt-1 text-[11px] text-slate-500">
+                          Due {{ formatDate(ub.dueDate) }}
+                          <template v-if="ub.status === 'PAID' && ub.paidAt">
+                            · Recorded paid {{ formatDate(ub.paidAt) }}
+                          </template>
+                        </p>
+                      </div>
+                      <div class="flex shrink-0 flex-col items-end gap-1">
+                        <span class="font-semibold tabular-nums text-slate-800">{{
+                          money(ub.amount, ub.currency)
+                        }}</span>
+                        <span
+                          class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                          :class="
+                            ub.status === 'PAID'
+                              ? 'bg-emerald-100 text-emerald-900'
+                              : ub.status === 'LATE'
+                                ? 'bg-amber-100 text-amber-900'
+                                : 'bg-slate-200 text-slate-800'
+                          "
+                        >
+                          {{ utilityStatusLabel(ub.status) }}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+                <p v-else class="mt-2 text-slate-500">No monthly charges recorded yet.</p>
               </div>
 
               <div v-if="lease.payments.length" class="mt-5 border-t border-slate-100 pt-4">

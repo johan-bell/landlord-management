@@ -3,7 +3,14 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatMoney } from '../composables/format';
-import type { Lease, Paginated, Property, Renter, Unit } from '../types/models';
+import type {
+  Lease,
+  LeaseUtilityBill,
+  Paginated,
+  Property,
+  Renter,
+  Unit,
+} from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
@@ -26,6 +33,144 @@ const form = ref({
   prepaidMonths: '0',
 });
 const saving = ref(false);
+
+const showUtilities = ref(false);
+const utilitiesLease = ref<Lease | null>(null);
+const utilityBills = ref<LeaseUtilityBill[]>([]);
+const utilitiesLoading = ref(false);
+const utilSaving = ref(false);
+const utilForm = ref({
+  kind: 'ELECTRICITY' as 'ELECTRICITY' | 'WATER',
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  amount: '',
+  dueDate: '',
+});
+
+function defaultUtilityDueIso(lease: Lease, year: number, month: number) {
+  const day = Math.min(Math.max(1, lease.dueDay), 28);
+  const d = new Date(year, month - 1, day);
+  return d.toISOString().slice(0, 10);
+}
+
+function kindOptionsForLease(lease: Lease) {
+  const o: { value: 'ELECTRICITY' | 'WATER'; label: string }[] = [];
+  if (lease.unit.electricityBilling === 'METERED_KWH') {
+    o.push({ value: 'ELECTRICITY', label: 'Electricity' });
+  }
+  if (lease.unit.waterBilling === 'METERED_M3') {
+    o.push({ value: 'WATER', label: 'Water' });
+  }
+  return o;
+}
+
+async function openUtilities(lease: Lease) {
+  utilitiesLease.value = lease;
+  const opts = kindOptionsForLease(lease);
+  utilForm.value.kind = opts[0]?.value ?? 'ELECTRICITY';
+  const now = new Date();
+  utilForm.value.year = now.getFullYear();
+  utilForm.value.month = now.getMonth() + 1;
+  utilForm.value.amount = '';
+  utilForm.value.dueDate = defaultUtilityDueIso(lease, utilForm.value.year, utilForm.value.month);
+  showUtilities.value = true;
+  await loadUtilityBills();
+}
+
+async function loadUtilityBills() {
+  const lease = utilitiesLease.value;
+  if (!hasOrg.value || !lease) return;
+  utilitiesLoading.value = true;
+  try {
+    utilityBills.value = await api<LeaseUtilityBill[]>(
+      orgApi(`/leases/${lease.id}/utility-bills`),
+    );
+  } catch {
+    utilityBills.value = [];
+  } finally {
+    utilitiesLoading.value = false;
+  }
+}
+
+async function saveUtilityBill() {
+  const lease = utilitiesLease.value;
+  if (!lease) return;
+  const amount = Number.parseFloat(utilForm.value.amount);
+  if (Number.isNaN(amount) || amount < 0) return;
+  utilSaving.value = true;
+  try {
+    await api(orgApi(`/leases/${lease.id}/utility-bills`), {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: utilForm.value.kind,
+        year: utilForm.value.year,
+        month: utilForm.value.month,
+        amount,
+        dueDate: new Date(utilForm.value.dueDate).toISOString(),
+        currency: lease.currency,
+      }),
+    });
+    utilForm.value.amount = '';
+    await loadUtilityBills();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Could not save utility bill';
+  } finally {
+    utilSaving.value = false;
+  }
+}
+
+async function markUtilityPaid(b: LeaseUtilityBill) {
+  const lease = utilitiesLease.value;
+  if (!lease) return;
+  try {
+    await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'PAID' }),
+    });
+    await loadUtilityBills();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Update failed';
+  }
+}
+
+async function markUtilityPending(b: LeaseUtilityBill) {
+  const lease = utilitiesLease.value;
+  if (!lease) return;
+  try {
+    await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'PENDING' }),
+    });
+    await loadUtilityBills();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Update failed';
+  }
+}
+
+async function removeUtilityBill(b: LeaseUtilityBill) {
+  const lease = utilitiesLease.value;
+  if (!lease) return;
+  if (!confirm('Remove this utility charge?')) return;
+  try {
+    await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), { method: 'DELETE' });
+    await loadUtilityBills();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Delete failed';
+  }
+}
+
+function utilityMonthLabel(b: LeaseUtilityBill) {
+  return new Date(b.year, b.month - 1, 1).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+  });
+}
+
+function onUtilPeriodChange() {
+  const lease = utilitiesLease.value;
+  if (!lease) return;
+  utilForm.value.dueDate = defaultUtilityDueIso(lease, utilForm.value.year, utilForm.value.month);
+}
 
 async function loadUnitsAndRenters() {
   if (!hasOrg.value) return;
@@ -196,6 +341,14 @@ watch(page, () => void load());
                 <td class="px-4 py-3">{{ l.dueDay }}</td>
                 <td class="px-4 py-3 text-right">
                   <button
+                    v-if="kindOptionsForLease(l).length"
+                    type="button"
+                    class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
+                    @click="openUtilities(l)"
+                  >
+                    Utilities
+                  </button>
+                  <button
                     type="button"
                     class="text-sm font-medium text-red-600 hover:underline"
                     @click="removeLease(l)"
@@ -326,6 +479,183 @@ watch(page, () => void load());
                 @click="createLease"
               >
                 {{ saving ? 'Saving…' : 'Create lease' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div
+          v-if="showUtilities && utilitiesLease"
+          class="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
+          @click.self="showUtilities = false"
+        >
+          <div
+            class="my-8 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+            @click.stop
+          >
+            <h3 class="text-lg font-semibold">Monthly utilities</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              {{ utilitiesLease.renter.fullName }} · {{ utilitiesLease.unit.property.name }} —
+              {{ utilitiesLease.unit.label }}
+            </p>
+            <p class="mt-2 text-xs text-slate-500">
+              Record electricity and water charges per month. Tenants see payment status in their portal.
+            </p>
+
+            <div
+              v-if="utilitiesLoading"
+              class="mt-6 py-8 text-center text-sm text-slate-500"
+            >
+              Loading…
+            </div>
+            <div v-else class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+              <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th class="px-3 py-2">Period</th>
+                    <th class="px-3 py-2">Type</th>
+                    <th class="px-3 py-2">Amount</th>
+                    <th class="px-3 py-2">Due</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="b in utilityBills" :key="b.id" class="hover:bg-slate-50/80">
+                    <td class="px-3 py-2">{{ utilityMonthLabel(b) }}</td>
+                    <td class="px-3 py-2">{{ b.kind === 'ELECTRICITY' ? 'Electricity' : 'Water' }}</td>
+                    <td class="px-3 py-2 tabular-nums">{{ formatMoney(b.amount, b.currency) }}</td>
+                    <td class="px-3 py-2 text-slate-600">{{ formatDate(b.dueDate) }}</td>
+                    <td class="px-3 py-2">
+                      <span
+                        :class="[
+                          'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                          b.status === 'PAID'
+                            ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
+                            : b.status === 'LATE'
+                              ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200'
+                              : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+                        ]"
+                      >
+                        {{ b.status }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                      <button
+                        v-if="b.status !== 'PAID'"
+                        type="button"
+                        class="mr-2 text-xs font-medium text-emerald-700 hover:underline"
+                        @click="markUtilityPaid(b)"
+                      >
+                        Mark paid
+                      </button>
+                      <button
+                        v-else
+                        type="button"
+                        class="mr-2 text-xs font-medium text-slate-600 hover:underline"
+                        @click="markUtilityPending(b)"
+                      >
+                        Mark unpaid
+                      </button>
+                      <button
+                        type="button"
+                        class="text-xs font-medium text-red-600 hover:underline"
+                        @click="removeUtilityBill(b)"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p v-if="!utilityBills.length" class="px-4 py-8 text-center text-sm text-slate-500">
+                No utility charges yet. Add a month below.
+              </p>
+            </div>
+
+            <div v-if="kindOptionsForLease(utilitiesLease).length" class="mt-6 border-t border-slate-100 pt-4">
+              <p class="text-sm font-medium text-slate-800">Add or update a month</p>
+              <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <label class="block text-sm">
+                  <span class="text-slate-600">Type</span>
+                  <select
+                    v-model="utilForm.kind"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                  >
+                    <option
+                      v-for="o in kindOptionsForLease(utilitiesLease)"
+                      :key="o.value"
+                      :value="o.value"
+                    >
+                      {{ o.label }}
+                    </option>
+                  </select>
+                </label>
+                <label class="block text-sm">
+                  <span class="text-slate-600">Amount</span>
+                  <input
+                    v-model="utilForm.amount"
+                    type="number"
+                    min="0"
+                    step="any"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                    placeholder="0"
+                  />
+                </label>
+                <label class="block text-sm">
+                  <span class="text-slate-600">Year</span>
+                  <input
+                    v-model.number="utilForm.year"
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                    @change="onUtilPeriodChange"
+                  />
+                </label>
+                <label class="block text-sm">
+                  <span class="text-slate-600">Month</span>
+                  <select
+                    v-model.number="utilForm.month"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                    @change="onUtilPeriodChange"
+                  >
+                    <option v-for="m in 12" :key="m" :value="m">{{ m }}</option>
+                  </select>
+                </label>
+                <label class="block text-sm sm:col-span-2">
+                  <span class="text-slate-600">Due date</span>
+                  <input
+                    v-model="utilForm.dueDate"
+                    type="date"
+                    class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                  />
+                </label>
+              </div>
+              <div class="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  :disabled="utilSaving || !utilForm.amount"
+                  @click="saveUtilityBill"
+                >
+                  {{ utilSaving ? 'Saving…' : 'Save charge' }}
+                </button>
+              </div>
+            </div>
+            <p v-else class="mt-4 text-sm text-amber-800">
+              This unit has no metered electricity or water configured. Set rates under Property → Units first.
+            </p>
+
+            <div class="mt-6 flex justify-end">
+              <button
+                type="button"
+                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                @click="showUtilities = false"
+              >
+                Close
               </button>
             </div>
           </div>

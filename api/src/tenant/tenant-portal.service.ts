@@ -106,6 +106,10 @@ export class TenantPortalService {
       include: {
         unit: { include: { property: true } },
         payments: { orderBy: { dueDate: 'desc' } },
+        utilityBills: {
+          orderBy: [{ year: 'desc' }, { month: 'desc' }, { kind: 'asc' }],
+          take: 60,
+        },
       },
       orderBy: { startDate: 'desc' },
     });

@@ -52,6 +52,21 @@ export type Renter = {
   userId?: string | null;
 };
 
+export type LeaseUtilityBill = {
+  id: string;
+  leaseId: string;
+  kind: 'ELECTRICITY' | 'WATER';
+  year: number;
+  month: number;
+  amount: string;
+  currency: string;
+  dueDate: string;
+  status: 'PENDING' | 'PAID' | 'LATE' | 'CANCELLED';
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Lease = {
   id: string;
   unitId: string;
@@ -64,6 +79,7 @@ export type Lease = {
   unit: Unit & { property: Property };
   renter: Renter;
   payments?: Payment[];
+  utilityBills?: LeaseUtilityBill[];
 };
 
 export type Payment = {
