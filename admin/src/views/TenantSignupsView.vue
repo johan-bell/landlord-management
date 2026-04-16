@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
+import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
@@ -19,6 +20,7 @@ type SignupRow = {
 };
 
 const { hasOrg, orgApi, selectedOrgId } = useOrgContext();
+const canDecideSignups = useOrgElevatedAccess();
 
 const rows = ref<SignupRow[]>([]);
 const loading = ref(true);
@@ -154,7 +156,16 @@ watch([hasOrg, selectedOrgId], () => void load());
                 </h2>
                 <p class="mt-1 text-sm text-slate-600">
                     People who requested access with your organization ID.
-                    Approve by assigning a unit and lease terms, or reject.
+                    <template v-if="canDecideSignups">
+                        Approve by assigning a unit and lease terms, or reject.
+                    </template>
+                    <template v-else>
+                        Only
+                        <strong class="font-medium text-slate-800"
+                            >owners and managers</strong
+                        >
+                        can approve or reject; you can review the list below.
+                    </template>
                 </p>
             </div>
 
@@ -209,20 +220,25 @@ watch([hasOrg, selectedOrgId], () => void load());
                                 {{ r.user.phone || '—' }}
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <button
-                                    type="button"
-                                    class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
-                                    @click="openApprove(r)"
+                                <template v-if="canDecideSignups">
+                                    <button
+                                        type="button"
+                                        class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
+                                        @click="openApprove(r)"
+                                    >
+                                        Approve
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="text-sm font-medium text-red-600 hover:underline"
+                                        @click="reject(r)"
+                                    >
+                                        Reject
+                                    </button>
+                                </template>
+                                <span v-else class="text-xs text-slate-400"
+                                    >—</span
                                 >
-                                    Approve
-                                </button>
-                                <button
-                                    type="button"
-                                    class="text-sm font-medium text-red-600 hover:underline"
-                                    @click="reject(r)"
-                                >
-                                    Reject
-                                </button>
                             </td>
                         </tr>
                     </tbody>

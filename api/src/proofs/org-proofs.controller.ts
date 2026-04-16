@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    ForbiddenException,
     Get,
     Param,
     Post,
@@ -11,13 +12,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/types/jwt-payload';
+import { OrgTeamService } from '../organizations/org-team.service';
 import { RejectProofDto } from './dto/reject-proof.dto';
 import { ProofsService } from './proofs.service';
 
 @Controller('organizations/:orgId/proofs')
 @UseGuards(JwtAuthGuard, OrgMembershipGuard)
 export class OrgProofsController {
-    constructor(private readonly proofs: ProofsService) {}
+    constructor(
+        private readonly proofs: ProofsService,
+        private readonly orgTeam: OrgTeamService,
+    ) {}
 
     @Get('pending')
     pending(@Param('orgId') orgId: string) {
@@ -33,21 +38,29 @@ export class OrgProofsController {
     }
 
     @Post('payments/:paymentId/approve')
-    approveRent(
+    async approveRent(
         @Param('orgId') orgId: string,
         @Param('paymentId') paymentId: string,
         @CurrentUser() user: RequestUser,
     ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
         return this.proofs.approveRentPayment(orgId, user.userId, paymentId);
     }
 
     @Post('payments/:paymentId/reject')
-    rejectRent(
+    async rejectRent(
         @Param('orgId') orgId: string,
         @Param('paymentId') paymentId: string,
         @CurrentUser() user: RequestUser,
         @Body() dto: RejectProofDto,
     ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
         return this.proofs.rejectRentPayment(
             orgId,
             user.userId,
@@ -57,21 +70,29 @@ export class OrgProofsController {
     }
 
     @Post('utility-bills/:billId/approve')
-    approveUtility(
+    async approveUtility(
         @Param('orgId') orgId: string,
         @Param('billId') billId: string,
         @CurrentUser() user: RequestUser,
     ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
         return this.proofs.approveUtilityBill(orgId, user.userId, billId);
     }
 
     @Post('utility-bills/:billId/reject')
-    rejectUtility(
+    async rejectUtility(
         @Param('orgId') orgId: string,
         @Param('billId') billId: string,
         @CurrentUser() user: RequestUser,
         @Body() dto: RejectProofDto,
     ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
         return this.proofs.rejectUtilityBill(
             orgId,
             user.userId,

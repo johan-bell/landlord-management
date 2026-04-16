@@ -1,7 +1,12 @@
 /**
- * JWT audience — not the same as org roles (`OWNER` / `MANAGER` / `STAFF`).
- * - `staff`: landlord admin console. Org role lives on `OrganizationMember.role`:
- *   who may invite/change roles (owner+manager only) vs portfolio-only (staff).
+ * JWT audience — **not** the same as org roles on `OrganizationMember.role`.
+ *
+ * Naming: call this the **console user** (or “landlord app”) principal. The word
+ * `staff` here means “uses the landlord admin console,” not `OrgRole.STAFF`
+ * (the lowest org role). Org role (`OWNER` / `MANAGER` / `STAFF`) is per
+ * organization on the membership row.
+ *
+ * - `staff`: landlord admin console (see above).
  * - `tenant`: renter portal.
  * - `platform`: product operator (`User.isPlatformAdmin`).
  */

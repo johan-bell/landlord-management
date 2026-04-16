@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
+import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
 import type { LeaseUtilityBill, Payment } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
+const canVerify = useOrgElevatedAccess();
 
 type PendingPayment = Payment & {
     lease: {
@@ -142,9 +144,18 @@ watch(hasOrg, () => void load());
             <p class="mb-6 text-sm text-slate-600">
                 Rent and metered utility payments stay
                 <strong class="font-semibold text-slate-800">pending</strong> on
-                the tenant portal until you open the receipt, verify it, and
-                approve. You can still mark items paid from the Payments or
-                Leases screens when you collect cash in person without a photo.
+                the tenant portal until someone with the right role opens the
+                receipt and approves or rejects it.
+                <template v-if="canVerify">
+                    You can also mark items paid from the Payments or Leases
+                    screens when you collect cash in person without a photo.
+                </template>
+                <template v-else>
+                    <span class="font-medium text-slate-800">
+                        Only owners and managers
+                    </span>
+                    can approve, reject, or mark charges paid without a receipt.
+                </template>
             </p>
 
             <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -201,6 +212,7 @@ watch(hasOrg, () => void load());
                                     View receipt
                                 </button>
                                 <button
+                                    v-if="canVerify"
                                     type="button"
                                     class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                                     :disabled="busyId === p.id"
@@ -209,6 +221,7 @@ watch(hasOrg, () => void load());
                                     Approve
                                 </button>
                                 <button
+                                    v-if="canVerify"
                                     type="button"
                                     class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                                     :disabled="busyId === p.id"
@@ -274,6 +287,7 @@ watch(hasOrg, () => void load());
                                     View receipt
                                 </button>
                                 <button
+                                    v-if="canVerify"
                                     type="button"
                                     class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                                     :disabled="busyId === b.id"
@@ -282,6 +296,7 @@ watch(hasOrg, () => void load());
                                     Approve
                                 </button>
                                 <button
+                                    v-if="canVerify"
                                     type="button"
                                     class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                                     :disabled="busyId === b.id"

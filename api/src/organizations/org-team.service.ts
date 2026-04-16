@@ -72,26 +72,17 @@ export class OrgTeamService {
         return ctx;
     }
 
-    /** OWNER or MANAGER, or platform admin (tenant signups, etc.). */
-    async assertTeamManager(orgId: string, userId: string) {
-        const m = await this.memberOrThrow(orgId, userId);
-        if (m.role !== OrgRole.OWNER && m.role !== OrgRole.MANAGER) {
-            throw new ForbiddenException('Owner or manager role required');
-        }
-        return m;
-    }
-
-    async assertOwner(orgId: string, userId: string) {
-        const m = await this.memberOrThrow(orgId, userId);
-        if (m.role !== OrgRole.OWNER) {
+    /** OWNER, or platform admin — e.g. delete organization. */
+    async assertOwnerOrPlatform(orgId: string, actor: RequestUser) {
+        const ctx = await this.ensureOrgActor(orgId, actor);
+        if (!ctx.isPlatform && ctx.member.role !== OrgRole.OWNER) {
             throw new ForbiddenException('Owner role required');
         }
-        return m;
     }
 
     async listMembers(orgId: string, actor: RequestUser) {
-        await this.ensureOrgActor(orgId, actor);
-        return this.prisma.organizationMember.findMany({
+        const ctx = await this.ensureOrgActor(orgId, actor);
+        const rows = await this.prisma.organizationMember.findMany({
             where: { organizationId: orgId },
             include: {
                 user: {
@@ -100,6 +91,17 @@ export class OrgTeamService {
             },
             orderBy: { createdAt: 'asc' },
         });
+        if (!ctx.isPlatform && ctx.member.role === OrgRole.STAFF) {
+            return rows.map((row) => ({
+                ...row,
+                user: {
+                    ...row.user,
+                    email: null,
+                    phone: null,
+                },
+            }));
+        }
+        return rows;
     }
 
     async updateMemberRole(

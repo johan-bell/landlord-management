@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
+import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatMoney } from '../composables/format';
 import type {
@@ -14,6 +15,7 @@ import type {
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
+const canManageUtilityPaymentStatus = useOrgElevatedAccess();
 
 const leases = ref<Lease[]>([]);
 const page = ref(1);
@@ -749,6 +751,7 @@ watch(page, () => void load());
                                         <td class="px-3 py-2 text-right">
                                             <button
                                                 v-if="
+                                                    canManageUtilityPaymentStatus &&
                                                     b.status !== 'PAID' &&
                                                     b.proofVerification !==
                                                         'PENDING_VERIFICATION'
@@ -768,7 +771,10 @@ watch(page, () => void load());
                                                 >Receipts</span
                                             >
                                             <button
-                                                v-else
+                                                v-else-if="
+                                                    canManageUtilityPaymentStatus &&
+                                                    b.status === 'PAID'
+                                                "
                                                 type="button"
                                                 class="mr-2 text-xs font-medium text-slate-600 hover:underline"
                                                 @click="markUtilityPending(b)"

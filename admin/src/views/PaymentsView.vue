@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
+import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
 import type { Lease, Paginated, Payment } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
+const canMarkPaid = useOrgElevatedAccess();
 
 const leases = ref<Lease[]>([]);
 const loading = ref(true);
@@ -89,11 +91,21 @@ watch(hasOrg, () => void load());
 
         <template v-else>
             <p class="mb-6 text-sm text-slate-600">
-                Rent charges across all leases. Tenants can upload a receipt;
-                use <strong class="font-medium text-slate-800">Receipts</strong>
-                to approve before it shows paid for them. Use
-                <strong class="font-medium text-slate-800">Mark paid</strong> for
-                cash collected in person (skips photo verification).
+                Rent charges across all leases. Tenants can upload a receipt; use
+                <strong class="font-medium text-slate-800">Receipts</strong> to
+                verify.
+                <template v-if="canMarkPaid">
+                    Use
+                    <strong class="font-medium text-slate-800">Mark paid</strong>
+                    for cash collected in person (skips photo verification).
+                </template>
+                <template v-else>
+                    Only
+                    <strong class="font-medium text-slate-800"
+                        >owners and managers</strong
+                    >
+                    can mark rent paid without going through receipt verification.
+                </template>
             </p>
 
             <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -177,6 +189,7 @@ watch(hasOrg, () => void load());
                                 <td class="px-4 py-3 text-right">
                                     <button
                                         v-if="
+                                            canMarkPaid &&
                                             row.status !== 'PAID' &&
                                             row.proofVerification !==
                                                 'PENDING_VERIFICATION'
@@ -184,8 +197,6 @@ watch(hasOrg, () => void load());
                                         type="button"
                                         class="text-sm font-semibold text-emerald-600 hover:underline"
                                         @click="markPaid(row)"
-                                    >
-                                        Mark paid
                                     </button>
                                     <span
                                         v-else-if="

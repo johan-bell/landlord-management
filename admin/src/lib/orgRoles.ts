@@ -10,11 +10,11 @@ export const ORG_ROLE_LABEL: Record<OrgMembershipRole, string> = {
 /** One-line explanation under the role in the profile menu. */
 export const ORG_ROLE_HINT: Record<OrgMembershipRole, string> = {
     OWNER:
-        'Full control. Only owners can assign/remove owners or invite as Owner.',
+        'Full control. Only owners can assign/remove owners, delete the org, or invite as Owner.',
     MANAGER:
-        'Runs the portfolio and team (except owner-only actions).',
+        'Portfolio + approvals + billing; cannot manage owners or delete the org.',
     STAFF:
-        'Portfolio work only — cannot invite people or change anyone’s role.',
+        'Day-to-day portfolio work; no team admin, approvals, billing, or org settings.',
 };
 
 /** Longer copy for the Team page. */
@@ -26,17 +26,17 @@ export const ORG_ROLE_GUIDE: {
     {
         role: 'OWNER',
         title: 'Owner',
-        body: 'Full access to this organization. Only an owner can invite someone as Owner, change another owner’s role, or remove an owner. There must always be at least one owner.',
+        body: 'Full portfolio access. Only an owner can invite someone as Owner, change another owner’s role, remove an owner, or delete the organization. Owners and managers can update organization details; there must always be at least one owner.',
     },
     {
         role: 'MANAGER',
         title: 'Manager',
-        body: 'Same portfolio access as an owner (properties, renters, leases, payments, tenant signups, receipts). Can invite people as Manager or Staff and change their roles — but not assign or demote owners.',
+        body: 'Same portfolio access as an owner. With owners, can approve or reject tenant signups and receipt verification, mark charges paid when collecting cash, and run billing checkout. Can invite Manager or Staff and change their roles — not owners. Cannot delete the organization.',
     },
     {
         role: 'STAFF',
         title: 'Staff',
-        body: 'Can do day-to-day portfolio work (properties, renters, leases, payments, receipts, tenant signups) but cannot send team invitations or change anyone’s role. Ask an owner or manager to add new colleagues.',
+        body: 'Can manage properties, renters, leases, and view pending receipts or tenant signups — but cannot approve/reject signups or receipts, mark rent or utilities paid, use billing checkout, or change organization settings. On the Team page, email and phone are hidden for privacy. Ask an owner or manager for team changes and approvals.',
     },
 ];
 

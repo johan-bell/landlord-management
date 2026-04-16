@@ -15,11 +15,15 @@ import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { OrgTeamService } from './org-team.service';
 import { OrganizationsService } from './organizations.service';
 
 @Controller('organizations')
 export class OrganizationsController {
-    constructor(private readonly organizationsService: OrganizationsService) {}
+    constructor(
+        private readonly organizationsService: OrganizationsService,
+        private readonly orgTeam: OrgTeamService,
+    ) {}
 
     @Post()
     @UseGuards(JwtAuthGuard)
@@ -56,13 +60,28 @@ export class OrganizationsController {
 
     @Patch(':orgId')
     @UseGuards(JwtAuthGuard, OrgMembershipGuard)
-    update(@Param('orgId') orgId: string, @Body() dto: UpdateOrganizationDto) {
+    async update(
+        @Param('orgId') orgId: string,
+        @Body() dto: UpdateOrganizationDto,
+        @CurrentUser() user: RequestUser,
+    ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
         return this.organizationsService.update(orgId, dto);
     }
 
     @Delete(':orgId')
     @UseGuards(JwtAuthGuard, OrgMembershipGuard)
-    remove(@Param('orgId') orgId: string) {
+    async remove(
+        @Param('orgId') orgId: string,
+        @CurrentUser() user: RequestUser,
+    ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertOwnerOrPlatform(orgId, user);
         return this.organizationsService.remove(orgId);
     }
 }

@@ -1,31 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia';
+import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
-import { useAuthStore } from '../stores/auth';
-import { useOrgStore } from '../stores/org';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { ORG_ROLE_GUIDE, ORG_ROLE_LABEL } from '../lib/orgRoles';
 
 const { hasOrg, orgApi } = useOrgContext();
-const auth = useAuthStore();
-const orgStore = useOrgStore();
-const { selectedOrgMyRole } = storeToRefs(orgStore);
 
 /** Invitations and role changes (API: owner or manager; platform admins bypass). */
-const canManageTeam = computed(() => {
-    if (auth.user?.isPlatformAdmin) return true;
-    const r = selectedOrgMyRole.value;
-    return r === 'OWNER' || r === 'MANAGER';
-});
+const canManageTeam = useOrgElevatedAccess();
 
 type MemberRow = {
     id: string;
     role: string;
     user: {
         id: string;
-        email: string;
+        email: string | null;
         name: string | null;
         phone: string | null;
     };
@@ -141,10 +132,8 @@ watch(canManageTeam, () => void load());
                 <p class="font-semibold text-slate-900">Roles in this console</p>
                 <p class="mt-1 text-xs text-slate-500">
                     Everyone below belongs to this organization. The
-                    <strong>role</strong> sets who may
-                    <strong>invite people and change roles</strong>; portfolio
-                    work in other screens is available to owners, managers, and
-                    staff alike.
+                    <strong>role</strong> sets team administration, approvals,
+                    billing, and org settings; see each role below for details.
                 </p>
                 <ul class="mt-3 space-y-2.5 text-xs leading-relaxed">
                     <li v-for="g in ORG_ROLE_GUIDE" :key="g.role">
@@ -299,7 +288,12 @@ watch(canManageTeam, () => void load());
                                 >
                                     <td class="px-4 py-3">
                                         <p class="font-medium text-slate-900">
-                                            {{ m.user.email }}
+                                            {{
+                                                m.user.email ??
+                                                (canManageTeam
+                                                    ? '—'
+                                                    : 'Hidden for Staff')
+                                            }}
                                         </p>
                                         <p
                                             v-if="m.user.name"
