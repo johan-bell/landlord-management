@@ -56,6 +56,12 @@ export type Renter = {
     userId?: string | null;
 };
 
+export type ProofVerificationStatus =
+    | 'NONE'
+    | 'PENDING_VERIFICATION'
+    | 'APPROVED'
+    | 'REJECTED';
+
 export type LeaseUtilityBill = {
     id: string;
     leaseId: string;
@@ -67,6 +73,13 @@ export type LeaseUtilityBill = {
     dueDate: string;
     status: 'PENDING' | 'PAID' | 'LATE' | 'CANCELLED';
     paidAt: string | null;
+    previousIndex: string | null;
+    currentIndex: string | null;
+    consumption: string | null;
+    proofVerification: ProofVerificationStatus;
+    proofObjectKey: string | null;
+    proofSubmittedAt: string | null;
+    proofRejectionNote: string | null;
     createdAt: string;
     updatedAt: string;
 };
@@ -97,4 +110,8 @@ export type Payment = {
     method: 'CASH' | 'MOBILE_MONEY' | 'BANK' | 'OTHER';
     reference: string | null;
     notes: string | null;
+    proofVerification: ProofVerificationStatus;
+    proofObjectKey: string | null;
+    proofSubmittedAt: string | null;
+    proofRejectionNote: string | null;
 };

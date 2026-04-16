@@ -66,6 +66,9 @@ type LeaseRow = {
         amount: string;
         status: string;
         paidAt: string | null;
+        proofVerification?: string;
+        proofSubmittedAt?: string | null;
+        proofRejectionNote?: string | null;
     }[];
     utilityBills?: {
         id: string;
@@ -77,6 +80,12 @@ type LeaseRow = {
         dueDate: string;
         status: string;
         paidAt: string | null;
+        previousIndex?: string | null;
+        currentIndex?: string | null;
+        consumption?: string | null;
+        proofVerification?: string;
+        proofSubmittedAt?: string | null;
+        proofRejectionNote?: string | null;
     }[];
 };
 
@@ -103,6 +112,9 @@ const supportOk = ref(false);
 
 const passwordModalOpen = ref(false);
 const supportModalOpen = ref(false);
+
+const uploadBusyKey = ref<string | null>(null);
+const uploadErr = ref<string | null>(null);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -160,10 +172,115 @@ function utilityPeriodLabel(year: number, month: number) {
     });
 }
 
-function utilityStatusLabel(status: string) {
-    if (status === 'PAID') return 'Paid';
-    if (status === 'PENDING') return 'Unpaid';
-    return status;
+function rentProofLabel(p: LeaseRow['payments'][0]) {
+    if (p.status === 'PAID') return 'Paid';
+    const v = p.proofVerification ?? 'NONE';
+    if (v === 'PENDING_VERIFICATION') return 'Receipt sent — waiting for landlord';
+    if (v === 'REJECTED') return 'Receipt rejected — upload again';
+    return 'Unpaid';
+}
+
+function utilityProofLabel(ub: NonNullable<LeaseRow['utilityBills']>[0]) {
+    if (ub.status === 'PAID') return 'Paid';
+    const v = ub.proofVerification ?? 'NONE';
+    if (v === 'PENDING_VERIFICATION') return 'Receipt sent — waiting for landlord';
+    if (v === 'REJECTED') return 'Receipt rejected — upload again';
+    return 'Unpaid';
+}
+
+function canUploadProof(
+    status: string,
+    proofVerification: string | undefined,
+) {
+    if (status === 'PAID') return false;
+    const v = proofVerification ?? 'NONE';
+    return v === 'NONE' || v === 'REJECTED';
+}
+
+async function submitProofFile(
+    file: File,
+    orgId: string,
+    leaseId: string,
+    target: 'RENT' | 'UTILITY',
+    paymentId?: string,
+    utilityBillId?: string,
+) {
+    const contentType = file.type || 'image/jpeg';
+    const intent = await api<{
+        uploadUrl: string;
+        objectKey: string;
+    }>('/tenant/proofs/upload-intent', {
+        method: 'POST',
+        body: JSON.stringify({ organizationId: orgId, contentType }),
+    });
+    const put = await fetch(intent.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': contentType },
+        mode: 'cors',
+    });
+    if (!put.ok) {
+        throw new Error('Could not upload image to storage');
+    }
+    await api('/tenant/proofs/attach', {
+        method: 'POST',
+        body: JSON.stringify({
+            target,
+            organizationId: orgId,
+            leaseId,
+            objectKey: intent.objectKey,
+            contentType,
+            ...(target === 'RENT' ? { paymentId } : { utilityBillId }),
+        }),
+    });
+}
+
+async function onRentProofPick(
+    ev: Event,
+    orgId: string,
+    leaseId: string,
+    paymentId: string,
+) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    uploadErr.value = null;
+    const key = `rent:${paymentId}`;
+    uploadBusyKey.value = key;
+    try {
+        await submitProofFile(file, orgId, leaseId, 'RENT', paymentId);
+        await refreshMe();
+    } catch (e) {
+        uploadErr.value =
+            e instanceof Error ? e.message : 'Upload failed — try again';
+    } finally {
+        uploadBusyKey.value = null;
+    }
+}
+
+async function onUtilityProofPick(
+    ev: Event,
+    orgId: string,
+    leaseId: string,
+    billId: string,
+) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    uploadErr.value = null;
+    const key = `util:${billId}`;
+    uploadBusyKey.value = key;
+    try {
+        await submitProofFile(file, orgId, leaseId, 'UTILITY', undefined, billId);
+        await refreshMe();
+    } catch (e) {
+        uploadErr.value =
+            e instanceof Error ? e.message : 'Upload failed — try again';
+    } finally {
+        uploadBusyKey.value = null;
+    }
 }
 
 function logout() {
@@ -527,13 +644,17 @@ onUnmounted(() => {
                     <p
                         class="mt-2 max-w-prose text-sm leading-relaxed text-slate-600"
                     >
-                        Active and past leases linked to your account. Each row
-                        lists scheduled rent;
-                        <strong class="font-semibold text-slate-800"
-                            >PAID</strong
-                        >
-                        means that period is settled (including months your
-                        landlord marked as prepaid when the lease started).
+                        Active and past leases linked to your account.                         Each row lists scheduled rent.
+                        <strong class="font-semibold text-slate-800">Paid</strong>
+                        means the landlord confirmed payment (including prepaid
+                        months at lease start). Otherwise upload a receipt photo;
+                        it becomes paid in your view only after they verify it.
+                    </p>
+                    <p
+                        v-if="uploadErr"
+                        class="mt-3 rounded-xl border border-red-200 bg-red-50/80 px-3 py-2 text-sm text-red-800"
+                    >
+                        {{ uploadErr }}
                     </p>
 
                     <ul v-if="leases.length" class="mt-5 space-y-4">
@@ -718,6 +839,22 @@ onUnmounted(() => {
                                                     {{ formatDate(ub.dueDate) }}
                                                     <template
                                                         v-if="
+                                                            ub.consumption &&
+                                                            ub.consumption !==
+                                                                ''
+                                                        "
+                                                    >
+                                                        · Used
+                                                        {{ ub.consumption }}
+                                                        {{
+                                                            ub.kind ===
+                                                            'ELECTRICITY'
+                                                                ? 'kWh'
+                                                                : 'm³'
+                                                        }}
+                                                    </template>
+                                                    <template
+                                                        v-if="
                                                             ub.status ===
                                                                 'PAID' &&
                                                             ub.paidAt
@@ -730,6 +867,16 @@ onUnmounted(() => {
                                                             )
                                                         }}
                                                     </template>
+                                                </p>
+                                                <p
+                                                    v-if="
+                                                        ub.proofVerification ===
+                                                            'REJECTED' &&
+                                                        ub.proofRejectionNote
+                                                    "
+                                                    class="mt-1 text-[11px] text-red-700"
+                                                >
+                                                    {{ ub.proofRejectionNote }}
                                                 </p>
                                             </div>
                                             <div
@@ -749,18 +896,56 @@ onUnmounted(() => {
                                                     :class="
                                                         ub.status === 'PAID'
                                                             ? 'bg-emerald-100 text-emerald-900'
-                                                            : ub.status ===
-                                                                'LATE'
-                                                              ? 'bg-amber-100 text-amber-900'
-                                                              : 'bg-slate-200 text-slate-800'
+                                                            : ub.proofVerification ===
+                                                                'PENDING_VERIFICATION'
+                                                              ? 'bg-sky-100 text-sky-900'
+                                                              : ub.proofVerification ===
+                                                                  'REJECTED'
+                                                                ? 'bg-red-100 text-red-900'
+                                                                : ub.status ===
+                                                                    'LATE'
+                                                                  ? 'bg-amber-100 text-amber-900'
+                                                                  : 'bg-slate-200 text-slate-800'
                                                     "
                                                 >
                                                     {{
-                                                        utilityStatusLabel(
-                                                            ub.status,
-                                                        )
+                                                        utilityProofLabel(ub)
                                                     }}
                                                 </span>
+                                                <label
+                                                    v-if="
+                                                        canUploadProof(
+                                                            ub.status,
+                                                            ub.proofVerification,
+                                                        )
+                                                    "
+                                                    class="mt-2 inline-block cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                >
+                                                    {{
+                                                        uploadBusyKey ===
+                                                        `util:${ub.id}`
+                                                            ? 'Uploading…'
+                                                            : 'Upload receipt'
+                                                    }}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        class="sr-only"
+                                                        :disabled="
+                                                            uploadBusyKey !==
+                                                            null
+                                                        "
+                                                        @change="
+                                                            onUtilityProofPick(
+                                                                $event,
+                                                                me.organization
+                                                                    .id,
+                                                                lease.id,
+                                                                ub.id,
+                                                            )
+                                                        "
+                                                    />
+                                                </label>
                                             </div>
                                         </div>
                                     </li>
@@ -783,29 +968,85 @@ onUnmounted(() => {
                                     <li
                                         v-for="p in lease.payments.slice(0, 5)"
                                         :key="p.id"
-                                        class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
+                                        class="flex flex-col gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
                                     >
-                                        <span class="text-slate-600">{{
-                                            formatDate(p.dueDate)
-                                        }}</span>
-                                        <span
-                                            class="font-medium text-slate-800"
-                                            >{{
-                                                money(p.amount, lease.currency)
-                                            }}</span
+                                        <div
+                                            class="flex flex-wrap items-center justify-between gap-2"
                                         >
-                                        <span
-                                            class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                            :class="
-                                                p.status === 'PAID'
-                                                    ? 'bg-emerald-100 text-emerald-800'
-                                                    : p.status === 'LATE'
-                                                      ? 'bg-amber-100 text-amber-900'
-                                                      : 'bg-slate-200 text-slate-700'
+                                            <span class="text-slate-600">{{
+                                                formatDate(p.dueDate)
+                                            }}</span>
+                                            <span
+                                                class="font-medium text-slate-800"
+                                                >{{
+                                                    money(
+                                                        p.amount,
+                                                        lease.currency,
+                                                    )
+                                                }}</span
+                                            >
+                                            <span
+                                                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                :class="
+                                                    p.status === 'PAID'
+                                                        ? 'bg-emerald-100 text-emerald-800'
+                                                        : p.proofVerification ===
+                                                            'PENDING_VERIFICATION'
+                                                          ? 'bg-sky-100 text-sky-900'
+                                                          : p.proofVerification ===
+                                                              'REJECTED'
+                                                            ? 'bg-red-100 text-red-900'
+                                                            : p.status ===
+                                                                'LATE'
+                                                              ? 'bg-amber-100 text-amber-900'
+                                                              : 'bg-slate-200 text-slate-700'
+                                                "
+                                            >
+                                                {{ rentProofLabel(p) }}
+                                            </span>
+                                        </div>
+                                        <p
+                                            v-if="
+                                                p.proofVerification ===
+                                                    'REJECTED' &&
+                                                p.proofRejectionNote
                                             "
+                                            class="text-xs text-red-700"
                                         >
-                                            {{ p.status }}
-                                        </span>
+                                            {{ p.proofRejectionNote }}
+                                        </p>
+                                        <label
+                                            v-if="
+                                                canUploadProof(
+                                                    p.status,
+                                                    p.proofVerification,
+                                                )
+                                            "
+                                            class="inline-flex cursor-pointer text-xs font-semibold text-teal-700 hover:underline"
+                                        >
+                                            {{
+                                                uploadBusyKey ===
+                                                `rent:${p.id}`
+                                                    ? 'Uploading…'
+                                                    : 'Upload receipt photo'
+                                            }}
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                class="sr-only"
+                                                :disabled="
+                                                    uploadBusyKey !== null
+                                                "
+                                                @change="
+                                                    onRentProofPick(
+                                                        $event,
+                                                        me.organization.id,
+                                                        lease.id,
+                                                        p.id,
+                                                    )
+                                                "
+                                            />
+                                        </label>
                                     </li>
                                 </ul>
                             </div>

@@ -8,9 +8,11 @@ withDefaults(
         email: string;
         orgName: string | null;
         orgRoleLabel: string | null;
+        /** Short explanation of what this role can do in the selected org. */
+        orgRoleHint?: string | null;
         isPlatformAdmin?: boolean;
     }>(),
-    { isPlatformAdmin: false },
+    { isPlatformAdmin: false, orgRoleHint: null },
 );
 
 const emit = defineEmits<{
@@ -123,6 +125,12 @@ onUnmounted(() => {
                         <span class="font-semibold text-slate-900">{{
                             orgRoleLabel
                         }}</span>
+                    </p>
+                    <p
+                        v-if="orgName && orgRoleLabel && orgRoleHint"
+                        class="mt-1.5 text-[11px] leading-snug text-slate-500"
+                    >
+                        {{ orgRoleHint }}
                     </p>
                     <p
                         v-else-if="orgName && !orgRoleLabel"

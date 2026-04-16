@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia';
+import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
-import { useAuthStore } from '../stores/auth';
-import { useOrgStore } from '../stores/org';
 import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
@@ -22,15 +19,6 @@ type SignupRow = {
 };
 
 const { hasOrg, orgApi, selectedOrgId } = useOrgContext();
-const auth = useAuthStore();
-const orgStore = useOrgStore();
-const { selectedOrgMyRole } = storeToRefs(orgStore);
-
-const canAccessTenantSignups = computed(() => {
-    if (auth.user?.isPlatformAdmin) return true;
-    const r = selectedOrgMyRole.value;
-    return r === 'OWNER' || r === 'MANAGER';
-});
 
 const rows = ref<SignupRow[]>([]);
 const loading = ref(true);
@@ -53,7 +41,7 @@ const form = ref({
 const saving = ref(false);
 
 async function loadSignups() {
-    if (!hasOrg.value || !canAccessTenantSignups.value) return;
+    if (!hasOrg.value) return;
     loading.value = true;
     error.value = null;
     try {
@@ -66,7 +54,7 @@ async function loadSignups() {
 }
 
 async function loadUnits() {
-    if (!hasOrg.value || !canAccessTenantSignups.value) return;
+    if (!hasOrg.value) return;
     const propsRes = await api<Paginated<Property>>(
         orgApi('/properties?limit=100'),
     );
@@ -152,25 +140,12 @@ async function reject(row: SignupRow) {
 }
 
 onMounted(() => void load());
-watch([hasOrg, selectedOrgId, canAccessTenantSignups], () => void load());
+watch([hasOrg, selectedOrgId], () => void load());
 </script>
 
 <template>
     <div>
         <SelectOrgPrompt v-if="!hasOrg" />
-
-        <template v-else-if="!canAccessTenantSignups">
-            <div
-                class="rounded-2xl border border-amber-100 bg-amber-50/80 p-6 text-sm text-slate-800"
-            >
-                <p class="font-semibold text-slate-900">Access restricted</p>
-                <p class="mt-2 text-slate-700">
-                    Only <strong>owners</strong> and <strong>managers</strong>
-                    can review pending tenant signups. Your role in this
-                    organization is <strong>Member</strong>.
-                </p>
-            </div>
-        </template>
 
         <template v-else>
             <div class="mb-6">

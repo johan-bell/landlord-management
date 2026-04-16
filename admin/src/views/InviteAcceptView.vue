@@ -3,18 +3,13 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
+import { ORG_ROLE_LABEL } from '../lib/orgRoles';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
 const token = computed(() => (route.query.token as string) || '');
-
-const roleLabels: Record<string, string> = {
-    OWNER: 'Owner',
-    MANAGER: 'Manager',
-    STAFF: 'Member',
-};
 
 const preview = ref<{
     organizationName: string;
@@ -95,7 +90,9 @@ onMounted(() => void loadPreview());
                     }}</span>
                     as
                     <span class="font-medium">{{
-                        roleLabels[preview.role] ?? preview.role
+                        ORG_ROLE_LABEL[
+                            preview.role as keyof typeof ORG_ROLE_LABEL
+                        ] ?? preview.role
                     }}</span
                     >. The invite is for
                     <span class="font-mono text-xs">{{ preview.email }}</span

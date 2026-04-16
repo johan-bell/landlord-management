@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
 import AdminHeaderProfileMenu from '../components/AdminHeaderProfileMenu.vue';
+import { orgRoleHint, orgRoleLabel } from '../lib/orgRoles';
 
 const route = useRoute();
 const router = useRouter();
@@ -48,45 +49,29 @@ const profileMenuLabel = computed(() => {
     return e ? `Account menu for ${e}` : 'Account menu';
 });
 
-const orgRoleLabel = computed(() => {
-    const r = selectedOrgMyRole.value;
-    if (!r) return null;
-    return (
-        {
-            OWNER: 'Owner',
-            MANAGER: 'Manager',
-            STAFF: 'Member',
-        } as const
-    )[r];
-});
+const orgRoleLabelComputed = computed(() =>
+    orgRoleLabel(selectedOrgMyRole.value),
+);
 
-/** Owner/manager (or platform admin): invitations, roles, tenant signup queue. */
-const canManageOrgAdmin = computed(() => {
-    if (auth.user?.isPlatformAdmin) return true;
-    const r = selectedOrgMyRole.value;
-    return r === 'OWNER' || r === 'MANAGER';
-});
+const orgRoleHintComputed = computed(() =>
+    orgRoleHint(selectedOrgMyRole.value),
+);
 
 function logout() {
     auth.clearSession();
     void router.push({ name: 'login' });
 }
 
-const nav = computed(() => {
-    const items = [
-        { to: '/', label: 'Overview', icon: 'grid' as const },
-        { to: '/properties', label: 'Properties', icon: 'building' as const },
-        { to: '/renters', label: 'Renters', icon: 'users' as const },
-        { to: '/tenant-signups', label: 'Tenant signups', icon: 'clock' as const },
-        { to: '/leases', label: 'Leases', icon: 'file' as const },
-        { to: '/payments', label: 'Payments', icon: 'wallet' as const },
-        { to: '/team', label: 'Team', icon: 'team' as const },
-    ];
-    if (!canManageOrgAdmin.value) {
-        return items.filter((i) => i.to !== '/tenant-signups');
-    }
-    return items;
-});
+const nav = computed(() => [
+    { to: '/', label: 'Overview', icon: 'grid' as const },
+    { to: '/properties', label: 'Properties', icon: 'building' as const },
+    { to: '/renters', label: 'Renters', icon: 'users' as const },
+    { to: '/tenant-signups', label: 'Tenant signups', icon: 'clock' as const },
+    { to: '/leases', label: 'Leases', icon: 'file' as const },
+    { to: '/payments', label: 'Payments', icon: 'wallet' as const },
+    { to: '/receipts', label: 'Receipts', icon: 'receipt' as const },
+    { to: '/team', label: 'Team', icon: 'team' as const },
+]);
 
 function closeMobileNav() {
     mobileNavOpen.value = false;
@@ -196,6 +181,20 @@ onMounted(() => {
                             />
                         </svg>
                         <svg
+                            v-else-if="item.icon === 'wallet'"
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.75"
+                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                            />
+                        </svg>
+                        <svg
                             v-else-if="item.icon === 'clock'"
                             class="h-5 w-5"
                             fill="none"
@@ -221,6 +220,26 @@ onMounted(() => {
                                 stroke-linejoin="round"
                                 stroke-width="1.75"
                                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                        </svg>
+                        <svg
+                            v-else-if="item.icon === 'receipt'"
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.75"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                            />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.75"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                             />
                         </svg>
                         <svg
@@ -336,7 +355,8 @@ onMounted(() => {
                         :menu-label="profileMenuLabel"
                         :email="userLabel"
                         :org-name="selectedOrgName"
-                        :org-role-label="orgRoleLabel"
+                        :org-role-label="orgRoleLabelComputed"
+                        :org-role-hint="orgRoleHintComputed"
                         :is-platform-admin="!!auth.user?.isPlatformAdmin"
                         @sign-out="logout"
                     />

@@ -28,10 +28,29 @@ export class CreateLeaseUtilityBillDto {
     @Max(12)
     month!: number;
 
+    /** Manual total when not using meter readings. */
+    @IsOptional()
     @Type(() => Number)
     @IsNumber()
     @Min(0)
-    amount!: number;
+    amount?: number;
+
+    /**
+     * New meter reading (m³ or kWh). Amount = (current − previous) × unit price.
+     * Omit `amount` when using this.
+     */
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    @Min(0)
+    currentMeterIndex?: number;
+
+    /** Required for the first period if there is no prior bill with a current index. */
+    @IsOptional()
+    @Type(() => Number)
+    @IsNumber()
+    @Min(0)
+    previousMeterIndex?: number;
 
     @IsDateString()
     dueDate!: string;

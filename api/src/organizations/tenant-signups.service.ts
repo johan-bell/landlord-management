@@ -18,7 +18,7 @@ export class TenantSignupsService {
     ) {}
 
     async listPending(orgId: string, actor: RequestUser) {
-        await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
+        await this.orgTeam.assertOrganizationAccess(orgId, actor);
         return this.prisma.tenantSignupRequest.findMany({
             where: { organizationId: orgId, status: 'PENDING' },
             include: {
@@ -37,7 +37,7 @@ export class TenantSignupsService {
     }
 
     async reject(orgId: string, requestId: string, actor: RequestUser) {
-        await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
+        await this.orgTeam.assertOrganizationAccess(orgId, actor);
         const req = await this.prisma.tenantSignupRequest.findFirst({
             where: { id: requestId, organizationId: orgId, status: 'PENDING' },
         });
@@ -56,7 +56,7 @@ export class TenantSignupsService {
         actor: RequestUser,
         dto: ApproveTenantSignupDto,
     ) {
-        await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
+        await this.orgTeam.assertOrganizationAccess(orgId, actor);
 
         const signup = await this.prisma.tenantSignupRequest.findFirst({
             where: { id: requestId, organizationId: orgId, status: 'PENDING' },

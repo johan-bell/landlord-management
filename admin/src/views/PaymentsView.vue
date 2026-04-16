@@ -49,6 +49,14 @@ async function load() {
     }
 }
 
+function proofLabel(p: Payment) {
+    const v = p.proofVerification ?? 'NONE';
+    if (v === 'PENDING_VERIFICATION') return 'Receipt pending review';
+    if (v === 'REJECTED') return 'Receipt rejected';
+    if (v === 'APPROVED') return 'Verified';
+    return '—';
+}
+
 async function markPaid(row: Row) {
     try {
         await api(orgApi(`/leases/${row.leaseId}/payments/${row.id}`), {
@@ -81,8 +89,11 @@ watch(hasOrg, () => void load());
 
         <template v-else>
             <p class="mb-6 text-sm text-slate-600">
-                Rent charges and receipts across all leases. Mark a row as paid
-                to record collection.
+                Rent charges across all leases. Tenants can upload a receipt;
+                use <strong class="font-medium text-slate-800">Receipts</strong>
+                to approve before it shows paid for them. Use
+                <strong class="font-medium text-slate-800">Mark paid</strong> for
+                cash collected in person (skips photo verification).
             </p>
 
             <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -111,6 +122,7 @@ watch(hasOrg, () => void load());
                                 <th class="px-4 py-3">Renter</th>
                                 <th class="px-4 py-3">Unit</th>
                                 <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Receipt</th>
                                 <th class="px-4 py-3">Paid at</th>
                                 <th class="px-4 py-3 text-right">Actions</th>
                             </tr>
@@ -145,18 +157,44 @@ watch(hasOrg, () => void load());
                                         {{ row.status }}
                                     </span>
                                 </td>
+                                <td
+                                    class="max-w-[10rem] px-4 py-3 text-xs text-slate-600"
+                                >
+                                    {{ proofLabel(row) }}
+                                    <span
+                                        v-if="
+                                            row.proofVerification ===
+                                                'REJECTED' &&
+                                            row.proofRejectionNote
+                                        "
+                                        class="mt-0.5 block text-slate-500"
+                                        >{{ row.proofRejectionNote }}</span
+                                    >
+                                </td>
                                 <td class="px-4 py-3 text-xs text-slate-500">
                                     {{ formatDateTime(row.paidAt) }}
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <button
-                                        v-if="row.status !== 'PAID'"
+                                        v-if="
+                                            row.status !== 'PAID' &&
+                                            row.proofVerification !==
+                                                'PENDING_VERIFICATION'
+                                        "
                                         type="button"
                                         class="text-sm font-semibold text-emerald-600 hover:underline"
                                         @click="markPaid(row)"
                                     >
                                         Mark paid
                                     </button>
+                                    <span
+                                        v-else-if="
+                                            row.proofVerification ===
+                                            'PENDING_VERIFICATION'
+                                        "
+                                        class="text-xs text-amber-800"
+                                        >Use Receipts</span
+                                    >
                                     <span v-else class="text-xs text-slate-400"
                                         >—</span
                                     >

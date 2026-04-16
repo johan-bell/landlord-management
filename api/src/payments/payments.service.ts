@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { PaymentStatus, Prisma, ProofVerificationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeasesService } from '../leases/leases.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -55,6 +55,7 @@ export class PaymentsService {
         leaseId: string,
         paymentId: string,
         dto: UpdatePaymentDto,
+        staffUserId?: string,
     ) {
         await this.findOne(orgId, leaseId, paymentId);
         const data: Prisma.PaymentUpdateInput = {};
@@ -68,6 +69,17 @@ export class PaymentsService {
             data.paidAt = dto.paidAt ? new Date(dto.paidAt) : null;
         if (dto.reference !== undefined) data.reference = dto.reference;
         if (dto.notes !== undefined) data.notes = dto.notes;
+
+        if (dto.status === PaymentStatus.PAID) {
+            data.proofVerification = ProofVerificationStatus.APPROVED;
+            data.proofVerifiedAt = new Date();
+            if (staffUserId) {
+                data.proofVerifier = { connect: { id: staffUserId } };
+            }
+            if (dto.paidAt === undefined && !data.paidAt) {
+                data.paidAt = new Date();
+            }
+        }
 
         return this.prisma.payment.update({
             where: { id: paymentId },

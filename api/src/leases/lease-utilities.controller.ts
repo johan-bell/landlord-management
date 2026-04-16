@@ -8,6 +8,8 @@ import {
     Post,
     UseGuards,
 } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/types/jwt-payload';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import { CreateLeaseUtilityBillDto } from './dto/create-lease-utility-bill.dto';
@@ -39,8 +41,10 @@ export class LeaseUtilitiesController {
         @Param('leaseId') leaseId: string,
         @Param('billId') billId: string,
         @Body() dto: UpdateLeaseUtilityBillDto,
+        @CurrentUser() user: RequestUser,
     ) {
-        return this.utilities.update(orgId, leaseId, billId, dto);
+        const staffId = user.typ === 'staff' ? user.userId : undefined;
+        return this.utilities.update(orgId, leaseId, billId, dto, staffId);
     }
 
     @Delete(':billId')

@@ -7,6 +7,7 @@ import {
     ElectricityBilling,
     PaymentStatus,
     Prisma,
+    ProofVerificationStatus,
     UtilityKind,
     WaterBilling,
 } from '@prisma/client';
@@ -62,6 +63,96 @@ export class LeaseUtilitiesService {
         });
     }
 
+    private computeMeteredAmount(
+        lease: {
+            unit: {
+                waterPricePerM3: Prisma.Decimal | null;
+                electricityPricePerKwh: Prisma.Decimal | null;
+            };
+        },
+        kind: UtilityKind,
+        previousIndex: Prisma.Decimal,
+        currentIndex: Prisma.Decimal,
+    ): { consumption: Prisma.Decimal; amount: Prisma.Decimal } {
+        if (currentIndex.lessThan(previousIndex)) {
+            throw new BadRequestException(
+                'Current meter index must be greater than or equal to the previous reading.',
+            );
+        }
+        const consumption = currentIndex.minus(previousIndex);
+        const price =
+            kind === UtilityKind.WATER
+                ? lease.unit.waterPricePerM3
+                : lease.unit.electricityPricePerKwh;
+        if (!price) {
+            throw new BadRequestException(
+                'Set the unit price (per m³ or per kWh) before billing from meter readings.',
+            );
+        }
+        const amount = consumption.mul(price);
+        return { consumption, amount };
+    }
+
+    private async resolveUtilityAmount(
+        leaseId: string,
+        lease: {
+            unit: {
+                waterPricePerM3: Prisma.Decimal | null;
+                electricityPricePerKwh: Prisma.Decimal | null;
+            };
+        },
+        dto: CreateLeaseUtilityBillDto,
+    ): Promise<{
+        amount: Prisma.Decimal;
+        previousIndex: Prisma.Decimal | null;
+        currentIndex: Prisma.Decimal | null;
+        consumption: Prisma.Decimal | null;
+    }> {
+        const useMeter = dto.currentMeterIndex != null;
+        const useAmount = dto.amount != null;
+        if (useMeter === useAmount) {
+            throw new BadRequestException(
+                'Provide either amount (manual) or currentMeterIndex (metered), not both and not neither.',
+            );
+        }
+        if (useAmount) {
+            return {
+                amount: new Prisma.Decimal(dto.amount!),
+                previousIndex: null,
+                currentIndex: null,
+                consumption: null,
+            };
+        }
+        const last = await this.prisma.leaseUtilityBill.findFirst({
+            where: { leaseId, kind: dto.kind },
+            orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        });
+        let previous: Prisma.Decimal | null = null;
+        if (dto.previousMeterIndex != null) {
+            previous = new Prisma.Decimal(dto.previousMeterIndex);
+        } else if (last?.currentIndex != null) {
+            previous = last.currentIndex;
+        }
+        if (previous === null) {
+            throw new BadRequestException(
+                'Set previousMeterIndex for the first bill, or create an earlier bill with a current meter reading.',
+            );
+        }
+        const current = new Prisma.Decimal(dto.currentMeterIndex!);
+        const { consumption, amount } = this.computeMeteredAmount(
+            lease,
+            dto.kind,
+            previous,
+            current,
+        );
+        return {
+            amount,
+            previousIndex: previous,
+            currentIndex: current,
+            consumption,
+        };
+    }
+
     async upsert(
         orgId: string,
         leaseId: string,
@@ -75,6 +166,8 @@ export class LeaseUtilitiesService {
         if (Number.isNaN(dueDate.getTime())) {
             throw new BadRequestException('Invalid dueDate');
         }
+
+        const resolved = await this.resolveUtilityAmount(leaseId, lease, dto);
 
         return this.prisma.leaseUtilityBill.upsert({
             where: {
@@ -90,15 +183,21 @@ export class LeaseUtilitiesService {
                 kind: dto.kind,
                 year: dto.year,
                 month: dto.month,
-                amount: new Prisma.Decimal(dto.amount),
+                amount: resolved.amount,
                 currency,
                 dueDate,
                 status: PaymentStatus.PENDING,
+                previousIndex: resolved.previousIndex ?? undefined,
+                currentIndex: resolved.currentIndex ?? undefined,
+                consumption: resolved.consumption ?? undefined,
             },
             update: {
-                amount: new Prisma.Decimal(dto.amount),
+                amount: resolved.amount,
                 currency,
                 dueDate,
+                previousIndex: resolved.previousIndex ?? null,
+                currentIndex: resolved.currentIndex ?? null,
+                consumption: resolved.consumption ?? null,
             },
         });
     }
@@ -108,6 +207,7 @@ export class LeaseUtilitiesService {
         leaseId: string,
         billId: string,
         dto: UpdateLeaseUtilityBillDto,
+        staffUserId?: string,
     ) {
         await this.getLeaseWithUnit(orgId, leaseId);
         const bill = await this.prisma.leaseUtilityBill.findFirst({
@@ -126,6 +226,11 @@ export class LeaseUtilitiesService {
                     dto.paidAt != null && dto.paidAt !== ''
                         ? new Date(dto.paidAt)
                         : new Date();
+                data.proofVerification = ProofVerificationStatus.APPROVED;
+                data.proofVerifiedAt = new Date();
+                if (staffUserId) {
+                    data.proofVerifier = { connect: { id: staffUserId } };
+                }
             } else {
                 data.paidAt = null;
             }

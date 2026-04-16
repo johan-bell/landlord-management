@@ -43,9 +43,12 @@ const utilitiesLoading = ref(false);
 const utilSaving = ref(false);
 const utilForm = ref({
     kind: 'ELECTRICITY' as 'ELECTRICITY' | 'WATER',
+    utilityBillingMode: 'meter' as 'meter' | 'manual',
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     amount: '',
+    currentMeterIndex: '',
+    previousMeterIndex: '',
     dueDate: '',
 });
 
@@ -70,10 +73,13 @@ async function openUtilities(lease: Lease) {
     utilitiesLease.value = lease;
     const opts = kindOptionsForLease(lease);
     utilForm.value.kind = opts[0]?.value ?? 'ELECTRICITY';
+    utilForm.value.utilityBillingMode = 'meter';
     const now = new Date();
     utilForm.value.year = now.getFullYear();
     utilForm.value.month = now.getMonth() + 1;
     utilForm.value.amount = '';
+    utilForm.value.currentMeterIndex = '';
+    utilForm.value.previousMeterIndex = '';
     utilForm.value.dueDate = defaultUtilityDueIso(
         lease,
         utilForm.value.year,
@@ -98,25 +104,64 @@ async function loadUtilityBills() {
     }
 }
 
+/** `type="number"` v-model may be string or number — never call `.trim()` blindly. */
+function utilNumericFieldOk(
+    raw: string | number | null | undefined,
+): { ok: boolean; n: number } {
+    if (raw === null || raw === undefined) {
+        return { ok: false, n: NaN };
+    }
+    if (typeof raw === 'number') {
+        return { ok: Number.isFinite(raw) && raw >= 0, n: raw };
+    }
+    const s = raw.trim();
+    if (s === '') return { ok: false, n: NaN };
+    const n = Number.parseFloat(s);
+    return { ok: Number.isFinite(n) && n >= 0, n };
+}
+
+function utilityLastReadingHint() {
+    const same = utilityBills.value
+        .filter((b) => b.kind === utilForm.value.kind)
+        .sort((a, b) => b.year - a.year || b.month - a.month)[0];
+    if (same?.currentIndex != null && same.currentIndex !== '') {
+        return `Last reading on file: ${same.currentIndex} (${utilityMonthLabel(same)}). Leave “previous” empty to reuse it.`;
+    }
+    return 'First bill for this utility: enter the previous meter reading below (or add an earlier month first).';
+}
+
 async function saveUtilityBill() {
     const lease = utilitiesLease.value;
-    if (!lease) return;
-    const amount = Number.parseFloat(utilForm.value.amount);
-    if (Number.isNaN(amount) || amount < 0) return;
+    if (!lease || !canSaveUtility.value) return;
     utilSaving.value = true;
     try {
+        const base = {
+            kind: utilForm.value.kind,
+            year: utilForm.value.year,
+            month: utilForm.value.month,
+            dueDate: new Date(utilForm.value.dueDate).toISOString(),
+            currency: lease.currency,
+        };
+        const curMeter = utilNumericFieldOk(utilForm.value.currentMeterIndex);
+        const prevMeter = utilNumericFieldOk(utilForm.value.previousMeterIndex);
+        const body =
+            utilForm.value.utilityBillingMode === 'meter'
+                ? {
+                      ...base,
+                      currentMeterIndex: curMeter.n,
+                      ...(prevMeter.ok ? { previousMeterIndex: prevMeter.n } : {}),
+                  }
+                : {
+                      ...base,
+                      amount: utilNumericFieldOk(utilForm.value.amount).n,
+                  };
         await api(orgApi(`/leases/${lease.id}/utility-bills`), {
             method: 'POST',
-            body: JSON.stringify({
-                kind: utilForm.value.kind,
-                year: utilForm.value.year,
-                month: utilForm.value.month,
-                amount,
-                dueDate: new Date(utilForm.value.dueDate).toISOString(),
-                currency: lease.currency,
-            }),
+            body: JSON.stringify(body),
         });
         utilForm.value.amount = '';
+        utilForm.value.currentMeterIndex = '';
+        utilForm.value.previousMeterIndex = '';
         await loadUtilityBills();
     } catch (e) {
         error.value =
@@ -184,6 +229,13 @@ function onUtilPeriodChange() {
         utilForm.value.month,
     );
 }
+
+const canSaveUtility = computed(() => {
+    if (utilForm.value.utilityBillingMode === 'meter') {
+        return utilNumericFieldOk(utilForm.value.currentMeterIndex).ok;
+    }
+    return utilNumericFieldOk(utilForm.value.amount).ok;
+});
 
 async function loadUnitsAndRenters() {
     if (!hasOrg.value) return;
@@ -578,8 +630,10 @@ watch(page, () => void load());
                             {{ utilitiesLease.unit.label }}
                         </p>
                         <p class="mt-2 text-xs text-slate-500">
-                            Record electricity and water charges per month.
-                            Tenants see payment status in their portal.
+                            For metered units, enter the new index; the amount is
+                            (current − previous) × your per‑m³ or per‑kWh rate.
+                            Tenants upload a payment receipt; you verify it under
+                            Receipts before it shows paid in their portal.
                         </p>
 
                         <div
@@ -601,9 +655,11 @@ watch(page, () => void load());
                                     <tr>
                                         <th class="px-3 py-2">Period</th>
                                         <th class="px-3 py-2">Type</th>
+                                        <th class="px-3 py-2">Meter</th>
                                         <th class="px-3 py-2">Amount</th>
                                         <th class="px-3 py-2">Due</th>
                                         <th class="px-3 py-2">Status</th>
+                                        <th class="px-3 py-2">Receipt</th>
                                         <th class="px-3 py-2 text-right">
                                             Actions
                                         </th>
@@ -624,6 +680,32 @@ watch(page, () => void load());
                                                     ? 'Electricity'
                                                     : 'Water'
                                             }}
+                                        </td>
+                                        <td
+                                            class="max-w-[10rem] px-3 py-2 text-xs text-slate-600"
+                                        >
+                                            <template
+                                                v-if="
+                                                    b.consumption != null &&
+                                                    b.consumption !== ''
+                                                "
+                                            >
+                                                Δ {{ b.consumption }}
+                                                {{
+                                                    b.kind === 'ELECTRICITY'
+                                                        ? 'kWh'
+                                                        : 'm³'
+                                                }}
+                                                <span
+                                                    v-if="b.previousIndex"
+                                                    class="block text-slate-400"
+                                                    >{{ b.previousIndex }} →
+                                                    {{ b.currentIndex }}</span
+                                                >
+                                            </template>
+                                            <span v-else class="text-slate-400"
+                                                >—</span
+                                            >
                                         </td>
                                         <td class="px-3 py-2 tabular-nums">
                                             {{
@@ -650,15 +732,41 @@ watch(page, () => void load());
                                                 {{ b.status }}
                                             </span>
                                         </td>
+                                        <td class="px-3 py-2 text-xs text-slate-600">
+                                            {{
+                                                b.proofVerification ===
+                                                'PENDING_VERIFICATION'
+                                                    ? 'Awaiting review'
+                                                    : b.proofVerification ===
+                                                        'REJECTED'
+                                                      ? 'Rejected'
+                                                      : b.proofVerification ===
+                                                          'APPROVED'
+                                                        ? 'OK'
+                                                        : '—'
+                                            }}
+                                        </td>
                                         <td class="px-3 py-2 text-right">
                                             <button
-                                                v-if="b.status !== 'PAID'"
+                                                v-if="
+                                                    b.status !== 'PAID' &&
+                                                    b.proofVerification !==
+                                                        'PENDING_VERIFICATION'
+                                                "
                                                 type="button"
                                                 class="mr-2 text-xs font-medium text-emerald-700 hover:underline"
                                                 @click="markUtilityPaid(b)"
                                             >
                                                 Mark paid
                                             </button>
+                                            <span
+                                                v-else-if="
+                                                    b.proofVerification ===
+                                                    'PENDING_VERIFICATION'
+                                                "
+                                                class="mr-2 text-xs text-amber-800"
+                                                >Receipts</span
+                                            >
                                             <button
                                                 v-else
                                                 type="button"
@@ -693,6 +801,11 @@ watch(page, () => void load());
                             <p class="text-sm font-medium text-slate-800">
                                 Add or update a month
                             </p>
+                            <p
+                                class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                            >
+                                {{ utilityLastReadingHint() }}
+                            </p>
                             <div class="mt-3 grid gap-3 sm:grid-cols-2">
                                 <label class="block text-sm">
                                     <span class="text-slate-600">Type</span>
@@ -712,6 +825,57 @@ watch(page, () => void load());
                                     </select>
                                 </label>
                                 <label class="block text-sm">
+                                    <span class="text-slate-600">Billing</span>
+                                    <select
+                                        v-model="utilForm.utilityBillingMode"
+                                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                                    >
+                                        <option value="meter">
+                                            From meter readings
+                                        </option>
+                                        <option value="manual">
+                                            Manual amount
+                                        </option>
+                                    </select>
+                                </label>
+                                <label
+                                    v-if="utilForm.utilityBillingMode === 'meter'"
+                                    class="block text-sm"
+                                >
+                                    <span class="text-slate-600"
+                                        >New meter index</span
+                                    >
+                                    <input
+                                        v-model="utilForm.currentMeterIndex"
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                                        placeholder="Current reading"
+                                    />
+                                </label>
+                                <label
+                                    v-if="utilForm.utilityBillingMode === 'meter'"
+                                    class="block text-sm"
+                                >
+                                    <span class="text-slate-600"
+                                        >Previous index (optional)</span
+                                    >
+                                    <input
+                                        v-model="utilForm.previousMeterIndex"
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                                        placeholder="Only if first bill / override"
+                                    />
+                                </label>
+                                <label
+                                    v-if="
+                                        utilForm.utilityBillingMode === 'manual'
+                                    "
+                                    class="block text-sm sm:col-span-2"
+                                >
                                     <span class="text-slate-600">Amount</span>
                                     <input
                                         v-model="utilForm.amount"
@@ -762,7 +926,7 @@ watch(page, () => void load());
                                 <button
                                     type="button"
                                     class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                                    :disabled="utilSaving || !utilForm.amount"
+                                    :disabled="utilSaving || !canSaveUtility"
                                     @click="saveUtilityBill"
                                 >
                                     {{ utilSaving ? 'Saving…' : 'Save charge' }}

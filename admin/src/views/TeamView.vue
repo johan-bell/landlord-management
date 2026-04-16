@@ -6,6 +6,7 @@ import { useOrgContext } from '../composables/useOrgContext';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import { ORG_ROLE_GUIDE, ORG_ROLE_LABEL } from '../lib/orgRoles';
 
 const { hasOrg, orgApi } = useOrgContext();
 const auth = useAuthStore();
@@ -46,12 +47,6 @@ const error = ref<string | null>(null);
 const inviteEmail = ref('');
 const inviteRole = ref<'STAFF' | 'MANAGER' | 'OWNER'>('STAFF');
 const saving = ref(false);
-
-const roleLabels: Record<string, string> = {
-    OWNER: 'Owner',
-    MANAGER: 'Manager',
-    STAFF: 'Member',
-};
 
 async function load() {
     if (!hasOrg.value) return;
@@ -140,6 +135,27 @@ watch(canManageTeam, () => void load());
         <SelectOrgPrompt v-if="!hasOrg" />
 
         <template v-else>
+            <div
+                class="mb-6 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 text-sm text-slate-700"
+            >
+                <p class="font-semibold text-slate-900">Roles in this console</p>
+                <p class="mt-1 text-xs text-slate-500">
+                    Everyone below belongs to this organization. The
+                    <strong>role</strong> sets who may
+                    <strong>invite people and change roles</strong>; portfolio
+                    work in other screens is available to owners, managers, and
+                    staff alike.
+                </p>
+                <ul class="mt-3 space-y-2.5 text-xs leading-relaxed">
+                    <li v-for="g in ORG_ROLE_GUIDE" :key="g.role">
+                        <span class="font-semibold text-slate-900">{{
+                            g.title
+                        }}</span>
+                        <span class="text-slate-600"> — {{ g.body }}</span>
+                    </li>
+                </ul>
+            </div>
+
             <p class="mb-6 text-sm text-slate-600">
                 <template v-if="canManageTeam">
                     Invite colleagues by email. They must register or sign in
@@ -149,7 +165,8 @@ watch(canManageTeam, () => void load());
                 <template v-else>
                     You can see who belongs to this organization. Only
                     <strong>owners</strong> and <strong>managers</strong> can
-                    send invites or change roles.
+                    send invites or change roles — see the role descriptions
+                    above.
                 </template>
             </p>
 
@@ -192,9 +209,15 @@ watch(canManageTeam, () => void load());
                                 v-model="inviteRole"
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                             >
-                                <option value="STAFF">Member</option>
-                                <option value="MANAGER">Manager</option>
-                                <option value="OWNER">Owner</option>
+                                <option value="STAFF">
+                                    {{ ORG_ROLE_LABEL.STAFF }}
+                                </option>
+                                <option value="MANAGER">
+                                    {{ ORG_ROLE_LABEL.MANAGER }}
+                                </option>
+                                <option value="OWNER">
+                                    {{ ORG_ROLE_LABEL.OWNER }}
+                                </option>
                             </select>
                         </label>
                         <button
@@ -226,7 +249,7 @@ watch(canManageTeam, () => void load());
                                     {{ inv.email }}
                                 </p>
                                 <p class="text-xs text-slate-500">
-                                    {{ roleLabels[inv.role] ?? inv.role }} ·
+                                    {{ ORG_ROLE_LABEL[inv.role as keyof typeof ORG_ROLE_LABEL] ?? inv.role }} ·
                                     expires
                                     {{
                                         new Date(inv.expiresAt).toLocaleString()
@@ -300,15 +323,19 @@ watch(canManageTeam, () => void load());
                                             "
                                         >
                                             <option value="STAFF">
-                                                Member
+                                                {{ ORG_ROLE_LABEL.STAFF }}
                                             </option>
                                             <option value="MANAGER">
-                                                Manager
+                                                {{ ORG_ROLE_LABEL.MANAGER }}
                                             </option>
-                                            <option value="OWNER">Owner</option>
+                                            <option value="OWNER">
+                                                {{ ORG_ROLE_LABEL.OWNER }}
+                                            </option>
                                         </select>
                                         <span v-else class="text-slate-700">{{
-                                            roleLabels[m.role] ?? m.role
+                                            ORG_ROLE_LABEL[
+                                                m.role as keyof typeof ORG_ROLE_LABEL
+                                            ] ?? m.role
                                         }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">

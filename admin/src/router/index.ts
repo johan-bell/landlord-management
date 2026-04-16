@@ -70,6 +70,12 @@ const router = createRouter({
                     component: () => import('../views/PaymentsView.vue'),
                 },
                 {
+                    path: 'receipts',
+                    name: 'receipts',
+                    meta: { title: 'Receipt verification' },
+                    component: () => import('../views/ReceiptsView.vue'),
+                },
+                {
                     path: 'team',
                     name: 'team',
                     meta: { title: 'Team' },

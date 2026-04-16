@@ -9,8 +9,10 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProofsModule } from './proofs/proofs.module';
 import { PropertiesModule } from './properties/properties.module';
 import { RentersModule } from './renters/renters.module';
+import { StorageModule } from './storage/storage.module';
 import { SupportModule } from './support/support.module';
 import { TenantModule } from './tenant/tenant.module';
 import { UnitsModule } from './units/units.module';
@@ -21,6 +23,7 @@ import { UnitsModule } from './units/units.module';
             isGlobal: true,
             envFilePath: ['.env', '.env.local'],
         }),
+        StorageModule,
         PrismaModule,
         AuthModule,
         OrganizationsModule,
@@ -30,6 +33,7 @@ import { UnitsModule } from './units/units.module';
         LeasesModule,
         PaymentsModule,
         TenantModule,
+        ProofsModule,
         PlatformModule,
         BillingModule,
         SupportModule,

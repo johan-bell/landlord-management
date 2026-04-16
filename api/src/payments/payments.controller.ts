@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/types/jwt-payload';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentsService } from './payments.service';
@@ -48,8 +50,16 @@ export class PaymentsController {
         @Param('leaseId') leaseId: string,
         @Param('paymentId') paymentId: string,
         @Body() dto: UpdatePaymentDto,
+        @CurrentUser() user: RequestUser,
     ) {
-        return this.paymentsService.update(orgId, leaseId, paymentId, dto);
+        const staffId = user.typ === 'staff' ? user.userId : undefined;
+        return this.paymentsService.update(
+            orgId,
+            leaseId,
+            paymentId,
+            dto,
+            staffId,
+        );
     }
 
     @Delete(':paymentId')
