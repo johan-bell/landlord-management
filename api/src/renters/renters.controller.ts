@@ -31,6 +31,15 @@ export class RentersController {
         return this.rentersService.findAll(orgId, query);
     }
 
+    /** Rent + utility charges across all leases for this renter (admin ledger). */
+    @Get(':renterId/payment-history')
+    paymentHistory(
+        @Param('orgId') orgId: string,
+        @Param('renterId') renterId: string,
+    ) {
+        return this.rentersService.getPaymentHistory(orgId, renterId);
+    }
+
     @Post(':renterId/tenant-invite')
     tenantInvite(
         @Param('orgId') orgId: string,

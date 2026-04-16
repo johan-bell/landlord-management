@@ -13,6 +13,7 @@ const canMarkPaid = useOrgElevatedAccess();
 const leases = ref<Lease[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const renterFilter = ref('');
 
 type Row = Payment & {
     renterName: string;
@@ -35,6 +36,15 @@ const rows = computed<Row[]>(() => {
     return out.sort(
         (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
     );
+});
+
+const filteredRows = computed(() => {
+    const q = renterFilter.value.trim().toLowerCase();
+    if (!q) return rows.value;
+    return rows.value.filter((r) => {
+        const blob = `${r.renterName} ${r.unitLabel} ${r.propertyName}`.toLowerCase();
+        return blob.includes(q);
+    });
 });
 
 async function load() {
@@ -111,6 +121,26 @@ watch(hasOrg, () => void load());
             <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
 
             <div
+                v-if="!loading && rows.length"
+                class="mb-4 flex flex-wrap items-center gap-3"
+            >
+                <label class="flex min-w-[200px] flex-1 items-center gap-2 text-sm text-slate-600">
+                    <span class="shrink-0 font-medium text-slate-700"
+                        >Filter</span
+                    >
+                    <input
+                        v-model="renterFilter"
+                        type="search"
+                        placeholder="Renter, unit, or property…"
+                        class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    />
+                </label>
+                <span class="text-xs text-slate-500"
+                    >{{ filteredRows.length }} of {{ rows.length }} rows</span
+                >
+            </div>
+
+            <div
                 v-if="loading"
                 class="rounded-2xl border border-slate-200 bg-white py-16 text-center text-sm text-slate-500"
             >
@@ -141,7 +171,7 @@ watch(hasOrg, () => void load());
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr
-                                v-for="row in rows"
+                                v-for="row in filteredRows"
                                 :key="row.id"
                                 class="hover:bg-slate-50/80"
                             >
@@ -215,7 +245,13 @@ watch(hasOrg, () => void load());
                     </table>
                 </div>
                 <p
-                    v-if="!rows.length"
+                    v-if="!loading && rows.length && !filteredRows.length"
+                    class="px-4 py-10 text-center text-sm text-slate-500"
+                >
+                    No rows match your filter.
+                </p>
+                <p
+                    v-else-if="!rows.length"
                     class="px-4 py-10 text-center text-sm text-slate-500"
                 >
                     No payment records. Add payments via the API or extend this

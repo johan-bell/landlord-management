@@ -148,6 +148,34 @@ export class RentersService {
         return renter;
     }
 
+    async getPaymentHistory(orgId: string, renterId: string) {
+        const renter = await this.findOne(orgId, renterId);
+        const leases = await this.prisma.lease.findMany({
+            where: {
+                renterId,
+                unit: { property: { organizationId: orgId } },
+            },
+            include: {
+                unit: { include: { property: true } },
+                payments: { orderBy: { dueDate: 'desc' } },
+                utilityBills: {
+                    orderBy: [{ year: 'desc' }, { month: 'desc' }, { kind: 'asc' }],
+                    take: 120,
+                },
+            },
+            orderBy: { startDate: 'desc' },
+        });
+        return {
+            renter: {
+                id: renter.id,
+                fullName: renter.fullName,
+                email: renter.email,
+                phone: renter.phone,
+            },
+            leases,
+        };
+    }
+
     async update(orgId: string, renterId: string, dto: UpdateRenterDto) {
         await this.findOne(orgId, renterId);
         return this.prisma.renter.update({
