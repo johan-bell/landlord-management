@@ -197,67 +197,60 @@ const statCards = computed(() => {
 
 <template>
     <div class="space-y-8">
-        <section
-            class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+        <div
+            :class="
+                currentOrg
+                    ? 'grid gap-6 md:grid-cols-2 md:items-stretch'
+                    : ''
+            "
         >
-            <div
-                class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:px-8"
+            <section
+                class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
             >
-                <h2 class="text-base font-semibold text-slate-900">
-                    Create organization
-                </h2>
-                <p class="mt-1 text-sm text-slate-600">
-                    Each organization is an isolated portfolio (your SaaS
-                    tenant). Add one for each landlord or agency you manage.
-                </p>
-            </div>
-            <form
-                class="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:px-8 sm:pb-8"
-                @submit.prevent="createOrg"
-            >
-                <label class="min-w-0 flex-1">
-                    <span
-                        class="mb-1.5 block text-sm font-medium text-slate-700"
-                        >Organization name</span
-                    >
-                    <input
-                        v-model="newOrgName"
-                        type="text"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-slate-900 shadow-inner transition focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        placeholder="e.g. Douala Rentals"
-                        autocomplete="organization"
-                    />
-                </label>
-                <button
-                    type="submit"
-                    class="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition hover:from-emerald-500 hover:to-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    :disabled="submitting || !newOrgName.trim()"
+                <div
+                    class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:px-8"
                 >
-                    {{ submitting ? 'Creating…' : 'Create' }}
-                </button>
-            </form>
-            <p v-if="error" class="px-6 pb-4 text-sm text-red-600 sm:px-8">
-                {{ error }}
-            </p>
-        </section>
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Create organization
+                    </h2>
+                    <p class="mt-1 text-sm text-slate-600">
+                        Each organization is an isolated portfolio (your SaaS
+                        tenant). Add one for each landlord or agency you manage.
+                    </p>
+                </div>
+                <form
+                    class="flex flex-1 flex-col gap-4 p-6 sm:flex-row sm:items-end sm:px-8 sm:pb-8"
+                    @submit.prevent="createOrg"
+                >
+                    <label class="min-w-0 flex-1">
+                        <span
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                            >Organization name</span
+                        >
+                        <input
+                            v-model="newOrgName"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-slate-900 shadow-inner transition focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            placeholder="e.g. Douala Rentals"
+                            autocomplete="organization"
+                        />
+                    </label>
+                    <button
+                        type="submit"
+                        class="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition hover:from-emerald-500 hover:to-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="submitting || !newOrgName.trim()"
+                    >
+                        {{ submitting ? 'Creating…' : 'Create' }}
+                    </button>
+                </form>
+                <p v-if="error" class="mt-auto px-6 pb-4 text-sm text-red-600 sm:px-8">
+                    {{ error }}
+                </p>
+            </section>
 
-        <section
-            v-if="!selectedId"
-            class="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-6 py-8 text-center sm:px-8"
-        >
-            <p class="text-sm font-medium text-amber-900">
-                Select an organization above
-            </p>
-            <p class="mt-1 text-sm text-amber-800/90">
-                Overview metrics appear after you pick a portfolio from the
-                header menu.
-            </p>
-        </section>
-
-        <section v-else>
-            <div
+            <section
                 v-if="currentOrg"
-                class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                class="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
             >
                 <p
                     class="text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -266,10 +259,10 @@ const statCards = computed(() => {
                 </p>
                 <p class="mt-1 text-sm text-slate-600">
                     Share the <strong>organization ID</strong> or
-                    <strong>slug</strong> with renters so they can request
-                    access in the tenant app.
+                    <strong>slug</strong> with renters so they can request access
+                    in the tenant app.
                 </p>
-                <dl class="mt-3 space-y-2 text-sm">
+                <dl class="mt-3 flex-1 space-y-2 text-sm">
                     <div class="flex flex-wrap items-center gap-2">
                         <dt class="text-slate-500">Organization ID</dt>
                         <dd class="font-mono text-xs text-slate-800">
@@ -307,8 +300,23 @@ const statCards = computed(() => {
                 <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">
                     {{ copyMsg }}
                 </p>
-            </div>
+            </section>
+        </div>
 
+        <section
+            v-if="!selectedId"
+            class="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-6 py-8 text-center sm:px-8"
+        >
+            <p class="text-sm font-medium text-amber-900">
+                Select an organization above
+            </p>
+            <p class="mt-1 text-sm text-amber-800/90">
+                Overview metrics appear after you pick a portfolio from the
+                header menu.
+            </p>
+        </section>
+
+        <section v-else>
             <div
                 v-if="onboarding && onboarding.completionPercent < 100"
                 class="mb-6 rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/90 to-white p-5 shadow-sm"
