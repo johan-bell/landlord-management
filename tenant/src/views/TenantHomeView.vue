@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
@@ -195,6 +195,69 @@ function canUploadProof(
     if (status === 'PAID') return false;
     const v = proofVerification ?? 'NONE';
     return v === 'NONE' || v === 'REJECTED';
+}
+
+type HistoryTab = 'lease' | 'electricity' | 'water';
+
+function leaseHasMeteredElectricity(lease: LeaseRow) {
+    return lease.unit.electricityBilling === 'METERED_KWH';
+}
+
+function leaseHasMeteredWater(lease: LeaseRow) {
+    return lease.unit.waterBilling === 'METERED_M3';
+}
+
+function historyTabsForLease(lease: LeaseRow): HistoryTab[] {
+    const tabs: HistoryTab[] = ['lease'];
+    if (leaseHasMeteredElectricity(lease)) tabs.push('electricity');
+    if (leaseHasMeteredWater(lease)) tabs.push('water');
+    return tabs;
+}
+
+function showPaymentHistorySection(lease: LeaseRow) {
+    return (
+        lease.payments.length > 0 ||
+        leaseHasMeteredElectricity(lease) ||
+        leaseHasMeteredWater(lease)
+    );
+}
+
+function historyTabLabel(tab: HistoryTab): string {
+    if (tab === 'lease') return 'Lease';
+    if (tab === 'electricity') return 'Electricity';
+    return 'Water';
+}
+
+const paymentHistoryTabByLeaseId = reactive<Record<string, HistoryTab>>({});
+
+function currentHistoryTab(lease: LeaseRow): HistoryTab {
+    const allowed = historyTabsForLease(lease);
+    const stored = paymentHistoryTabByLeaseId[lease.id];
+    if (stored && allowed.includes(stored)) return stored;
+    return allowed[0] ?? 'lease';
+}
+
+function setHistoryTab(leaseId: string, tab: HistoryTab) {
+    paymentHistoryTabByLeaseId[leaseId] = tab;
+}
+
+function rentPaymentsNewestFirst(lease: LeaseRow) {
+    return [...lease.payments].sort(
+        (a, b) =>
+            new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+    );
+}
+
+function utilityBillsByKind(
+    lease: LeaseRow,
+    kind: 'ELECTRICITY' | 'WATER',
+) {
+    return (lease.utilityBills ?? [])
+        .filter((b) => b.kind === kind)
+        .sort(
+            (a, b) =>
+                b.year - a.year || b.month - a.month || b.id.localeCompare(a.id),
+        );
 }
 
 async function submitProofFile(
@@ -956,99 +1019,491 @@ onUnmounted(() => {
                             </div>
 
                             <div
-                                v-if="lease.payments.length"
+                                v-if="showPaymentHistorySection(lease)"
                                 class="mt-5 border-t border-slate-100 pt-4"
                             >
                                 <p
                                     class="text-xs font-semibold uppercase tracking-wide text-slate-400"
                                 >
-                                    Recent payments
+                                    Payment history
                                 </p>
-                                <ul class="mt-3 space-y-2">
-                                    <li
-                                        v-for="p in lease.payments.slice(0, 5)"
-                                        :key="p.id"
-                                        class="flex flex-col gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
+                                <p
+                                    class="mt-1 text-[11px] leading-relaxed text-slate-500"
+                                >
+                                    Switch between rent and metered utilities to
+                                    see past and current charges.
+                                </p>
+                                <div
+                                    v-if="historyTabsForLease(lease).length > 1"
+                                    class="mt-3 flex flex-wrap gap-1 rounded-xl bg-slate-100/90 p-1"
+                                    role="tablist"
+                                    aria-label="Payment history type"
+                                >
+                                    <button
+                                        v-for="tab in historyTabsForLease(lease)"
+                                        :key="tab"
+                                        type="button"
+                                        role="tab"
+                                        :aria-selected="
+                                            currentHistoryTab(lease) === tab
+                                        "
+                                        class="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+                                        :class="
+                                            currentHistoryTab(lease) === tab
+                                                ? 'bg-white text-teal-900 shadow-sm ring-1 ring-slate-200/80'
+                                                : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'
+                                        "
+                                        @click="setHistoryTab(lease.id, tab)"
                                     >
-                                        <div
-                                            class="flex flex-wrap items-center justify-between gap-2"
+                                        {{ historyTabLabel(tab) }}
+                                    </button>
+                                </div>
+
+                                <div
+                                    v-show="currentHistoryTab(lease) === 'lease'"
+                                    class="mt-3"
+                                    role="tabpanel"
+                                >
+                                    <ul
+                                        v-if="rentPaymentsNewestFirst(lease).length"
+                                        class="space-y-2"
+                                    >
+                                        <li
+                                            v-for="p in rentPaymentsNewestFirst(
+                                                lease,
+                                            ).slice(0, 36)"
+                                            :key="p.id"
+                                            class="flex flex-col gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
                                         >
-                                            <span class="text-slate-600">{{
-                                                formatDate(p.dueDate)
-                                            }}</span>
-                                            <span
-                                                class="font-medium text-slate-800"
-                                                >{{
-                                                    money(
-                                                        p.amount,
-                                                        lease.currency,
-                                                    )
-                                                }}</span
+                                            <div
+                                                class="flex flex-wrap items-center justify-between gap-2"
                                             >
-                                            <span
-                                                class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                                :class="
-                                                    p.status === 'PAID'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : p.proofVerification ===
-                                                            'PENDING_VERIFICATION'
-                                                          ? 'bg-sky-100 text-sky-900'
-                                                          : p.proofVerification ===
-                                                              'REJECTED'
-                                                            ? 'bg-red-100 text-red-900'
-                                                            : p.status ===
-                                                                'LATE'
-                                                              ? 'bg-amber-100 text-amber-900'
-                                                              : 'bg-slate-200 text-slate-700'
+                                                <span class="text-slate-600">{{
+                                                    formatDate(p.dueDate)
+                                                }}</span>
+                                                <span
+                                                    class="font-medium text-slate-800"
+                                                    >{{
+                                                        money(
+                                                            p.amount,
+                                                            lease.currency,
+                                                        )
+                                                    }}</span
+                                                >
+                                                <span
+                                                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                    :class="
+                                                        p.status === 'PAID'
+                                                            ? 'bg-emerald-100 text-emerald-800'
+                                                            : p.proofVerification ===
+                                                                'PENDING_VERIFICATION'
+                                                              ? 'bg-sky-100 text-sky-900'
+                                                              : p.proofVerification ===
+                                                                  'REJECTED'
+                                                                ? 'bg-red-100 text-red-900'
+                                                                : p.status ===
+                                                                    'LATE'
+                                                                  ? 'bg-amber-100 text-amber-900'
+                                                                  : 'bg-slate-200 text-slate-700'
+                                                    "
+                                                >
+                                                    {{ rentProofLabel(p) }}
+                                                </span>
+                                            </div>
+                                            <p
+                                                v-if="
+                                                    p.proofVerification ===
+                                                        'REJECTED' &&
+                                                    p.proofRejectionNote
                                                 "
+                                                class="text-xs text-red-700"
                                             >
-                                                {{ rentProofLabel(p) }}
-                                            </span>
-                                        </div>
-                                        <p
-                                            v-if="
-                                                p.proofVerification ===
-                                                    'REJECTED' &&
-                                                p.proofRejectionNote
-                                            "
-                                            class="text-xs text-red-700"
-                                        >
-                                            {{ p.proofRejectionNote }}
-                                        </p>
-                                        <label
-                                            v-if="
-                                                canUploadProof(
-                                                    p.status,
-                                                    p.proofVerification,
-                                                )
-                                            "
-                                            class="inline-flex cursor-pointer text-xs font-semibold text-teal-700 hover:underline"
-                                        >
-                                            {{
-                                                uploadBusyKey ===
-                                                `rent:${p.id}`
-                                                    ? 'Uploading…'
-                                                    : 'Upload receipt photo'
-                                            }}
-                                            <input
-                                                type="file"
-                                                accept="image/jpeg,image/png,image/webp"
-                                                class="sr-only"
-                                                :disabled="
-                                                    uploadBusyKey !== null
-                                                "
-                                                @change="
-                                                    onRentProofPick(
-                                                        $event,
-                                                        me.organization.id,
-                                                        lease.id,
-                                                        p.id,
+                                                {{ p.proofRejectionNote }}
+                                            </p>
+                                            <label
+                                                v-if="
+                                                    canUploadProof(
+                                                        p.status,
+                                                        p.proofVerification,
                                                     )
                                                 "
-                                            />
-                                        </label>
-                                    </li>
-                                </ul>
+                                                class="inline-flex cursor-pointer text-xs font-semibold text-teal-700 hover:underline"
+                                            >
+                                                {{
+                                                    uploadBusyKey ===
+                                                    `rent:${p.id}`
+                                                        ? 'Uploading…'
+                                                        : 'Upload receipt photo'
+                                                }}
+                                                <input
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp"
+                                                    class="sr-only"
+                                                    :disabled="
+                                                        uploadBusyKey !== null
+                                                    "
+                                                    @change="
+                                                        onRentProofPick(
+                                                            $event,
+                                                            me.organization.id,
+                                                            lease.id,
+                                                            p.id,
+                                                        )
+                                                    "
+                                                />
+                                            </label>
+                                        </li>
+                                    </ul>
+                                    <p
+                                        v-else
+                                        class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-3 py-6 text-center text-xs text-slate-500"
+                                    >
+                                        No rent charges on file yet.
+                                    </p>
+                                </div>
+
+                                <div
+                                    v-show="
+                                        currentHistoryTab(lease) ===
+                                        'electricity'
+                                    "
+                                    class="mt-3"
+                                    role="tabpanel"
+                                >
+                                    <ul
+                                        v-if="
+                                            utilityBillsByKind(
+                                                lease,
+                                                'ELECTRICITY',
+                                            ).length
+                                        "
+                                        class="space-y-2"
+                                    >
+                                        <li
+                                            v-for="ub in utilityBillsByKind(
+                                                lease,
+                                                'ELECTRICITY',
+                                            )"
+                                            :key="ub.id"
+                                            class="flex flex-col gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
+                                        >
+                                            <div
+                                                class="flex flex-wrap items-start justify-between gap-2"
+                                            >
+                                                <div>
+                                                    <p
+                                                        class="font-medium text-slate-900"
+                                                    >
+                                                        {{
+                                                            utilityPeriodLabel(
+                                                                ub.year,
+                                                                ub.month,
+                                                            )
+                                                        }}
+                                                        <span
+                                                            class="font-normal text-slate-500"
+                                                        >
+                                                            · Electricity</span
+                                                        >
+                                                    </p>
+                                                    <p
+                                                        class="mt-1 text-[11px] text-slate-500"
+                                                    >
+                                                        Due
+                                                        {{
+                                                            formatDate(
+                                                                ub.dueDate,
+                                                            )
+                                                        }}
+                                                        <template
+                                                            v-if="
+                                                                ub.consumption &&
+                                                                ub.consumption !==
+                                                                    ''
+                                                            "
+                                                        >
+                                                            · Used
+                                                            {{ ub.consumption }}
+                                                            kWh
+                                                        </template>
+                                                        <template
+                                                            v-if="
+                                                                ub.status ===
+                                                                    'PAID' &&
+                                                                ub.paidAt
+                                                            "
+                                                        >
+                                                            · Recorded paid
+                                                            {{
+                                                                formatDate(
+                                                                    ub.paidAt,
+                                                                )
+                                                            }}
+                                                        </template>
+                                                    </p>
+                                                    <p
+                                                        v-if="
+                                                            ub.proofVerification ===
+                                                                'REJECTED' &&
+                                                            ub.proofRejectionNote
+                                                        "
+                                                        class="mt-1 text-[11px] text-red-700"
+                                                    >
+                                                        {{ ub.proofRejectionNote }}
+                                                    </p>
+                                                </div>
+                                                <div
+                                                    class="flex shrink-0 flex-col items-end gap-1"
+                                                >
+                                                    <span
+                                                        class="font-semibold tabular-nums text-slate-800"
+                                                        >{{
+                                                            money(
+                                                                ub.amount,
+                                                                ub.currency,
+                                                            )
+                                                        }}</span
+                                                    >
+                                                    <span
+                                                        class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                                        :class="
+                                                            ub.status ===
+                                                            'PAID'
+                                                                ? 'bg-emerald-100 text-emerald-900'
+                                                                : ub.proofVerification ===
+                                                                    'PENDING_VERIFICATION'
+                                                                  ? 'bg-sky-100 text-sky-900'
+                                                                  : ub.proofVerification ===
+                                                                      'REJECTED'
+                                                                    ? 'bg-red-100 text-red-900'
+                                                                    : ub.status ===
+                                                                        'LATE'
+                                                                      ? 'bg-amber-100 text-amber-900'
+                                                                      : 'bg-slate-200 text-slate-800'
+                                                        "
+                                                    >
+                                                        {{
+                                                            utilityProofLabel(
+                                                                ub,
+                                                            )
+                                                        }}
+                                                    </span>
+                                                    <label
+                                                        v-if="
+                                                            canUploadProof(
+                                                                ub.status,
+                                                                ub.proofVerification,
+                                                            )
+                                                        "
+                                                        class="mt-1 cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                    >
+                                                        {{
+                                                            uploadBusyKey ===
+                                                            `util:${ub.id}`
+                                                                ? 'Uploading…'
+                                                                : 'Upload receipt'
+                                                        }}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/jpeg,image/png,image/webp"
+                                                            class="sr-only"
+                                                            :disabled="
+                                                                uploadBusyKey !==
+                                                                null
+                                                            "
+                                                            @change="
+                                                                onUtilityProofPick(
+                                                                    $event,
+                                                                    me.organization
+                                                                        .id,
+                                                                    lease.id,
+                                                                    ub.id,
+                                                                )
+                                                            "
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <p
+                                        v-else
+                                        class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-3 py-6 text-center text-xs text-slate-500"
+                                    >
+                                        No electricity charges recorded yet.
+                                    </p>
+                                </div>
+
+                                <div
+                                    v-show="
+                                        currentHistoryTab(lease) === 'water'
+                                    "
+                                    class="mt-3"
+                                    role="tabpanel"
+                                >
+                                    <ul
+                                        v-if="
+                                            utilityBillsByKind(
+                                                lease,
+                                                'WATER',
+                                            ).length
+                                        "
+                                        class="space-y-2"
+                                    >
+                                        <li
+                                            v-for="ub in utilityBillsByKind(
+                                                lease,
+                                                'WATER',
+                                            )"
+                                            :key="ub.id"
+                                            class="flex flex-col gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-sm"
+                                        >
+                                            <div
+                                                class="flex flex-wrap items-start justify-between gap-2"
+                                            >
+                                                <div>
+                                                    <p
+                                                        class="font-medium text-slate-900"
+                                                    >
+                                                        {{
+                                                            utilityPeriodLabel(
+                                                                ub.year,
+                                                                ub.month,
+                                                            )
+                                                        }}
+                                                        <span
+                                                            class="font-normal text-slate-500"
+                                                        >
+                                                            · Water</span
+                                                        >
+                                                    </p>
+                                                    <p
+                                                        class="mt-1 text-[11px] text-slate-500"
+                                                    >
+                                                        Due
+                                                        {{
+                                                            formatDate(
+                                                                ub.dueDate,
+                                                            )
+                                                        }}
+                                                        <template
+                                                            v-if="
+                                                                ub.consumption &&
+                                                                ub.consumption !==
+                                                                    ''
+                                                            "
+                                                        >
+                                                            · Used
+                                                            {{ ub.consumption }}
+                                                            m³
+                                                        </template>
+                                                        <template
+                                                            v-if="
+                                                                ub.status ===
+                                                                    'PAID' &&
+                                                                ub.paidAt
+                                                            "
+                                                        >
+                                                            · Recorded paid
+                                                            {{
+                                                                formatDate(
+                                                                    ub.paidAt,
+                                                                )
+                                                            }}
+                                                        </template>
+                                                    </p>
+                                                    <p
+                                                        v-if="
+                                                            ub.proofVerification ===
+                                                                'REJECTED' &&
+                                                            ub.proofRejectionNote
+                                                        "
+                                                        class="mt-1 text-[11px] text-red-700"
+                                                    >
+                                                        {{ ub.proofRejectionNote }}
+                                                    </p>
+                                                </div>
+                                                <div
+                                                    class="flex shrink-0 flex-col items-end gap-1"
+                                                >
+                                                    <span
+                                                        class="font-semibold tabular-nums text-slate-800"
+                                                        >{{
+                                                            money(
+                                                                ub.amount,
+                                                                ub.currency,
+                                                            )
+                                                        }}</span
+                                                    >
+                                                    <span
+                                                        class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                                        :class="
+                                                            ub.status ===
+                                                            'PAID'
+                                                                ? 'bg-emerald-100 text-emerald-900'
+                                                                : ub.proofVerification ===
+                                                                    'PENDING_VERIFICATION'
+                                                                  ? 'bg-sky-100 text-sky-900'
+                                                                  : ub.proofVerification ===
+                                                                      'REJECTED'
+                                                                    ? 'bg-red-100 text-red-900'
+                                                                    : ub.status ===
+                                                                        'LATE'
+                                                                      ? 'bg-amber-100 text-amber-900'
+                                                                      : 'bg-slate-200 text-slate-800'
+                                                        "
+                                                    >
+                                                        {{
+                                                            utilityProofLabel(
+                                                                ub,
+                                                            )
+                                                        }}
+                                                    </span>
+                                                    <label
+                                                        v-if="
+                                                            canUploadProof(
+                                                                ub.status,
+                                                                ub.proofVerification,
+                                                            )
+                                                        "
+                                                        class="mt-1 cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                    >
+                                                        {{
+                                                            uploadBusyKey ===
+                                                            `util:${ub.id}`
+                                                                ? 'Uploading…'
+                                                                : 'Upload receipt'
+                                                        }}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/jpeg,image/png,image/webp"
+                                                            class="sr-only"
+                                                            :disabled="
+                                                                uploadBusyKey !==
+                                                                null
+                                                            "
+                                                            @change="
+                                                                onUtilityProofPick(
+                                                                    $event,
+                                                                    me.organization
+                                                                        .id,
+                                                                    lease.id,
+                                                                    ub.id,
+                                                                )
+                                                            "
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <p
+                                        v-else
+                                        class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-3 py-6 text-center text-xs text-slate-500"
+                                    >
+                                        No water charges recorded yet.
+                                    </p>
+                                </div>
                             </div>
                         </li>
                     </ul>
