@@ -13,11 +13,23 @@ type OrgRow = {
     _count: { members: number; properties: number; renters: number };
 };
 
+type FleetSnapshot = {
+    generatedAt: string;
+    organizations: { total: number; active: number; suspended: number };
+    operations: {
+        activeOrgsWithoutProperties: number;
+        subscriptionsPastDue: number;
+        openSupportRequests: number;
+        pendingTenantSignups: number;
+    };
+};
+
 const router = useRouter();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const rows = ref<OrgRow[]>([]);
+const fleet = ref<FleetSnapshot | null>(null);
 const busyId = ref<string | null>(null);
 const search = ref('');
 
@@ -61,10 +73,16 @@ async function load() {
     loading.value = true;
     error.value = null;
     try {
-        rows.value = await api<OrgRow[]>('/platform/organizations');
+        const [orgs, health] = await Promise.all([
+            api<OrgRow[]>('/platform/organizations'),
+            api<FleetSnapshot>('/platform/health-overview'),
+        ]);
+        rows.value = orgs;
+        fleet.value = health;
     } catch (e) {
         error.value =
             e instanceof Error ? e.message : 'Failed to load organizations';
+        fleet.value = null;
     } finally {
         loading.value = false;
     }
@@ -149,6 +167,52 @@ onMounted(() => {
             {{ error }}
         </p>
 
+        <div
+            v-if="fleet && !loading"
+            class="mb-6 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-slate-200 shadow-sm"
+        >
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Fleet health
+            </p>
+            <div
+                class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            >
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-white">
+                        {{ fleet.operations.openSupportRequests }}
+                    </p>
+                    <p class="text-xs text-slate-400">Open support tickets</p>
+                    <RouterLink
+                        to="/support"
+                        class="mt-1 inline-block text-xs font-semibold text-indigo-300 hover:text-indigo-200"
+                    >
+                        Queue →
+                    </RouterLink>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-white">
+                        {{ fleet.operations.pendingTenantSignups }}
+                    </p>
+                    <p class="text-xs text-slate-400">Pending tenant signups</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-amber-300">
+                        {{ fleet.operations.activeOrgsWithoutProperties }}
+                    </p>
+                    <p class="text-xs text-slate-400">Active orgs · no properties</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-rose-300">
+                        {{ fleet.operations.subscriptionsPastDue }}
+                    </p>
+                    <p class="text-xs text-slate-400">Subscriptions past due</p>
+                </div>
+            </div>
+            <p class="mt-3 text-[10px] text-slate-500">
+                Snapshot {{ formatDate(fleet.generatedAt) }}
+            </p>
+        </div>
+
         <div v-if="!loading" class="mb-6 grid gap-3 sm:grid-cols-3">
             <div
                 class="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm"
@@ -228,6 +292,7 @@ onMounted(() => {
                         <tr>
                             <th class="px-4 py-3">Name</th>
                             <th class="hidden px-4 py-3 sm:table-cell">Open</th>
+                            <th class="hidden px-4 py-3 md:table-cell">Support</th>
                             <th class="px-4 py-3">Status</th>
                             <th class="hidden px-4 py-3 md:table-cell">
                                 Subscription
@@ -246,7 +311,18 @@ onMounted(() => {
                             class="hover:bg-slate-50/50"
                         >
                             <td class="px-4 py-3 font-medium text-slate-900">
-                                {{ org.name }}
+                                <span class="inline-flex flex-wrap items-center gap-2">
+                                    {{ org.name }}
+                                    <span
+                                        v-if="
+                                            !org.suspendedAt &&
+                                            org._count.properties === 0
+                                        "
+                                        class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900"
+                                    >
+                                        Empty portfolio
+                                    </span>
+                                </span>
                                 <span
                                     v-if="org.slug"
                                     class="mt-0.5 block text-xs font-normal text-slate-500"
@@ -259,6 +335,14 @@ onMounted(() => {
                                     :to="`/organization/${org.id}`"
                                 >
                                     View
+                                </RouterLink>
+                            </td>
+                            <td class="hidden px-4 py-3 md:table-cell">
+                                <RouterLink
+                                    class="text-xs font-semibold text-slate-600 hover:text-indigo-700"
+                                    :to="`/support?organizationId=${org.id}`"
+                                >
+                                    Tickets
                                 </RouterLink>
                             </td>
                             <td class="px-4 py-3">

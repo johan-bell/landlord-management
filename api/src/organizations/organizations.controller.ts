@@ -7,6 +7,7 @@ import {
     Param,
     Patch,
     Post,
+    StreamableFile,
     UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -50,6 +51,30 @@ export class OrganizationsController {
     @UseGuards(JwtAuthGuard, OrgMembershipGuard)
     summary(@Param('orgId') orgId: string) {
         return this.organizationsService.summary(orgId);
+    }
+
+    @Get(':orgId/onboarding-status')
+    @UseGuards(JwtAuthGuard, OrgMembershipGuard)
+    onboardingStatus(@Param('orgId') orgId: string) {
+        return this.organizationsService.getOnboardingStatus(orgId);
+    }
+
+    @Get(':orgId/exports/rent-roll')
+    @UseGuards(JwtAuthGuard, OrgMembershipGuard)
+    async rentRollExport(
+        @Param('orgId') orgId: string,
+        @CurrentUser() user: RequestUser,
+    ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
+        const csv = await this.organizationsService.buildRentRollCsv(orgId);
+        const buf = Buffer.from(csv, 'utf-8');
+        return new StreamableFile(buf, {
+            type: 'text/csv; charset=utf-8',
+            disposition: 'attachment; filename="rent-roll.csv"',
+        });
     }
 
     @Get(':orgId')

@@ -80,4 +80,55 @@ export class PlatformService {
             },
         };
     }
+
+    async getFleetHealthSnapshot() {
+        const [
+            totalOrgs,
+            suspendedOrgs,
+            activeWithoutProperties,
+            subscriptionsPastDue,
+            openSupportRequests,
+            pendingTenantSignups,
+        ] = await Promise.all([
+            this.prisma.organization.count(),
+            this.prisma.organization.count({
+                where: { suspendedAt: { not: null } },
+            }),
+            this.prisma.organization.count({
+                where: {
+                    suspendedAt: null,
+                    properties: { none: {} },
+                },
+            }),
+            this.prisma.organization.count({
+                where: {
+                    suspendedAt: null,
+                    subscriptionStatus: 'PAST_DUE',
+                },
+            }),
+            this.prisma.supportRequest.count({
+                where: { status: { in: ['OPEN', 'IN_PROGRESS'] } },
+            }),
+            this.prisma.tenantSignupRequest.count({
+                where: { status: 'PENDING' },
+            }),
+        ]);
+
+        const activeOrgs = totalOrgs - suspendedOrgs;
+
+        return {
+            generatedAt: new Date().toISOString(),
+            organizations: {
+                total: totalOrgs,
+                active: activeOrgs,
+                suspended: suspendedOrgs,
+            },
+            operations: {
+                activeOrgsWithoutProperties: activeWithoutProperties,
+                subscriptionsPastDue,
+                openSupportRequests,
+                pendingTenantSignups,
+            },
+        };
+    }
 }

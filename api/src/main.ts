@@ -66,5 +66,8 @@ async function bootstrap() {
     });
     const port = Number(process.env.PORT ?? 3000);
     await app.listen(port);
+    bootstrapLogger.log(
+        `landlord-management-api listening on port ${port} (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'})`,
+    );
 }
 void bootstrap();

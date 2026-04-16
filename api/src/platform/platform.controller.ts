@@ -9,6 +9,11 @@ import { PlatformService } from './platform.service';
 export class PlatformController {
     constructor(private readonly platform: PlatformService) {}
 
+    @Get('health-overview')
+    healthOverview() {
+        return this.platform.getFleetHealthSnapshot();
+    }
+
     @Get('organizations')
     organizations() {
         return this.platform.listOrganizations();

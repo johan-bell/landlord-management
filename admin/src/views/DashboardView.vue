@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { api } from '../lib/api';
+import { RouterLink } from 'vue-router';
+import { api, getAuthHeaders, resolveApiUrl } from '../lib/api';
 import { useOrgStore } from '../stores/org';
 import type { OrgSummary } from '../types/models';
 import { formatMoney } from '../composables/format';
@@ -12,11 +13,33 @@ const error = ref<string | null>(null);
 const summary = ref<OrgSummary | null>(null);
 const summaryLoading = ref(false);
 
+type OnboardingStep = {
+    id: string;
+    label: string;
+    description: string;
+    done: boolean;
+    route: string;
+};
+
+const onboarding = ref<{
+    steps: OnboardingStep[];
+    completionPercent: number;
+    pendingTenantSignups: number;
+} | null>(null);
+const onboardingLoading = ref(false);
+const exportBusy = ref(false);
+const exportErr = ref<string | null>(null);
+
 const selectedId = computed(() => orgStore.selectedOrgId);
 
 const currentOrg = computed(
     () => orgStore.organizations.find((o) => o.id === selectedId.value) ?? null,
 );
+
+const canExportRentRoll = computed(() => {
+    const role = orgStore.selectedOrgMyRole;
+    return role === 'OWNER' || role === 'MANAGER';
+});
 
 const copyMsg = ref<string | null>(null);
 
@@ -49,6 +72,62 @@ async function loadSummary() {
     }
 }
 
+async function loadOnboarding() {
+    const id = orgStore.selectedOrgId;
+    if (!id) {
+        onboarding.value = null;
+        return;
+    }
+    onboardingLoading.value = true;
+    try {
+        onboarding.value = await api<{
+            steps: OnboardingStep[];
+            completionPercent: number;
+            pendingTenantSignups: number;
+        }>(`/organizations/${id}/onboarding-status`);
+    } catch {
+        onboarding.value = null;
+    } finally {
+        onboardingLoading.value = false;
+    }
+}
+
+async function downloadRentRoll() {
+    const id = orgStore.selectedOrgId;
+    if (!id || !canExportRentRoll.value) return;
+    exportBusy.value = true;
+    exportErr.value = null;
+    try {
+        const url = resolveApiUrl(`/organizations/${id}/exports/rent-roll`);
+        const res = await fetch(url, { headers: getAuthHeaders() });
+        if (!res.ok) {
+            const text = await res.text();
+            let message = res.statusText;
+            try {
+                const j = JSON.parse(text) as { message?: string | string[] };
+                if (typeof j.message === 'string') message = j.message;
+                else if (Array.isArray(j.message))
+                    message = j.message.join(', ');
+            } catch {
+                if (text) message = text;
+            }
+            throw new Error(message);
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        const href = URL.createObjectURL(blob);
+        a.href = href;
+        a.download = `rent-roll-${id.slice(0, 8)}.csv`;
+        a.click();
+        URL.revokeObjectURL(href);
+    } catch (e) {
+        exportErr.value =
+            e instanceof Error ? e.message : 'Could not download export';
+    } finally {
+        exportBusy.value = false;
+    }
+}
+
 async function createOrg() {
     const name = newOrgName.value.trim();
     if (!name) return;
@@ -73,12 +152,14 @@ async function createOrg() {
 
 onMounted(() => {
     void loadSummary();
+    void loadOnboarding();
 });
 
 watch(
     () => orgStore.selectedOrgId,
     () => {
         void loadSummary();
+        void loadOnboarding();
     },
 );
 
@@ -226,6 +307,93 @@ const statCards = computed(() => {
                 <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">
                     {{ copyMsg }}
                 </p>
+            </div>
+
+            <div
+                v-if="onboarding && onboarding.completionPercent < 100"
+                class="mb-6 rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/90 to-white p-5 shadow-sm"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-semibold text-indigo-950">
+                            Getting started
+                        </h2>
+                        <p class="mt-1 text-xs text-indigo-900/80">
+                            {{ onboarding.completionPercent }}% complete · finish
+                            these steps to run a clean demo or go live.
+                        </p>
+                        <p
+                            v-if="onboarding.pendingTenantSignups > 0"
+                            class="mt-2 text-xs font-medium text-amber-800"
+                        >
+                            {{ onboarding.pendingTenantSignups }} tenant signup(s)
+                            waiting — visit Renters to approve.
+                        </p>
+                    </div>
+                    <span
+                        v-if="onboardingLoading"
+                        class="text-xs text-indigo-400"
+                        >Loading…</span
+                    >
+                </div>
+                <ul class="mt-4 space-y-2">
+                    <li
+                        v-for="step in onboarding.steps"
+                        :key="step.id"
+                        class="flex gap-3 rounded-xl border border-indigo-100/80 bg-white/80 px-3 py-2.5 text-sm"
+                    >
+                        <span
+                            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                            :class="
+                                step.done
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'border border-slate-200 bg-slate-50 text-slate-500'
+                            "
+                            >{{ step.done ? '✓' : '' }}</span
+                        >
+                        <div class="min-w-0 flex-1">
+                            <p class="font-medium text-slate-900">
+                                {{ step.label }}
+                            </p>
+                            <p class="text-xs text-slate-600">
+                                {{ step.description }}
+                            </p>
+                            <RouterLink
+                                v-if="!step.done"
+                                :to="step.route"
+                                class="mt-1 inline-block text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                            >
+                                Open
+                            </RouterLink>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div
+                v-if="selectedId && canExportRentRoll"
+                class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Exports</h2>
+                    <p class="text-xs text-slate-500">
+                        Download a UTF-8 rent roll for spreadsheets or audits.
+                    </p>
+                    <p
+                        v-if="exportErr"
+                        class="mt-2 text-xs font-medium text-red-600"
+                    >
+                        {{ exportErr }}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="exportBusy"
+                    @click="downloadRentRoll"
+                >
+                    {{ exportBusy ? 'Preparing…' : 'Rent roll (CSV)' }}
+                </button>
             </div>
 
             <div class="mb-4 flex items-end justify-between gap-4">

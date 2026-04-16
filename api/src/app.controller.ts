@@ -14,4 +14,10 @@ export class AppController {
     health() {
         return this.appService.getHealth();
     }
+
+    /** Async alias for probes that should verify dependencies (e.g. database). */
+    @Get('health/ready')
+    async ready() {
+        return this.appService.getHealth();
+    }
 }

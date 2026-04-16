@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PaymentStatus, ProofVerificationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { TenantProofAttachDto, TenantProofTarget } from './dto/tenant-proof-attach.dto';
@@ -15,6 +16,7 @@ export class ProofsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly storage: ObjectStorageService,
+        private readonly email: EmailService,
     ) {}
 
     private async resolveRenterId(user: RequestUser): Promise<string> {
@@ -274,11 +276,33 @@ export class ProofsService {
                 proofVerification: ProofVerificationStatus.PENDING_VERIFICATION,
                 lease: { unit: { property: { organizationId: orgId } } },
             },
+            include: {
+                lease: {
+                    include: {
+                        renter: {
+                            include: {
+                                user: { select: { email: true } },
+                            },
+                        },
+                        unit: {
+                            include: {
+                                property: {
+                                    include: {
+                                        organization: {
+                                            select: { name: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
         if (!payment) {
             throw new NotFoundException('Pending payment proof not found');
         }
-        return this.prisma.payment.update({
+        const updated = await this.prisma.payment.update({
             where: { id: paymentId },
             data: {
                 proofVerification: ProofVerificationStatus.REJECTED,
@@ -287,6 +311,18 @@ export class ProofsService {
                 proofRejectionNote: note?.trim() || null,
             },
         });
+        const renter = payment.lease.renter;
+        const to =
+            renter.user?.email?.trim() || renter.email?.trim() || undefined;
+        const orgName = payment.lease.unit.property.organization.name;
+        const due = payment.dueDate.toISOString().slice(0, 10);
+        void this.email.sendReceiptRejected({
+            to,
+            organizationName: orgName,
+            topicLine: `rent due ${due}`,
+            note,
+        });
+        return updated;
     }
 
     async approveUtilityBill(orgId: string, staffUserId: string, billId: string) {
@@ -325,11 +361,33 @@ export class ProofsService {
                 proofVerification: ProofVerificationStatus.PENDING_VERIFICATION,
                 lease: { unit: { property: { organizationId: orgId } } },
             },
+            include: {
+                lease: {
+                    include: {
+                        renter: {
+                            include: {
+                                user: { select: { email: true } },
+                            },
+                        },
+                        unit: {
+                            include: {
+                                property: {
+                                    include: {
+                                        organization: {
+                                            select: { name: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
         if (!bill) {
             throw new NotFoundException('Pending utility proof not found');
         }
-        return this.prisma.leaseUtilityBill.update({
+        const updated = await this.prisma.leaseUtilityBill.update({
             where: { id: billId },
             data: {
                 proofVerification: ProofVerificationStatus.REJECTED,
@@ -338,5 +396,22 @@ export class ProofsService {
                 proofRejectionNote: note?.trim() || null,
             },
         });
+        const renter = bill.lease.renter;
+        const to =
+            renter.user?.email?.trim() || renter.email?.trim() || undefined;
+        const orgName = bill.lease.unit.property.organization.name;
+        const period = new Date(bill.year, bill.month - 1, 1).toLocaleString(
+            'en-US',
+            { month: 'long', year: 'numeric' },
+        );
+        const kind =
+            bill.kind === 'ELECTRICITY' ? 'electricity' : 'water utility';
+        void this.email.sendReceiptRejected({
+            to,
+            organizationName: orgName,
+            topicLine: `${kind} — ${period}`,
+            note,
+        });
+        return updated;
     }
 }

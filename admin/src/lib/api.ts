@@ -8,6 +8,11 @@ function apiBase(): string {
     return '';
 }
 
+/** Absolute URL for an API path (e.g. binary / CSV downloads). */
+export function resolveApiUrl(path: string): string {
+    return `${apiBase()}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export function getAuthHeaders(): Record<string, string> {
     const auth = useAuthStore();
     const token = auth.accessToken;

@@ -2,6 +2,10 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import {
+    prepareReceiptUpload,
+    putToPresignedUrl,
+} from '../lib/receipt-upload';
 import { useAuthStore } from '../stores/auth';
 import TenantMark from '../components/TenantMark.vue';
 import TenantHeaderMenu from '../components/TenantHeaderMenu.vue';
@@ -241,6 +245,92 @@ function setHistoryTab(leaseId: string, tab: HistoryTab) {
     paymentHistoryTabByLeaseId[leaseId] = tab;
 }
 
+type NextDueItem =
+    | {
+          kind: 'rent';
+          dueDate: string;
+          amount: string;
+          currency: string;
+          leaseId: string;
+          paymentId: string;
+          placeLabel: string;
+      }
+    | {
+          kind: 'utility';
+          dueDate: string;
+          amount: string;
+          currency: string;
+          leaseId: string;
+          billId: string;
+          utilityLabel: string;
+          placeLabel: string;
+      };
+
+const whatsDueNext = computed(() => {
+    const items: NextDueItem[] = [];
+    for (const lease of leases.value) {
+        const placeLabel = `${lease.unit.property.name} · ${lease.unit.label}`;
+        for (const p of lease.payments) {
+            if (p.status === 'PAID' || p.status === 'CANCELLED') continue;
+            const v = p.proofVerification ?? 'NONE';
+            if (v === 'PENDING_VERIFICATION') continue;
+            items.push({
+                kind: 'rent',
+                dueDate: p.dueDate,
+                amount: p.amount,
+                currency: lease.currency,
+                leaseId: lease.id,
+                paymentId: p.id,
+                placeLabel,
+            });
+        }
+        for (const ub of lease.utilityBills ?? []) {
+            if (ub.status === 'PAID' || ub.status === 'CANCELLED') continue;
+            const v = ub.proofVerification ?? 'NONE';
+            if (v === 'PENDING_VERIFICATION') continue;
+            const utilityLabel =
+                ub.kind === 'ELECTRICITY' ? 'Electricity' : 'Water';
+            items.push({
+                kind: 'utility',
+                dueDate: ub.dueDate,
+                amount: ub.amount,
+                currency: ub.currency,
+                leaseId: lease.id,
+                billId: ub.id,
+                utilityLabel,
+                placeLabel,
+            });
+        }
+    }
+    items.sort(
+        (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+    );
+    return { next: items[0] ?? null, upcomingCount: items.length };
+});
+
+const pendingProofCount = computed(() => {
+    let n = 0;
+    for (const lease of leases.value) {
+        for (const p of lease.payments) {
+            if ((p.proofVerification ?? 'NONE') === 'PENDING_VERIFICATION') {
+                n++;
+            }
+        }
+        for (const ub of lease.utilityBills ?? []) {
+            if ((ub.proofVerification ?? 'NONE') === 'PENDING_VERIFICATION') {
+                n++;
+            }
+        }
+    }
+    return n;
+});
+
+function nextDueTitle(item: NextDueItem) {
+    if (item.kind === 'rent') return 'Rent';
+    return item.utilityLabel;
+}
+
 function rentPaymentsNewestFirst(lease: LeaseRow) {
     return [...lease.payments].sort(
         (a, b) =>
@@ -268,7 +358,8 @@ async function submitProofFile(
     paymentId?: string,
     utilityBillId?: string,
 ) {
-    const contentType = file.type || 'image/jpeg';
+    const prepared = await prepareReceiptUpload(file);
+    const contentType = prepared.type || file.type || 'image/jpeg';
     const intent = await api<{
         uploadUrl: string;
         objectKey: string;
@@ -276,15 +367,7 @@ async function submitProofFile(
         method: 'POST',
         body: JSON.stringify({ organizationId: orgId, contentType }),
     });
-    const put = await fetch(intent.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': contentType },
-        mode: 'cors',
-    });
-    if (!put.ok) {
-        throw new Error('Could not upload image to storage');
-    }
+    await putToPresignedUrl(intent.uploadUrl, prepared, contentType);
     await api('/tenant/proofs/attach', {
         method: 'POST',
         body: JSON.stringify({
@@ -698,6 +781,81 @@ onUnmounted(() => {
                     </div>
                 </section>
 
+                <section
+                    v-if="whatsDueNext.next || pendingProofCount > 0"
+                    class="tenant-card mt-6 border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-teal-50/50 p-5 sm:p-6"
+                    aria-live="polite"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p
+                                class="text-xs font-semibold uppercase tracking-widest text-emerald-700"
+                            >
+                                What’s due next
+                            </p>
+                            <template v-if="whatsDueNext.next">
+                                <p
+                                    class="mt-2 text-lg font-semibold tracking-tight text-slate-900"
+                                >
+                                    {{ nextDueTitle(whatsDueNext.next) }}
+                                    <span class="font-normal text-slate-600">
+                                        ·
+                                        {{
+                                            money(
+                                                whatsDueNext.next.amount,
+                                                whatsDueNext.next.currency,
+                                            )
+                                        }}
+                                    </span>
+                                </p>
+                                <p class="mt-1 text-sm text-slate-600">
+                                    {{ whatsDueNext.next.placeLabel }}
+                                </p>
+                                <p class="mt-0.5 text-sm text-slate-500">
+                                    Due
+                                    {{
+                                        formatDate(whatsDueNext.next.dueDate)
+                                    }}
+                                    <span
+                                        v-if="whatsDueNext.upcomingCount > 1"
+                                        class="text-slate-400"
+                                    >
+                                        · {{ whatsDueNext.upcomingCount - 1 }}
+                                        more in queue
+                                    </span>
+                                </p>
+                            </template>
+                            <p
+                                v-else
+                                class="mt-2 text-sm font-medium text-emerald-900"
+                            >
+                                No open charges right now
+                                <span
+                                    v-if="pendingProofCount"
+                                    class="block pt-1 font-normal text-emerald-800/95"
+                                >
+                                    {{ pendingProofCount }} receipt(s) are with
+                                    your landlord for review.
+                                </span>
+                            </p>
+                            <p
+                                v-if="whatsDueNext.next && pendingProofCount"
+                                class="mt-2 text-xs text-emerald-900/85"
+                            >
+                                {{ pendingProofCount }} receipt(s) still
+                                awaiting verification.
+                            </p>
+                        </div>
+                        <a
+                            v-if="whatsDueNext.next"
+                            :href="`#lease-${whatsDueNext.next.leaseId}`"
+                            class="inline-flex shrink-0 items-center justify-center rounded-xl border border-emerald-300/80 bg-white/90 px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+                        >
+                            Jump to lease
+                        </a>
+                    </div>
+                </section>
+
                 <section class="mt-10">
                     <h2
                         class="text-lg font-semibold tracking-tight text-slate-900"
@@ -723,8 +881,9 @@ onUnmounted(() => {
                     <ul v-if="leases.length" class="mt-5 space-y-4">
                         <li
                             v-for="lease in leases"
+                            :id="`lease-${lease.id}`"
                             :key="lease.id"
-                            class="tenant-card p-5 sm:p-6"
+                            class="tenant-card scroll-mt-24 p-5 sm:p-6"
                         >
                             <div
                                 class="flex flex-wrap items-baseline justify-between gap-3"

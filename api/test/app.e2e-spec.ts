@@ -16,17 +16,19 @@ describe('AppController (e2e)', () => {
         await app.init();
     });
 
-    it('/ (GET) returns health', () => {
+    it('/health/ready (GET) returns health with database probe', () => {
         return request(app.getHttpServer())
-            .get('/')
+            .get('/health/ready')
             .expect(200)
             .expect((res) => {
                 expect(res.body).toEqual(
                     expect.objectContaining({
                         ok: true,
                         service: 'landlord-management-api',
+                        database: 'ok',
                     }),
                 );
+                expect(typeof res.body.time).toBe('string');
             });
     });
 

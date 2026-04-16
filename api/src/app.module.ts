@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
+import { EmailModule } from './email/email.module';
 import { LeasesModule } from './leases/leases.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -24,6 +25,7 @@ import { UnitsModule } from './units/units.module';
             envFilePath: ['.env', '.env.local'],
         }),
         StorageModule,
+        EmailModule,
         PrismaModule,
         AuthModule,
         OrganizationsModule,

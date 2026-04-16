@@ -3,6 +3,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
+function csvEscapeCell(value: string): string {
+    if (/[",\n\r]/.test(value)) {
+        return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+}
+
 @Injectable()
 export class OrganizationsService {
     constructor(private readonly prisma: PrismaService) {}
@@ -104,5 +111,131 @@ export class OrganizationsService {
             renterCount,
             leaseCount,
         };
+    }
+
+    async getOnboardingStatus(orgId: string) {
+        await this.findOneOrThrow(orgId);
+        const [
+            propertyCount,
+            unitCount,
+            renterCount,
+            leaseCount,
+            memberCount,
+            pendingTenantSignups,
+        ] = await Promise.all([
+            this.prisma.property.count({ where: { organizationId: orgId } }),
+            this.prisma.unit.count({
+                where: { property: { organizationId: orgId } },
+            }),
+            this.prisma.renter.count({ where: { organizationId: orgId } }),
+            this.prisma.lease.count({
+                where: { unit: { property: { organizationId: orgId } } },
+            }),
+            this.prisma.organizationMember.count({
+                where: { organizationId: orgId },
+            }),
+            this.prisma.tenantSignupRequest.count({
+                where: { organizationId: orgId, status: 'PENDING' },
+            }),
+        ]);
+
+        const steps = [
+            {
+                id: 'properties',
+                label: 'Add a property',
+                description: 'Create your first building or site in the portfolio.',
+                done: propertyCount > 0,
+                route: '/properties',
+            },
+            {
+                id: 'units',
+                label: 'Add units & rent',
+                description: 'Define units, rent amounts, and utility billing.',
+                done: unitCount > 0,
+                route: '/properties',
+            },
+            {
+                id: 'people',
+                label: 'Onboard renters',
+                description:
+                    pendingTenantSignups > 0
+                        ? `${pendingTenantSignups} tenant signup(s) awaiting approval.`
+                        : 'Add renters or approve tenant signups.',
+                done: renterCount > 0,
+                route: '/renters',
+            },
+            {
+                id: 'leases',
+                label: 'Record a lease',
+                description: 'Link renters to units with lease terms.',
+                done: leaseCount > 0,
+                route: '/leases',
+            },
+            {
+                id: 'team',
+                label: 'Invite your team',
+                description: 'Add managers or staff to help run day-to-day work.',
+                done: memberCount > 1,
+                route: '/team',
+            },
+        ];
+
+        const doneCount = steps.filter((s) => s.done).length;
+        return {
+            organizationId: orgId,
+            pendingTenantSignups,
+            steps,
+            completedSteps: doneCount,
+            totalSteps: steps.length,
+            completionPercent: Math.round((doneCount / steps.length) * 100),
+        };
+    }
+
+    async buildRentRollCsv(orgId: string): Promise<string> {
+        await this.findOneOrThrow(orgId);
+        const leases = await this.prisma.lease.findMany({
+            where: { unit: { property: { organizationId: orgId } } },
+            include: {
+                renter: true,
+                unit: { include: { property: true } },
+            },
+            orderBy: [
+                { unit: { property: { name: 'asc' } } },
+                { unit: { label: 'asc' } },
+                { startDate: 'desc' },
+            ],
+        });
+
+        const header = [
+            'Property',
+            'Unit',
+            'Renter name',
+            'Renter phone',
+            'Renter email',
+            'Rent amount',
+            'Currency',
+            'Lease start',
+            'Lease end',
+            'Lease id',
+        ];
+
+        const lines = [header.join(',')];
+        for (const l of leases) {
+            const row = [
+                l.unit.property.name,
+                l.unit.label,
+                l.renter.fullName,
+                l.renter.phone ?? '',
+                l.renter.email ?? '',
+                l.rentAmount.toString(),
+                l.currency,
+                l.startDate.toISOString().slice(0, 10),
+                l.endDate ? l.endDate.toISOString().slice(0, 10) : '',
+                l.id,
+            ].map((c) => csvEscapeCell(String(c)));
+            lines.push(row.join(','));
+        }
+
+        return `\uFEFF${lines.join('\n')}\n`;
     }
 }
