@@ -21,9 +21,15 @@ const leases = ref<Lease[]>([]);
 const page = ref(1);
 const totalPages = ref(1);
 const search = ref('');
-const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
-    [],
-);
+const unitOptions = ref<
+    {
+        id: string;
+        label: string;
+        propertyName: string;
+        rentAmount: string;
+        currency: string;
+    }[]
+>([]);
 const renters = ref<Renter[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -33,6 +39,7 @@ const form = ref({
     renterId: '',
     startDate: new Date().toISOString().slice(0, 10),
     rentAmount: '',
+    currency: '',
     dueDay: '1',
     prepaidMonths: '0',
 });
@@ -244,7 +251,13 @@ async function loadUnitsAndRenters() {
     const propsRes = await api<Paginated<Property>>(
         orgApi('/properties?limit=500'),
     );
-    const pairs: { id: string; label: string; propertyName: string }[] = [];
+    const pairs: {
+        id: string;
+        label: string;
+        propertyName: string;
+        rentAmount: string;
+        currency: string;
+    }[] = [];
     for (const p of propsRes.items) {
         const unitsRes = await api<Paginated<Unit>>(
             orgApi(`/properties/${p.id}/units?limit=500`),
@@ -254,6 +267,8 @@ async function loadUnitsAndRenters() {
                 id: u.id,
                 label: u.label,
                 propertyName: p.name,
+                rentAmount: u.rentAmount,
+                currency: u.currency,
             });
         }
     }
@@ -303,6 +318,9 @@ async function createLease() {
                 renterId,
                 startDate: new Date(form.value.startDate).toISOString(),
                 rentAmount: rent,
+                ...(form.value.currency.trim()
+                    ? { currency: form.value.currency.trim() }
+                    : {}),
                 dueDay: Number.parseInt(form.value.dueDay, 10) || 1,
                 prepaidMonths: Number.isNaN(prepaid)
                     ? 0
@@ -315,6 +333,7 @@ async function createLease() {
             renterId: '',
             startDate: new Date().toISOString().slice(0, 10),
             rentAmount: '',
+            currency: '',
             dueDay: '1',
             prepaidMonths: '0',
         };
@@ -345,6 +364,26 @@ const canSubmit = computed(() => {
         !Number.isNaN(rent),
     );
 });
+
+function applyUnitDefaultsToLeaseForm(unitId: string) {
+    if (!unitId) {
+        form.value.rentAmount = '';
+        form.value.currency = '';
+        return;
+    }
+    const u = unitOptions.value.find((o) => o.id === unitId);
+    if (u) {
+        form.value.rentAmount = u.rentAmount;
+        form.value.currency = u.currency;
+    }
+}
+
+watch(
+    () => form.value.unitId,
+    (id) => {
+        applyUnitDefaultsToLeaseForm(id);
+    },
+);
 
 onMounted(() => void load());
 watch(hasOrg, () => void load());
@@ -555,6 +594,13 @@ watch(page, () => void load());
                             <span class="text-sm font-medium"
                                 >Monthly rent</span
                             >
+                            <span
+                                v-if="form.currency"
+                                class="ml-2 text-xs font-normal text-slate-500"
+                            >
+                                ({{ form.currency }} — from unit; edit if this
+                                lease differs)
+                            </span>
                             <input
                                 v-model="form.rentAmount"
                                 type="number"

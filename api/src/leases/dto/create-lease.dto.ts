@@ -23,10 +23,13 @@ export class CreateLeaseDto {
     @IsDateString()
     endDate?: string;
 
+    /** Defaults to the unit’s configured rent when omitted. */
+    @IsOptional()
     @Type(() => Number)
     @IsNumber()
-    rentAmount!: number;
+    rentAmount?: number;
 
+    /** Defaults to the unit’s currency when omitted. */
     @IsOptional()
     @IsString()
     currency?: string;

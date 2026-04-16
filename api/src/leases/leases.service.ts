@@ -43,7 +43,7 @@ export class LeasesService {
     async create(orgId: string, dto: CreateLeaseDto) {
         await this.organizationsService.findOneOrThrow(orgId);
         await this.rentersService.findOne(orgId, dto.renterId);
-        await this.getUnitInOrg(orgId, dto.unitId);
+        const unit = await this.getUnitInOrg(orgId, dto.unitId);
 
         const open = await this.prisma.lease.findFirst({
             where: { unitId: dto.unitId, endDate: null },
@@ -64,8 +64,11 @@ export class LeasesService {
 
         const dueDay = dto.dueDay ?? 1;
         const prepaidMonths = dto.prepaidMonths ?? 0;
-        const rentDec = new Prisma.Decimal(dto.rentAmount);
-        const currency = dto.currency ?? 'XAF';
+        const rentDec =
+            dto.rentAmount !== undefined && dto.rentAmount !== null
+                ? new Prisma.Decimal(dto.rentAmount)
+                : new Prisma.Decimal(unit.rentAmount);
+        const currency = dto.currency?.trim() || unit.currency;
 
         return this.prisma.$transaction(async (tx) => {
             const lease = await tx.lease.create({
