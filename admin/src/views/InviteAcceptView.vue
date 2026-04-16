@@ -10,6 +10,12 @@ const auth = useAuthStore();
 
 const token = computed(() => (route.query.token as string) || '');
 
+const roleLabels: Record<string, string> = {
+    OWNER: 'Owner',
+    MANAGER: 'Manager',
+    STAFF: 'Member',
+};
+
 const preview = ref<{
     organizationName: string;
     email: string;
@@ -88,7 +94,9 @@ onMounted(() => void loadPreview());
                         preview.organizationName
                     }}</span>
                     as
-                    <span class="font-medium">{{ preview.role }}</span
+                    <span class="font-medium">{{
+                        roleLabels[preview.role] ?? preview.role
+                    }}</span
                     >. The invite is for
                     <span class="font-mono text-xs">{{ preview.email }}</span
                     >.

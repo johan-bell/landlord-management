@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { api } from '../lib/api';
 import type { Organization } from '../types/models';
 
@@ -7,6 +7,12 @@ export const useOrgStore = defineStore('org', () => {
     const selectedOrgId = ref<string | null>(null);
     const organizations = ref<Organization[]>([]);
     const organizationsLoading = ref(false);
+
+    const selectedOrgMyRole = computed(() => {
+        const id = selectedOrgId.value;
+        if (!id) return null;
+        return organizations.value.find((o) => o.id === id)?.myRole ?? null;
+    });
 
     function setOrg(id: string | null) {
         selectedOrgId.value = id;
@@ -42,6 +48,7 @@ export const useOrgStore = defineStore('org', () => {
         selectedOrgId,
         organizations,
         organizationsLoading,
+        selectedOrgMyRole,
         setOrg,
         loadFromStorage,
         fetchOrganizations,

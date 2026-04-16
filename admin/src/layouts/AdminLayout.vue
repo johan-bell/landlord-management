@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
+import AdminHeaderProfileMenu from '../components/AdminHeaderProfileMenu.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -13,6 +14,7 @@ const {
     organizations: orgs,
     organizationsLoading: loadingOrgs,
     selectedOrgId,
+    selectedOrgMyRole,
 } = storeToRefs(orgStore);
 
 const mobileNavOpen = ref(false);
@@ -21,20 +23,70 @@ const pageTitle = computed(() => (route.meta.title as string) ?? 'Admin');
 
 const userLabel = computed(() => auth.user?.email ?? 'Signed in');
 
+const selectedOrgName = computed(() => {
+    const id = selectedOrgId.value;
+    if (!id) return null;
+    return orgs.value.find((o) => o.id === id)?.name ?? null;
+});
+
+const profileInitials = computed(() => {
+    const name = auth.user?.name?.trim();
+    if (name) {
+        const parts = name.split(/\s+/);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (
+            parts[0][0] + parts[parts.length - 1][0]
+        ).toUpperCase();
+    }
+    const email = auth.user?.email ?? '';
+    const local = email.split('@')[0] || email;
+    return local.slice(0, 2).toUpperCase() || '?';
+});
+
+const profileMenuLabel = computed(() => {
+    const e = auth.user?.email;
+    return e ? `Account menu for ${e}` : 'Account menu';
+});
+
+const orgRoleLabel = computed(() => {
+    const r = selectedOrgMyRole.value;
+    if (!r) return null;
+    return (
+        {
+            OWNER: 'Owner',
+            MANAGER: 'Manager',
+            STAFF: 'Member',
+        } as const
+    )[r];
+});
+
+/** Owner/manager (or platform admin): invitations, roles, tenant signup queue. */
+const canManageOrgAdmin = computed(() => {
+    if (auth.user?.isPlatformAdmin) return true;
+    const r = selectedOrgMyRole.value;
+    return r === 'OWNER' || r === 'MANAGER';
+});
+
 function logout() {
     auth.clearSession();
     void router.push({ name: 'login' });
 }
 
-const nav = [
-    { to: '/', label: 'Overview', icon: 'grid' },
-    { to: '/properties', label: 'Properties', icon: 'building' },
-    { to: '/renters', label: 'Renters', icon: 'users' },
-    { to: '/tenant-signups', label: 'Tenant signups', icon: 'clock' },
-    { to: '/leases', label: 'Leases', icon: 'file' },
-    { to: '/payments', label: 'Payments', icon: 'wallet' },
-    { to: '/team', label: 'Team', icon: 'team' },
-] as const;
+const nav = computed(() => {
+    const items = [
+        { to: '/', label: 'Overview', icon: 'grid' as const },
+        { to: '/properties', label: 'Properties', icon: 'building' as const },
+        { to: '/renters', label: 'Renters', icon: 'users' as const },
+        { to: '/tenant-signups', label: 'Tenant signups', icon: 'clock' as const },
+        { to: '/leases', label: 'Leases', icon: 'file' as const },
+        { to: '/payments', label: 'Payments', icon: 'wallet' as const },
+        { to: '/team', label: 'Team', icon: 'team' as const },
+    ];
+    if (!canManageOrgAdmin.value) {
+        return items.filter((i) => i.to !== '/tenant-signups');
+    }
+    return items;
+});
 
 function closeMobileNav() {
     mobileNavOpen.value = false;
@@ -248,27 +300,13 @@ onMounted(() => {
                 </div>
 
                 <div
-                    class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0"
+                    class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3"
                 >
-                    <div
-                        class="hidden min-w-0 max-w-[200px] text-right sm:block"
-                    >
-                        <p class="truncate text-xs text-slate-500">
-                            {{ userLabel }}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                        @click="logout"
-                    >
-                        Sign out
-                    </button>
-                    <label class="block w-full sm:w-auto">
+                    <label class="block min-w-0 flex-1 sm:max-w-xs sm:flex-none">
                         <span class="sr-only">Organization</span>
                         <select
                             :value="selectedOrgId ?? ''"
-                            class="w-full min-w-0 cursor-pointer rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 sm:max-w-[260px]"
+                            class="box-border h-10 w-full min-w-0 cursor-pointer rounded-xl border border-slate-200 bg-white py-0 pl-3 pr-8 text-sm font-medium leading-5 text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             :disabled="loadingOrgs"
                             @change="
                                 orgStore.setOrg(
@@ -284,11 +322,24 @@ onMounted(() => {
                                         : 'Select organization'
                                 }}
                             </option>
-                            <option v-for="o in orgs" :key="o.id" :value="o.id">
+                            <option
+                                v-for="o in orgs"
+                                :key="o.id"
+                                :value="o.id"
+                            >
                                 {{ o.name }}
                             </option>
                         </select>
                     </label>
+                    <AdminHeaderProfileMenu
+                        :initials="profileInitials"
+                        :menu-label="profileMenuLabel"
+                        :email="userLabel"
+                        :org-name="selectedOrgName"
+                        :org-role-label="orgRoleLabel"
+                        :is-platform-admin="!!auth.user?.isPlatformAdmin"
+                        @sign-out="logout"
+                    />
                 </div>
             </header>
 

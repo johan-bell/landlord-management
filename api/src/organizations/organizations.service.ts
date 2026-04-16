@@ -26,14 +26,25 @@ export class OrganizationsService {
         });
     }
 
-    findAllForUser(userId: string) {
-        return this.prisma.organization.findMany({
+    async findAllForUser(userId: string) {
+        const rows = await this.prisma.organization.findMany({
             where: {
                 members: { some: { userId } },
                 suspendedAt: null,
             },
             orderBy: { createdAt: 'desc' },
+            include: {
+                members: {
+                    where: { userId },
+                    select: { role: true },
+                    take: 1,
+                },
+            },
         });
+        return rows.map(({ members, ...org }) => ({
+            ...org,
+            myRole: members[0]!.role,
+        }));
     }
 
     async findOneOrThrow(id: string) {

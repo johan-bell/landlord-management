@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
+import { useAuthStore } from '../stores/auth';
+import { useOrgStore } from '../stores/org';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
+const auth = useAuthStore();
+const orgStore = useOrgStore();
+const { selectedOrgMyRole } = storeToRefs(orgStore);
+
+/** Invitations and role changes (API: owner or manager; platform admins bypass). */
+const canManageTeam = computed(() => {
+    if (auth.user?.isPlatformAdmin) return true;
+    const r = selectedOrgMyRole.value;
+    return r === 'OWNER' || r === 'MANAGER';
+});
 
 type MemberRow = {
     id: string;
@@ -37,7 +50,7 @@ const saving = ref(false);
 const roleLabels: Record<string, string> = {
     OWNER: 'Owner',
     MANAGER: 'Manager',
-    STAFF: 'Staff',
+    STAFF: 'Member',
 };
 
 async function load() {
@@ -45,12 +58,15 @@ async function load() {
     loading.value = true;
     error.value = null;
     try {
-        const [m, inv] = await Promise.all([
-            api<MemberRow[]>(orgApi('/members')),
-            api<InvitationRow[]>(orgApi('/invitations')),
-        ]);
+        const m = await api<MemberRow[]>(orgApi('/members'));
         members.value = m;
-        invitations.value = inv;
+        if (canManageTeam.value) {
+            invitations.value = await api<InvitationRow[]>(
+                orgApi('/invitations'),
+            );
+        } else {
+            invitations.value = [];
+        }
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed to load team';
     } finally {
@@ -116,6 +132,7 @@ function inviteLink(token: string) {
 
 onMounted(() => void load());
 watch(hasOrg, () => void load());
+watch(canManageTeam, () => void load());
 </script>
 
 <template>
@@ -124,8 +141,16 @@ watch(hasOrg, () => void load());
 
         <template v-else>
             <p class="mb-6 text-sm text-slate-600">
-                Invite colleagues by email. They must register or sign in with
-                that email, then open the invite link to join this organization.
+                <template v-if="canManageTeam">
+                    Invite colleagues by email. They must register or sign in
+                    with that email, then open the invite link to join this
+                    organization.
+                </template>
+                <template v-else>
+                    You can see who belongs to this organization. Only
+                    <strong>owners</strong> and <strong>managers</strong> can
+                    send invites or change roles.
+                </template>
             </p>
 
             <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
@@ -139,6 +164,7 @@ watch(hasOrg, () => void load());
 
             <template v-else>
                 <section
+                    v-if="canManageTeam"
                     class="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
                     <h2 class="text-lg font-semibold text-slate-900">
@@ -166,7 +192,7 @@ watch(hasOrg, () => void load());
                                 v-model="inviteRole"
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                             >
-                                <option value="STAFF">Staff</option>
+                                <option value="STAFF">Member</option>
                                 <option value="MANAGER">Manager</option>
                                 <option value="OWNER">Owner</option>
                             </select>
@@ -182,7 +208,10 @@ watch(hasOrg, () => void load());
                     </div>
                 </section>
 
-                <section v-if="invitations.length" class="mb-10">
+                <section
+                    v-if="canManageTeam && invitations.length"
+                    class="mb-10"
+                >
                     <h2 class="mb-3 text-lg font-semibold text-slate-900">
                         Pending invitations
                     </h2>
@@ -258,6 +287,7 @@ watch(hasOrg, () => void load());
                                     </td>
                                     <td class="px-4 py-3">
                                         <select
+                                            v-if="canManageTeam"
                                             class="rounded-lg border border-slate-200 px-2 py-1 text-sm"
                                             :value="m.role"
                                             @change="
@@ -269,21 +299,30 @@ watch(hasOrg, () => void load());
                                                 )
                                             "
                                         >
-                                            <option value="STAFF">Staff</option>
+                                            <option value="STAFF">
+                                                Member
+                                            </option>
                                             <option value="MANAGER">
                                                 Manager
                                             </option>
                                             <option value="OWNER">Owner</option>
                                         </select>
+                                        <span v-else class="text-slate-700">{{
+                                            roleLabels[m.role] ?? m.role
+                                        }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <button
+                                            v-if="canManageTeam"
                                             type="button"
                                             class="text-sm font-medium text-red-600 hover:underline"
                                             @click="removeMember(m)"
                                         >
                                             Remove
                                         </button>
+                                        <span v-else class="text-slate-400"
+                                            >—</span
+                                        >
                                     </td>
                                 </tr>
                             </tbody>
