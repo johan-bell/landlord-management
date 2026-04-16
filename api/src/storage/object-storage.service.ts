@@ -1,22 +1,32 @@
-import {
-    CreateBucketCommand,
-    GetObjectCommand,
-    HeadBucketCommand,
-    PutBucketCorsCommand,
-    PutObjectCommand,
-    S3Client,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { Client as MinioClient } from 'minio';
 
 const RECEIPT_PREFIX = 'receipts';
+
+function parseMinioEndpoint(raw: string): {
+    endPoint: string;
+    port: number;
+    useSSL: boolean;
+} {
+    const url = new URL(raw.includes('://') ? raw : `http://${raw}`);
+    const port = url.port
+        ? parseInt(url.port, 10)
+        : url.protocol === 'https:'
+          ? 443
+          : 80;
+    return {
+        endPoint: url.hostname,
+        port,
+        useSSL: url.protocol === 'https:',
+    };
+}
 
 @Injectable()
 export class ObjectStorageService implements OnModuleInit {
     private readonly logger = new Logger(ObjectStorageService.name);
-    private client: S3Client | null = null;
+    private client: MinioClient | null = null;
     private bucket: string | null = null;
     private readonly region: string;
     private readonly uploadUrlExpiresSec = 900;
@@ -38,79 +48,61 @@ export class ObjectStorageService implements OnModuleInit {
     async onModuleInit(): Promise<void> {
         if (!this.isConfigured()) {
             this.logger.warn(
-                'S3/MinIO not configured (S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET). Receipt uploads are disabled.',
+                'MinIO not configured (S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET). Receipt uploads are disabled.',
             );
             return;
         }
-        const endpoint = this.config.get<string>('S3_ENDPOINT')!;
-        const forcePathStyle =
+        const endpointRaw = this.config.get<string>('S3_ENDPOINT')!;
+        const pathStyle =
             (this.config.get<string>('S3_FORCE_PATH_STYLE') ?? 'true') ===
             'true';
-        this.bucket = this.config.get<string>('S3_BUCKET')!;
-        this.client = new S3Client({
-            region: this.region,
-            endpoint,
-            forcePathStyle,
-            credentials: {
-                accessKeyId: this.config.get<string>('S3_ACCESS_KEY')!,
-                secretAccessKey: this.config.get<string>('S3_SECRET_KEY')!,
-            },
-        });
-        await this.ensureBucketAndCors();
-    }
-
-    private async ensureBucketAndCors(): Promise<void> {
-        if (!this.client || !this.bucket) return;
+        const { endPoint, port, useSSL } = parseMinioEndpoint(endpointRaw);
+        const bucket = this.config.get<string>('S3_BUCKET')!;
         try {
-            await this.client.send(
-                new HeadBucketCommand({ Bucket: this.bucket }),
-            );
-        } catch {
-            this.logger.log(`Creating bucket ${this.bucket}`);
-            await this.client.send(
-                new CreateBucketCommand({ Bucket: this.bucket }),
+            const client = new MinioClient({
+                endPoint,
+                port,
+                useSSL,
+                pathStyle,
+                accessKey: this.config.get<string>('S3_ACCESS_KEY')!,
+                secretKey: this.config.get<string>('S3_SECRET_KEY')!,
+                region: this.region,
+            });
+            await this.ensureBucket(client, bucket);
+            this.client = client;
+            this.bucket = bucket;
+        } catch (err) {
+            this.client = null;
+            this.bucket = null;
+            const msg = err instanceof Error ? err.message : String(err);
+            const hint =
+                msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')
+                    ? ` Host "${endPoint}" does not resolve (check S3_ENDPOINT). For local MinIO use e.g. http://127.0.0.1:9000 or http://localhost:9000, or add the hostname to /etc/hosts.`
+                    : '';
+            this.logger.error(
+                `MinIO unavailable; receipt uploads disabled. ${msg}.${hint}`,
             );
         }
-        const corsOrigins = this.parseCorsOrigins();
-        await this.client.send(
-            new PutBucketCorsCommand({
-                Bucket: this.bucket,
-                CORSConfiguration: {
-                    CORSRules: [
-                        {
-                            AllowedHeaders: ['*'],
-                            AllowedMethods: ['GET', 'PUT', 'HEAD'],
-                            AllowedOrigins: corsOrigins,
-                            ExposeHeaders: ['ETag'],
-                            MaxAgeSeconds: 3600,
-                        },
-                    ],
-                },
-            }),
+    }
+
+    private async ensureBucket(
+        client: MinioClient,
+        bucket: string,
+    ): Promise<void> {
+        const exists = await client.bucketExists(bucket);
+        if (!exists) {
+            this.logger.log(`Creating MinIO bucket ${bucket}`);
+            await client.makeBucket(bucket, this.region);
+        }
+        this.logger.log(
+            `MinIO bucket ready: ${bucket}. For browser uploads, ensure the server allows your origins (e.g. MINIO_API_CORS_ALLOW_ORIGIN in docker-compose).`,
         );
-    }
-
-    private parseCorsOrigins(): string[] {
-        const raw = this.config.get<string>('CORS_ORIGIN');
-        if (!raw?.trim()) return ['*'];
-        try {
-            const parsed = JSON.parse(raw) as unknown;
-            if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) {
-                return parsed as string[];
-            }
-        } catch {
-            /* single origin string */
-        }
-        if (raw.includes(',')) {
-            return raw.split(',').map((s) => s.trim());
-        }
-        return [raw.trim()];
     }
 
     assertEnabled(): void {
         if (!this.client || !this.bucket) {
             throw new ServiceUnavailableException(
-                'File storage is not configured. Set S3_* environment variables (e.g. MinIO).',
+                'File storage is not available. Set MinIO variables (S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET) and ensure the endpoint host resolves (e.g. http://localhost:9000).',
             );
         }
     }
@@ -132,29 +124,28 @@ export class ObjectStorageService implements OnModuleInit {
         return objectKey.startsWith(`org/${orgId}/${RECEIPT_PREFIX}/`);
     }
 
+    /**
+     * Presigned PUT for tenant browser uploads. MinIO signs without binding
+     * Content-Type so the client can send the same type as declared to the API.
+     */
     async getPresignedPutUrl(
         objectKey: string,
-        contentType: string,
+        _contentType: string,
     ): Promise<string> {
         this.assertEnabled();
-        const cmd = new PutObjectCommand({
-            Bucket: this.bucket!,
-            Key: objectKey,
-            ContentType: contentType,
-        });
-        return getSignedUrl(this.client!, cmd, {
-            expiresIn: this.uploadUrlExpiresSec,
-        });
+        return this.client!.presignedPutObject(
+            this.bucket!,
+            objectKey,
+            this.uploadUrlExpiresSec,
+        );
     }
 
     async getPresignedGetUrl(objectKey: string): Promise<string> {
         this.assertEnabled();
-        const cmd = new GetObjectCommand({
-            Bucket: this.bucket!,
-            Key: objectKey,
-        });
-        return getSignedUrl(this.client!, cmd, {
-            expiresIn: this.viewUrlExpiresSec,
-        });
+        return this.client!.presignedGetObject(
+            this.bucket!,
+            objectKey,
+            this.viewUrlExpiresSec,
+        );
     }
 }

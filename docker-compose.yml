@@ -21,6 +21,8 @@ services:
     environment:
       MINIO_ROOT_USER: landlordminio
       MINIO_ROOT_PASSWORD: landlordminiochange
+      # Required for browser PUT to presigned URLs (tenant receipt uploads).
+      MINIO_API_CORS_ALLOW_ORIGIN: '*'
     volumes:
       - miniodata:/data
 

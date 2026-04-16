@@ -74,9 +74,17 @@ export class PropertiesService {
 
     async update(orgId: string, propertyId: string, dto: UpdatePropertyDto) {
         await this.findOne(orgId, propertyId);
+        const data: Prisma.PropertyUpdateInput = {};
+        if (dto.name !== undefined) data.name = dto.name;
+        if (dto.address !== undefined) {
+            data.address =
+                dto.address === '' || dto.address === null
+                    ? null
+                    : dto.address;
+        }
         return this.prisma.property.update({
             where: { id: propertyId },
-            data: dto,
+            data,
         });
     }
 

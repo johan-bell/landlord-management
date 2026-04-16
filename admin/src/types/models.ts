@@ -32,6 +32,8 @@ export type Property = {
     organizationId: string;
     name: string;
     address: string | null;
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 export type Unit = {
