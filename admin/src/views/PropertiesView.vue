@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { api } from '../lib/api';
@@ -275,19 +276,7 @@ watch(page, () => {
                     class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
                     aria-hidden="true"
                 >
-                    <svg
-                        class="h-7 w-7"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.75"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                        />
-                    </svg>
+                    <BuildingOffice2Icon class="h-7 w-7" aria-hidden="true" />
                 </div>
                 <p class="mt-4 font-medium text-slate-900">No properties yet</p>
                 <p class="mx-auto mt-1 max-w-sm text-sm text-slate-600">

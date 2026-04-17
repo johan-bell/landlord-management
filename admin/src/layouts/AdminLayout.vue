@@ -1,11 +1,44 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import {
+    Bars3Icon,
+    BuildingOffice2Icon,
+    ClipboardDocumentCheckIcon,
+    ClockIcon,
+    DocumentTextIcon,
+    Squares2X2Icon,
+    UserGroupIcon,
+    UsersIcon,
+    WalletIcon,
+} from '@heroicons/vue/24/outline';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
 import AdminHeaderProfileMenu from '../components/AdminHeaderProfileMenu.vue';
 import { orgRoleHint, orgRoleLabel } from '../lib/orgRoles';
+
+const NAV_ICON_COMPONENTS: Record<
+    | 'grid'
+    | 'building'
+    | 'users'
+    | 'clock'
+    | 'file'
+    | 'wallet'
+    | 'receipt'
+    | 'team',
+    Component
+> = {
+    grid: Squares2X2Icon,
+    building: BuildingOffice2Icon,
+    users: UsersIcon,
+    clock: ClockIcon,
+    file: DocumentTextIcon,
+    wallet: WalletIcon,
+    receipt: ClipboardDocumentCheckIcon,
+    team: UserGroupIcon,
+};
 
 const route = useRoute();
 const router = useRouter();
@@ -90,7 +123,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+    <div class="min-h-screen bg-transparent font-sans text-slate-900">
         <div
             v-if="mobileNavOpen"
             class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
@@ -132,144 +165,17 @@ onMounted(() => {
                     :key="item.to"
                     :to="item.to"
                     end
-                    class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
-                    active-class="!bg-white/10 !text-white shadow-inner"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition duration-150 hover:bg-white/5 hover:text-white"
+                    active-class="!bg-white/10 !text-white shadow-inner ring-1 ring-white/10"
                 >
                     <span
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/5 text-slate-400 group-[.router-link-active]:bg-emerald-500/20 group-[.router-link-active]:text-emerald-400"
                     >
-                        <svg
-                            v-if="item.icon === 'grid'"
+                        <component
+                            :is="NAV_ICON_COMPONENTS[item.icon] ?? WalletIcon"
                             class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'building'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'users'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'wallet'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'clock'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'file'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'receipt'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                            />
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                        </svg>
-                        <svg
-                            v-else-if="item.icon === 'team'"
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                        </svg>
-                        <svg
-                            v-else
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.75"
-                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                            />
-                        </svg>
+                            aria-hidden="true"
+                        />
                     </span>
                     {{ item.label }}
                 </RouterLink>
@@ -283,7 +189,7 @@ onMounted(() => {
 
         <div class="lg:pl-72">
             <header
-                class="sticky top-0 z-30 flex min-h-16 flex-col gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="sticky top-0 z-30 flex min-h-16 flex-col gap-3 border-b border-slate-200/70 bg-white/85 px-4 py-3 shadow-sm shadow-slate-200/30 backdrop-blur-lg sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
                 <div class="flex min-w-0 flex-1 items-center gap-3">
                     <button
@@ -292,19 +198,7 @@ onMounted(() => {
                         aria-label="Open menu"
                         @click="mobileNavOpen = true"
                     >
-                        <svg
-                            class="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
+                        <Bars3Icon class="h-5 w-5" aria-hidden="true" />
                     </button>
                     <div class="min-w-0">
                         <h1
@@ -363,7 +257,7 @@ onMounted(() => {
                 </div>
             </header>
 
-            <main class="p-4 sm:p-6 lg:p-8">
+            <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
                 <RouterView v-slot="{ Component }">
                     <Transition name="fade" mode="out-in">
                         <component

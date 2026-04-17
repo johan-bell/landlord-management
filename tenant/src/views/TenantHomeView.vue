@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BoltIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -587,7 +588,7 @@ onUnmounted(() => {
             class="sticky top-0 z-20 border-b border-slate-200/60 bg-white/75 px-4 py-4 backdrop-blur-md sm:px-6"
         >
             <div
-                class="mx-auto flex max-w-2xl items-center justify-between gap-3"
+                class="mx-auto flex max-w-2xl items-center justify-between gap-3 lg:max-w-3xl"
             >
                 <TenantMark v-if="me" variant="inline">
                     <template #subtitle>{{ me.organization.name }}</template>
@@ -616,7 +617,7 @@ onUnmounted(() => {
             </div>
         </header>
 
-        <main class="mx-auto max-w-2xl px-4 pt-8 sm:px-6">
+        <main class="mx-auto max-w-2xl px-4 pt-8 sm:px-6 lg:max-w-3xl">
             <div v-if="loading" class="tenant-card space-y-4 p-8">
                 <div class="h-8 w-48 animate-pulse rounded-lg bg-slate-100" />
                 <div class="h-24 animate-pulse rounded-2xl bg-slate-100/90" />
@@ -883,7 +884,7 @@ onUnmounted(() => {
                             v-for="lease in leases"
                             :id="`lease-${lease.id}`"
                             :key="lease.id"
-                            class="tenant-card scroll-mt-24 p-5 sm:p-6"
+                            class="tenant-card scroll-mt-24 p-5 transition-[box-shadow,border-color] duration-200 sm:p-6 hover:border-slate-300/70 hover:shadow-2xl hover:shadow-slate-200/50"
                         >
                             <div
                                 class="flex flex-wrap items-baseline justify-between gap-3"
@@ -1011,101 +1012,135 @@ onUnmounted(() => {
                                         'METERED_KWH' ||
                                     lease.unit.waterBilling === 'METERED_M3'
                                 "
-                                class="mt-4 rounded-2xl border border-teal-100/90 bg-gradient-to-br from-teal-50/60 to-white px-4 py-3 text-xs"
+                                class="mt-4 rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/95 via-teal-50/40 to-white p-4 text-xs sm:p-5"
                             >
-                                <p class="font-semibold text-slate-800">
+                                <p class="text-sm font-semibold text-slate-900">
                                     Monthly utility charges
                                 </p>
-                                <p class="mt-0.5 text-[11px] text-slate-500">
+                                <p
+                                    class="mt-1 max-w-prose text-[11px] leading-relaxed text-slate-600 sm:text-xs"
+                                >
                                     Electricity and water billed each month by
                                     your landlord.
                                 </p>
                                 <ul
                                     v-if="lease.utilityBills?.length"
-                                    class="mt-3 space-y-2"
+                                    class="mt-4 space-y-3"
                                 >
                                     <li
                                         v-for="ub in lease.utilityBills"
                                         :key="ub.id"
-                                        class="rounded-xl border border-slate-100/90 bg-white/90 px-3 py-2.5 text-slate-700 shadow-sm"
+                                        class="rounded-2xl border border-white/90 bg-white/95 p-4 text-slate-700 shadow-sm shadow-slate-200/35 transition hover:border-emerald-200/75 hover:shadow-md"
                                     >
                                         <div
-                                            class="flex flex-wrap items-start justify-between gap-2"
+                                            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"
                                         >
-                                            <div>
-                                                <p
-                                                    class="font-medium text-slate-900"
+                                            <div
+                                                class="flex min-w-0 flex-1 gap-3"
+                                            >
+                                                <div
+                                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset"
+                                                    :class="
+                                                        ub.kind ===
+                                                        'ELECTRICITY'
+                                                            ? 'bg-amber-50 text-amber-700 ring-amber-100/90'
+                                                            : 'bg-sky-50 text-sky-700 ring-sky-100/90'
+                                                    "
+                                                    aria-hidden="true"
                                                 >
-                                                    {{
-                                                        utilityPeriodLabel(
-                                                            ub.year,
-                                                            ub.month,
-                                                        )
-                                                    }}
-                                                    <span
-                                                        class="font-normal text-slate-500"
-                                                    >
-                                                        ·
-                                                        {{
+                                                    <BoltIcon
+                                                        v-if="
                                                             ub.kind ===
                                                             'ELECTRICITY'
-                                                                ? 'Electricity'
-                                                                : 'Water'
-                                                        }}
-                                                    </span>
-                                                </p>
-                                                <p
-                                                    class="mt-1 text-[11px] text-slate-500"
-                                                >
-                                                    Due
-                                                    {{ formatDate(ub.dueDate) }}
-                                                    <template
-                                                        v-if="
-                                                            ub.consumption &&
-                                                            ub.consumption !==
-                                                                ''
                                                         "
+                                                        class="h-5 w-5"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <BeakerIcon
+                                                        v-else
+                                                        class="h-5 w-5"
+                                                        aria-hidden="true"
+                                                    />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <p
+                                                        class="text-sm font-semibold text-slate-900"
                                                     >
-                                                        · Used
-                                                        {{ ub.consumption }}
                                                         {{
-                                                            ub.kind ===
-                                                            'ELECTRICITY'
-                                                                ? 'kWh'
-                                                                : 'm³'
-                                                        }}
-                                                    </template>
-                                                    <template
-                                                        v-if="
-                                                            ub.status ===
-                                                                'PAID' &&
-                                                            ub.paidAt
-                                                        "
-                                                    >
-                                                        · Recorded paid
-                                                        {{
-                                                            formatDate(
-                                                                ub.paidAt,
+                                                            utilityPeriodLabel(
+                                                                ub.year,
+                                                                ub.month,
                                                             )
                                                         }}
-                                                    </template>
-                                                </p>
-                                                <p
-                                                    v-if="
-                                                        ub.proofVerification ===
-                                                            'REJECTED' &&
-                                                        ub.proofRejectionNote
-                                                    "
-                                                    class="mt-1 text-[11px] text-red-700"
-                                                >
-                                                    {{ ub.proofRejectionNote }}
-                                                </p>
+                                                        <span
+                                                            class="font-medium text-slate-600"
+                                                        >
+                                                            ·
+                                                            {{
+                                                                ub.kind ===
+                                                                'ELECTRICITY'
+                                                                    ? 'Electricity'
+                                                                    : 'Water'
+                                                            }}
+                                                        </span>
+                                                    </p>
+                                                    <p
+                                                        class="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs"
+                                                    >
+                                                        Due
+                                                        {{
+                                                            formatDate(
+                                                                ub.dueDate,
+                                                            )
+                                                        }}
+                                                        <template
+                                                            v-if="
+                                                                ub.consumption &&
+                                                                ub.consumption !==
+                                                                    ''
+                                                            "
+                                                        >
+                                                            · Used
+                                                            {{ ub.consumption }}
+                                                            {{
+                                                                ub.kind ===
+                                                                'ELECTRICITY'
+                                                                    ? 'kWh'
+                                                                    : 'm³'
+                                                            }}
+                                                        </template>
+                                                        <template
+                                                            v-if="
+                                                                ub.status ===
+                                                                    'PAID' &&
+                                                                ub.paidAt
+                                                            "
+                                                        >
+                                                            · Recorded paid
+                                                            {{
+                                                                formatDate(
+                                                                    ub.paidAt,
+                                                                )
+                                                            }}
+                                                        </template>
+                                                    </p>
+                                                    <p
+                                                        v-if="
+                                                            ub.proofVerification ===
+                                                                'REJECTED' &&
+                                                            ub.proofRejectionNote
+                                                        "
+                                                        class="mt-1.5 text-[11px] text-red-700"
+                                                    >
+                                                        {{ ub.proofRejectionNote }}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div
-                                                class="flex shrink-0 flex-col items-end gap-1"
+                                                class="flex w-full flex-col gap-2 border-t border-slate-100 pt-3 sm:w-auto sm:min-w-[8.5rem] sm:border-t-0 sm:pt-0 sm:text-right"
                                             >
                                                 <span
-                                                    class="font-semibold tabular-nums text-slate-800"
+                                                    class="text-base font-semibold tabular-nums text-slate-900 sm:text-sm"
                                                     >{{
                                                         money(
                                                             ub.amount,
@@ -1114,7 +1149,7 @@ onUnmounted(() => {
                                                     }}</span
                                                 >
                                                 <span
-                                                    class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                                    class="inline-flex w-fit rounded-full px-2.5 py-0.5 text-[11px] font-semibold sm:ml-auto"
                                                     :class="
                                                         ub.status === 'PAID'
                                                             ? 'bg-emerald-100 text-emerald-900'
@@ -1126,8 +1161,8 @@ onUnmounted(() => {
                                                                 ? 'bg-red-100 text-red-900'
                                                                 : ub.status ===
                                                                     'LATE'
-                                                                  ? 'bg-amber-100 text-amber-900'
-                                                                  : 'bg-slate-200 text-slate-800'
+                                                                  ? 'bg-orange-100 text-orange-900'
+                                                                  : 'bg-amber-100 text-amber-900'
                                                     "
                                                 >
                                                     {{
@@ -1141,7 +1176,7 @@ onUnmounted(() => {
                                                             ub.proofVerification,
                                                         )
                                                     "
-                                                    class="mt-2 inline-block cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                    class="tenant-action-link mt-1 w-full sm:ml-auto sm:w-auto"
                                                 >
                                                     {{
                                                         uploadBusyKey ===
@@ -1172,7 +1207,10 @@ onUnmounted(() => {
                                         </div>
                                     </li>
                                 </ul>
-                                <p v-else class="mt-2 text-slate-500">
+                                <p
+                                    v-else
+                                    class="mt-3 rounded-xl border border-dashed border-emerald-200/60 bg-white/50 px-3 py-4 text-center text-slate-600"
+                                >
                                     No monthly charges recorded yet.
                                 </p>
                             </div>
@@ -1262,8 +1300,8 @@ onUnmounted(() => {
                                                                 ? 'bg-red-100 text-red-900'
                                                                 : p.status ===
                                                                     'LATE'
-                                                                  ? 'bg-amber-100 text-amber-900'
-                                                                  : 'bg-slate-200 text-slate-700'
+                                                                  ? 'bg-orange-100 text-orange-900'
+                                                                  : 'bg-amber-100 text-amber-900'
                                                     "
                                                 >
                                                     {{ rentProofLabel(p) }}
@@ -1286,7 +1324,7 @@ onUnmounted(() => {
                                                         p.proofVerification,
                                                     )
                                                 "
-                                                class="inline-flex cursor-pointer text-xs font-semibold text-teal-700 hover:underline"
+                                                class="tenant-action-link"
                                             >
                                                 {{
                                                     uploadBusyKey ===
@@ -1437,8 +1475,8 @@ onUnmounted(() => {
                                                                     ? 'bg-red-100 text-red-900'
                                                                     : ub.status ===
                                                                         'LATE'
-                                                                      ? 'bg-amber-100 text-amber-900'
-                                                                      : 'bg-slate-200 text-slate-800'
+                                                                      ? 'bg-orange-100 text-orange-900'
+                                                                      : 'bg-amber-100 text-amber-900'
                                                         "
                                                     >
                                                         {{
@@ -1454,7 +1492,7 @@ onUnmounted(() => {
                                                                 ub.proofVerification,
                                                             )
                                                         "
-                                                        class="mt-1 cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                        class="tenant-action-link mt-1 self-start"
                                                     >
                                                         {{
                                                             uploadBusyKey ===
@@ -1608,8 +1646,8 @@ onUnmounted(() => {
                                                                     ? 'bg-red-100 text-red-900'
                                                                     : ub.status ===
                                                                         'LATE'
-                                                                      ? 'bg-amber-100 text-amber-900'
-                                                                      : 'bg-slate-200 text-slate-800'
+                                                                      ? 'bg-orange-100 text-orange-900'
+                                                                      : 'bg-amber-100 text-amber-900'
                                                         "
                                                     >
                                                         {{
@@ -1625,7 +1663,7 @@ onUnmounted(() => {
                                                                 ub.proofVerification,
                                                             )
                                                         "
-                                                        class="mt-1 cursor-pointer text-[11px] font-semibold text-teal-700 hover:underline"
+                                                        class="tenant-action-link mt-1 self-start"
                                                     >
                                                         {{
                                                             uploadBusyKey ===
@@ -1748,7 +1786,7 @@ onUnmounted(() => {
                                             ? 'bg-blue-100 text-blue-900'
                                             : t.status === 'IN_PROGRESS'
                                               ? 'bg-amber-100 text-amber-900'
-                                              : 'bg-slate-200 text-slate-800'
+                                              : 'bg-slate-100 text-slate-700'
                                     "
                                 >
                                     {{ t.status }}

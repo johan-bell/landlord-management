@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import {
+    ArrowRightStartOnRectangleIcon,
+    ChevronDownIcon,
+} from '@heroicons/vue/20/solid';
 import { onMounted, onUnmounted, ref } from 'vue';
 
 withDefaults(
@@ -70,19 +74,11 @@ onUnmounted(() => {
             >
                 {{ initials }}
             </span>
-            <svg
+            <ChevronDownIcon
                 class="h-4 w-4 text-slate-500 transition-transform duration-200"
                 :class="open ? 'rotate-180' : ''"
-                viewBox="0 0 20 20"
-                fill="currentColor"
                 aria-hidden="true"
-            >
-                <path
-                    fill-rule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                    clip-rule="evenodd"
-                />
-            </svg>
+            />
         </button>
 
         <Transition
@@ -152,23 +148,10 @@ onUnmounted(() => {
                     role="menuitem"
                     @click="onSignOut"
                 >
-                    <svg
+                    <ArrowRightStartOnRectangleIcon
                         class="h-4 w-4 shrink-0 text-red-500/90"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
                         aria-hidden="true"
-                    >
-                        <path
-                            fill-rule="evenodd"
-                            d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-                            clip-rule="evenodd"
-                        />
-                        <path
-                            fill-rule="evenodd"
-                            d="M19 10a.75.75 0 00-.75-.75H8.704l1.048-.943a.75.75 0 10-1.004-1.114l-2.5 2.25a.75.75 0 000 1.114l2.5 2.25a.75.75 0 101.004-1.114L8.704 10.75H18.25A.75.75 0 0019 10z"
-                            clip-rule="evenodd"
-                        />
-                    </svg>
+                    />
                     Sign out
                 </button>
             </div>

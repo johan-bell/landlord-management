@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
 import { RouterLink } from 'vue-router';
 </script>
 
@@ -9,19 +10,7 @@ import { RouterLink } from 'vue-router';
         <div
             class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"
         >
-            <svg
-                class="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-            </svg>
+            <BuildingOffice2Icon class="h-7 w-7" aria-hidden="true" />
         </div>
         <h2 class="text-lg font-semibold text-slate-900">
             Choose an organization
