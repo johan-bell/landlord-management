@@ -27,6 +27,7 @@ const active = computed(() => ({
     payments: name.value === 'organization-payments',
     signups: name.value === 'organization-signups',
     auditLog: name.value === 'organization-audit-log',
+    support: name.value === 'organization-support',
 }));
 </script>
 
@@ -56,11 +57,8 @@ const active = computed(() => ({
         <RouterLink :class="cls(active.auditLog)" :to="`${base}/audit-log`"
             >Audit log</RouterLink
         >
-        <RouterLink
-            class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/80 hover:text-slate-900"
-            :to="{ name: 'support-requests', query: { organizationId: orgId } }"
+        <RouterLink :class="cls(active.support)" :to="`${base}/support`"
+            >Support</RouterLink
         >
-            Support tickets
-        </RouterLink>
     </div>
 </template>

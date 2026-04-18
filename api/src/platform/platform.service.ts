@@ -5,14 +5,20 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PlatformService {
     constructor(private readonly prisma: PrismaService) {}
 
-    listOrganizations() {
-        return this.prisma.organization.findMany({
+    async listOrganizations() {
+        const rows = await this.prisma.organization.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
                 _count: {
                     select: { members: true, properties: true, renters: true },
                 },
             },
+        });
+        return rows.map((row) => {
+            const { platformInternalNotes: _n, ...org } = row as typeof row & {
+                platformInternalNotes?: string | null;
+            };
+            return org;
         });
     }
 
@@ -26,6 +32,24 @@ export class PlatformService {
         return this.prisma.organization.update({
             where: { id: orgId },
             data: { suspendedAt: suspended ? new Date() : null },
+        });
+    }
+
+    async setInternalNotes(orgId: string, notes: string | null) {
+        const org = await this.prisma.organization.findUnique({
+            where: { id: orgId },
+        });
+        if (!org) {
+            throw new NotFoundException('Organization not found');
+        }
+        return this.prisma.organization.update({
+            where: { id: orgId },
+            data: {
+                platformInternalNotes:
+                    notes === null || notes === undefined
+                        ? null
+                        : notes.trim() || null,
+            } as { platformInternalNotes: string | null },
         });
     }
 
@@ -89,6 +113,8 @@ export class PlatformService {
             subscriptionsPastDue,
             openSupportRequests,
             pendingTenantSignups,
+            activeLeases,
+            orgsWithStripeCustomer,
         ] = await Promise.all([
             this.prisma.organization.count(),
             this.prisma.organization.count({
@@ -112,6 +138,18 @@ export class PlatformService {
             this.prisma.tenantSignupRequest.count({
                 where: { status: 'PENDING' },
             }),
+            this.prisma.lease.count({
+                where: {
+                    unit: { property: { organization: { suspendedAt: null } } },
+                    OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+                },
+            }),
+            this.prisma.organization.count({
+                where: {
+                    suspendedAt: null,
+                    stripeCustomerId: { not: null },
+                },
+            }),
         ]);
 
         const activeOrgs = totalOrgs - suspendedOrgs;
@@ -128,6 +166,10 @@ export class PlatformService {
                 subscriptionsPastDue,
                 openSupportRequests,
                 pendingTenantSignups,
+            },
+            revenueSignals: {
+                activeLeaseAgreements: activeLeases,
+                activeOrgsWithStripeCustomer: orgsWithStripeCustomer,
             },
         };
     }

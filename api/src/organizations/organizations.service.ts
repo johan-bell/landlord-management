@@ -53,10 +53,16 @@ export class OrganizationsService {
                 },
             },
         });
-        return rows.map(({ members, ...org }) => ({
-            ...org,
-            myRole: members[0].role,
-        }));
+        return rows.map((row) => {
+            const { members, ...raw } = row;
+            const { platformInternalNotes: _n, ...org } = raw as typeof raw & {
+                platformInternalNotes?: string | null;
+            };
+            return {
+                ...org,
+                myRole: members[0].role,
+            };
+        });
     }
 
     async findOneOrThrow(id: string) {
@@ -66,7 +72,10 @@ export class OrganizationsService {
         if (!org) {
             throw new NotFoundException(`Organization ${id} not found`);
         }
-        return org;
+        const { platformInternalNotes: _notes, ...rest } = org as typeof org & {
+            platformInternalNotes?: string | null;
+        };
+        return rest;
     }
 
     async update(id: string, dto: UpdateOrganizationDto, actorUserId?: string) {
@@ -247,7 +256,7 @@ export class OrganizationsService {
     }
 
     async getOnboardingStatus(orgId: string) {
-        await this.findOneOrThrow(orgId);
+        const org = await this.findOneOrThrow(orgId);
         const [
             propertyCount,
             unitCount,
@@ -312,6 +321,14 @@ export class OrganizationsService {
                     'Add managers or staff to help run day-to-day work.',
                 done: memberCount > 1,
                 route: '/team',
+            },
+            {
+                id: 'stripe',
+                label: 'Connect Stripe billing',
+                description:
+                    'Link Stripe for subscription collection (platform).',
+                done: Boolean(org.stripeSubscriptionId),
+                route: '/settings',
             },
         ];
 

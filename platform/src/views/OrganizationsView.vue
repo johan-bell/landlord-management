@@ -22,6 +22,10 @@ type FleetSnapshot = {
         openSupportRequests: number;
         pendingTenantSignups: number;
     };
+    revenueSignals: {
+        activeLeaseAgreements: number;
+        activeOrgsWithStripeCustomer: number;
+    };
 };
 
 const router = useRouter();
@@ -175,7 +179,7 @@ onMounted(() => {
                 Fleet health
             </p>
             <div
-                class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
             >
                 <div>
                     <p class="text-2xl font-bold tabular-nums text-white">
@@ -206,6 +210,22 @@ onMounted(() => {
                         {{ fleet.operations.subscriptionsPastDue }}
                     </p>
                     <p class="text-xs text-slate-400">Subscriptions past due</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-white">
+                        {{ fleet.revenueSignals.activeLeaseAgreements }}
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        Active lease agreements (fleet)
+                    </p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold tabular-nums text-emerald-300">
+                        {{ fleet.revenueSignals.activeOrgsWithStripeCustomer }}
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        Active orgs with Stripe customer
+                    </p>
                 </div>
             </div>
             <p class="mt-3 text-[10px] text-slate-500">

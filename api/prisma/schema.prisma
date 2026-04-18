@@ -86,6 +86,8 @@ model Organization {
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  /// Operator-only; never exposed to landlord staff or tenants via org APIs.
+  platformInternalNotes String? @db.Text
 
   members              OrganizationMember[]
   invitations          OrganizationInvitation[]
