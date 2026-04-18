@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { BuildingOffice2Icon } from '@heroicons/vue/24/outline';
+import {
+    BuildingOffice2Icon,
+    CalendarDaysIcon,
+    HomeModernIcon,
+    MapPinIcon,
+    PencilSquareIcon,
+    RectangleStackIcon,
+    TrashIcon,
+} from '@heroicons/vue/24/outline';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { api } from '../lib/api';
@@ -310,9 +318,13 @@ watch(page, () => {
                                 </h2>
                                 <p
                                     v-if="p.address"
-                                    class="mt-1.5 text-sm leading-relaxed text-slate-600"
+                                    class="mt-1.5 flex items-start gap-2 text-sm leading-relaxed text-slate-600"
                                 >
-                                    {{ p.address }}
+                                    <MapPinIcon
+                                        class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
+                                        aria-hidden="true"
+                                    />
+                                    <span>{{ p.address }}</span>
                                 </p>
                                 <p
                                     v-else
@@ -322,14 +334,25 @@ watch(page, () => {
                                 </p>
                                 <p
                                     v-if="formatShortDate(p.createdAt)"
-                                    class="mt-2 text-xs text-slate-400"
+                                    class="mt-2 flex items-center gap-1.5 text-xs text-slate-400"
                                 >
-                                    Added {{ formatShortDate(p.createdAt) }}
+                                    <CalendarDaysIcon
+                                        class="h-3.5 w-3.5 shrink-0 text-slate-400"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        >Added
+                                        {{ formatShortDate(p.createdAt) }}</span
+                                    >
                                 </p>
                             </div>
                             <span
-                                class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tabular-nums text-slate-700"
+                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tabular-nums text-slate-700"
                             >
+                                <BuildingOffice2Icon
+                                    class="h-3.5 w-3.5 text-slate-500"
+                                    aria-hidden="true"
+                                />
                                 {{ p.units?.length ?? 0 }}
                                 {{ (p.units?.length ?? 0) === 1 ? 'unit' : 'units' }}
                             </span>
@@ -340,22 +363,34 @@ watch(page, () => {
                         >
                             <button
                                 type="button"
-                                class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50"
+                                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50"
                                 @click="openEdit(p)"
                             >
+                                <PencilSquareIcon
+                                    class="h-4 w-4 text-slate-500"
+                                    aria-hidden="true"
+                                />
                                 Edit details
                             </button>
                             <RouterLink
                                 :to="`/properties/${p.id}/units`"
-                                class="inline-flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
+                                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
                             >
+                                <RectangleStackIcon
+                                    class="h-4 w-4 text-emerald-100"
+                                    aria-hidden="true"
+                                />
                                 Manage units
                             </RouterLink>
                             <button
                                 type="button"
-                                class="ml-auto text-sm font-medium text-slate-500 underline-offset-2 hover:text-red-600 hover:underline sm:ml-0"
+                                class="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 underline-offset-2 hover:text-red-600 hover:underline sm:ml-0"
                                 @click="removeProperty(p)"
                             >
+                                <TrashIcon
+                                    class="h-4 w-4 text-slate-400 hover:text-red-500"
+                                    aria-hidden="true"
+                                />
                                 Delete
                             </button>
                         </div>
@@ -376,9 +411,12 @@ watch(page, () => {
                                 :key="u.id"
                                 class="flex items-center justify-between gap-3 text-sm"
                             >
-                                <span class="truncate text-slate-700">{{
-                                    u.label
-                                }}</span>
+                                <span
+                                    class="flex min-w-0 items-center gap-2 text-slate-700"
+                                >
+                                    
+                                    <span class="truncate">{{ u.label }}</span>
+                                </span>
                                 <span
                                     class="shrink-0 tabular-nums font-medium text-slate-900"
                                     >{{

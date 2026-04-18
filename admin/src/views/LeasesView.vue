@@ -1,4 +1,17 @@
 <script setup lang="ts">
+import {
+    ArrowUturnLeftIcon,
+    ArrowsRightLeftIcon,
+    BeakerIcon,
+    BoltIcon,
+    CheckCircleIcon,
+    CheckIcon,
+    ClipboardDocumentCheckIcon,
+    ClockIcon,
+    MinusSmallIcon,
+    TrashIcon,
+    XCircleIcon,
+} from '@heroicons/vue/24/outline';
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
@@ -668,16 +681,18 @@ watch(page, () => void load());
                     @click.self="showUtilities = false"
                 >
                     <div
-                        class="my-8 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                        class="my-8 w-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8"
                         @click.stop
                     >
-                        <h3 class="text-lg font-semibold">Monthly utilities</h3>
-                        <p class="mt-1 text-sm text-slate-500">
+                        <h3 class="text-lg font-semibold text-slate-900">
+                            Monthly utilities
+                        </h3>
+                        <p class="mt-1 text-sm text-slate-600">
                             {{ utilitiesLease.renter.fullName }} ·
                             {{ utilitiesLease.unit.property.name }} —
                             {{ utilitiesLease.unit.label }}
                         </p>
-                        <p class="mt-2 text-xs text-slate-500">
+                        <p class="mt-2 text-xs leading-relaxed text-slate-500">
                             For metered units, enter the new index; the amount is
                             (current − previous) × your per‑m³ or per‑kWh rate.
                             Tenants upload a payment receipt; you verify it under
@@ -691,24 +706,50 @@ watch(page, () => void load());
                             Loading…
                         </div>
                         <div
+                            v-else-if="!utilityBills.length"
+                            class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-slate-500"
+                        >
+                            No utility charges yet. Add a month below.
+                        </div>
+                        <div
                             v-else
-                            class="mt-4 overflow-x-auto rounded-xl border border-slate-200"
+                            class="mt-4 overflow-x-auto rounded-xl border border-slate-200/90 shadow-sm"
                         >
                             <table
-                                class="min-w-full divide-y divide-slate-200 text-left text-sm"
+                                class="min-w-[52rem] w-full divide-y divide-slate-100 text-left text-sm"
                             >
-                                <thead
-                                    class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
-                                >
-                                    <tr>
-                                        <th class="px-3 py-2">Period</th>
-                                        <th class="px-3 py-2">Type</th>
-                                        <th class="px-3 py-2">Meter</th>
-                                        <th class="px-3 py-2">Amount</th>
-                                        <th class="px-3 py-2">Due</th>
-                                        <th class="px-3 py-2">Status</th>
-                                        <th class="px-3 py-2">Receipt</th>
-                                        <th class="px-3 py-2 text-right">
+                                <thead class="bg-slate-50/95">
+                                    <tr
+                                        class="text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+                                    >
+                                        <th class="whitespace-nowrap px-4 py-3">
+                                            Period
+                                        </th>
+                                        <th class="whitespace-nowrap px-4 py-3">
+                                            Type
+                                        </th>
+                                        <th
+                                            class="min-w-[11rem] whitespace-nowrap px-4 py-3"
+                                        >
+                                            Meter
+                                        </th>
+                                        <th class="whitespace-nowrap px-4 py-3">
+                                            Amount
+                                        </th>
+                                        <th class="whitespace-nowrap px-4 py-3">
+                                            Due
+                                        </th>
+                                        <th class="whitespace-nowrap px-4 py-3">
+                                            Status
+                                        </th>
+                                        <th
+                                            class="min-w-[8.5rem] whitespace-nowrap px-4 py-3"
+                                        >
+                                            Receipt
+                                        </th>
+                                        <th
+                                            class="w-[1%] whitespace-nowrap px-4 py-3 text-right"
+                                        >
                                             Actions
                                         </th>
                                     </tr>
@@ -717,45 +758,104 @@ watch(page, () => void load());
                                     <tr
                                         v-for="b in utilityBills"
                                         :key="b.id"
-                                        class="hover:bg-slate-50/80"
+                                        class="align-middle transition-colors hover:bg-slate-50/90"
                                     >
-                                        <td class="px-3 py-2">
+                                        <td
+                                            class="px-4 py-3 font-medium text-slate-900"
+                                        >
                                             {{ utilityMonthLabel(b) }}
                                         </td>
-                                        <td class="px-3 py-2">
-                                            {{
-                                                b.kind === 'ELECTRICITY'
-                                                    ? 'Electricity'
-                                                    : 'Water'
-                                            }}
+                                        <td class="px-4 py-3">
+                                            <span
+                                                class="inline-flex items-center gap-2 text-slate-800"
+                                            >
+                                                <span
+                                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-slate-200/80"
+                                                >
+                                                    <BoltIcon
+                                                        v-if="
+                                                            b.kind ===
+                                                            'ELECTRICITY'
+                                                        "
+                                                        class="h-4 w-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                    <BeakerIcon
+                                                        v-else
+                                                        class="h-4 w-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                </span>
+                                                {{
+                                                    b.kind === 'ELECTRICITY'
+                                                        ? 'Electricity'
+                                                        : 'Water'
+                                                }}
+                                            </span>
                                         </td>
-                                        <td
-                                            class="max-w-[10rem] px-3 py-2 text-xs text-slate-600"
-                                        >
+                                        <td class="px-4 py-3">
                                             <template
                                                 v-if="
                                                     b.consumption != null &&
                                                     b.consumption !== ''
                                                 "
                                             >
-                                                Δ {{ b.consumption }}
-                                                {{
-                                                    b.kind === 'ELECTRICITY'
-                                                        ? 'kWh'
-                                                        : 'm³'
-                                                }}
-                                                <span
-                                                    v-if="b.previousIndex"
-                                                    class="block text-slate-400"
-                                                    >{{ b.previousIndex }} →
-                                                    {{ b.currentIndex }}</span
+                                                <div
+                                                    class="flex flex-col gap-1.5"
                                                 >
+                                                    <p
+                                                        class="text-sm font-medium tabular-nums text-slate-900"
+                                                    >
+                                                        <span
+                                                            class="text-slate-500"
+                                                            >Δ</span
+                                                        >
+                                                        {{ b.consumption }}
+                                                        <span
+                                                            class="text-xs font-normal text-slate-500"
+                                                            >{{
+                                                                b.kind ===
+                                                                'ELECTRICITY'
+                                                                    ? 'kWh'
+                                                                    : 'm³'
+                                                            }}</span
+                                                        >
+                                                    </p>
+                                                    <p
+                                                        v-if="
+                                                            b.previousIndex &&
+                                                            b.currentIndex
+                                                        "
+                                                        class="inline-flex max-w-max items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs tabular-nums text-slate-600"
+                                                    >
+                                                        <ArrowsRightLeftIcon
+                                                            class="h-3 w-3 shrink-0 text-slate-400"
+                                                            aria-hidden="true"
+                                                        />
+                                                        {{ b.previousIndex }}
+                                                        <span
+                                                            class="text-slate-400"
+                                                            aria-hidden="true"
+                                                            >→</span
+                                                        >
+                                                        {{ b.currentIndex }}
+                                                    </p>
+                                                </div>
                                             </template>
-                                            <span v-else class="text-slate-400"
-                                                >—</span
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1.5 text-xs text-slate-400"
                                             >
+                                                <MinusSmallIcon
+                                                    class="h-4 w-4 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                Manual / no reading
+                                            </span>
                                         </td>
-                                        <td class="px-3 py-2 tabular-nums">
+                                        <td
+                                            class="px-4 py-3 text-sm font-semibold tabular-nums text-slate-900"
+                                        >
                                             {{
                                                 formatMoney(
                                                     b.amount,
@@ -763,87 +863,151 @@ watch(page, () => void load());
                                                 )
                                             }}
                                         </td>
-                                        <td class="px-3 py-2 text-slate-600">
+                                        <td
+                                            class="px-4 py-3 text-sm tabular-nums text-slate-600"
+                                        >
                                             {{ formatDate(b.dueDate) }}
                                         </td>
-                                        <td class="px-3 py-2">
+                                        <td class="px-4 py-3">
                                             <span
                                                 :class="[
-                                                    'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                                                    'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold',
                                                     b.status === 'PAID'
-                                                        ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
-                                                        : b.status === 'LATE'
-                                                          ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200'
-                                                          : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+                                                        ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80'
+                                                        :                                                     b.status === 'LATE'
+                                                          ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200/80'
+                                                          : b.status ===
+                                                              'PENDING'
+                                                            ? 'bg-sky-50 text-sky-900 ring-1 ring-sky-200/80'
+                                                            : b.status ===
+                                                                'CANCELLED'
+                                                              ? 'bg-slate-200/80 text-slate-700 ring-1 ring-slate-300/80'
+                                                              : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200/80',
                                                 ]"
                                             >
                                                 {{ b.status }}
                                             </span>
                                         </td>
-                                        <td class="px-3 py-2 text-xs text-slate-600">
-                                            {{
-                                                b.proofVerification ===
-                                                'PENDING_VERIFICATION'
-                                                    ? 'Awaiting review'
-                                                    : b.proofVerification ===
-                                                        'REJECTED'
-                                                      ? 'Rejected'
-                                                      : b.proofVerification ===
-                                                          'APPROVED'
-                                                        ? 'OK'
-                                                        : '—'
-                                            }}
-                                        </td>
-                                        <td class="px-3 py-2 text-right">
-                                            <button
-                                                v-if="
-                                                    canManageUtilityPaymentStatus &&
-                                                    b.status !== 'PAID' &&
-                                                    b.proofVerification !==
-                                                        'PENDING_VERIFICATION'
-                                                "
-                                                type="button"
-                                                class="mr-2 text-xs font-medium text-emerald-700 hover:underline"
-                                                @click="markUtilityPaid(b)"
-                                            >
-                                                Mark paid
-                                            </button>
+                                        <td class="px-4 py-3">
                                             <span
-                                                v-else-if="
+                                                v-if="
                                                     b.proofVerification ===
                                                     'PENDING_VERIFICATION'
                                                 "
-                                                class="mr-2 text-xs text-amber-800"
-                                                >Receipts</span
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 ring-1 ring-amber-200/70"
                                             >
-                                            <button
+                                                <ClockIcon
+                                                    class="h-3.5 w-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                Awaiting review
+                                            </span>
+                                            <span
                                                 v-else-if="
-                                                    canManageUtilityPaymentStatus &&
-                                                    b.status === 'PAID'
+                                                    b.proofVerification ===
+                                                    'REJECTED'
                                                 "
-                                                type="button"
-                                                class="mr-2 text-xs font-medium text-slate-600 hover:underline"
-                                                @click="markUtilityPending(b)"
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2 py-1 text-xs font-medium text-red-800 ring-1 ring-red-200/70"
                                             >
-                                                Mark unpaid
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="text-xs font-medium text-red-600 hover:underline"
-                                                @click="removeUtilityBill(b)"
+                                                <XCircleIcon
+                                                    class="h-3.5 w-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                Rejected
+                                            </span>
+                                            <span
+                                                v-else-if="
+                                                    b.proofVerification ===
+                                                    'APPROVED'
+                                                "
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200/70"
                                             >
-                                                Remove
-                                            </button>
+                                                <CheckCircleIcon
+                                                    class="h-3.5 w-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                Verified
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 text-xs text-slate-400"
+                                            >
+                                                <MinusSmallIcon
+                                                    class="h-4 w-4"
+                                                    aria-hidden="true"
+                                                />
+                                                None
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div
+                                                class="flex flex-wrap items-center justify-end gap-1.5"
+                                            >
+                                                <button
+                                                    v-if="
+                                                        canManageUtilityPaymentStatus &&
+                                                        b.status !== 'PAID' &&
+                                                        b.proofVerification !==
+                                                            'PENDING_VERIFICATION'
+                                                    "
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50/90 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-100"
+                                                    @click="markUtilityPaid(b)"
+                                                >
+                                                    <CheckIcon
+                                                        class="h-3.5 w-3.5"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Mark paid
+                                                </button>
+                                                <span
+                                                    v-else-if="
+                                                        b.proofVerification ===
+                                                        'PENDING_VERIFICATION'
+                                                    "
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50/80 px-2 py-1 text-[11px] font-medium text-amber-900"
+                                                >
+                                                    <ClipboardDocumentCheckIcon
+                                                        class="h-3.5 w-3.5 shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Use Receipts
+                                                </span>
+                                                <button
+                                                    v-else-if="
+                                                        canManageUtilityPaymentStatus &&
+                                                        b.status === 'PAID'
+                                                    "
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                                                    @click="
+                                                        markUtilityPending(b)
+                                                    "
+                                                >
+                                                    <ArrowUturnLeftIcon
+                                                        class="h-3.5 w-3.5"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Mark unpaid
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50/80 px-2.5 py-1.5 text-xs font-semibold text-red-800 shadow-sm transition hover:bg-red-100"
+                                                    @click="
+                                                        removeUtilityBill(b)
+                                                    "
+                                                >
+                                                    <TrashIcon
+                                                        class="h-3.5 w-3.5"
+                                                        aria-hidden="true"
+                                                    />
+                                                    Remove
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
-                            <p
-                                v-if="!utilityBills.length"
-                                class="px-4 py-8 text-center text-sm text-slate-500"
-                            >
-                                No utility charges yet. Add a month below.
-                            </p>
                         </div>
 
                         <div
