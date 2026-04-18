@@ -1,0 +1,7 @@
+{
+    "login": {
+        "title": "Bon retour",
+        "subtitle": "Connectez-vous pour voir votre bail, l'échéancier des loyers et les messages de votre bailleur."
+    },
+    "locale": { "en": "English", "fr": "Français" }
+}

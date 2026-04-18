@@ -25,7 +25,10 @@ export class TenantProofsController {
     }
 
     @Post('attach')
-    attach(@CurrentUser() user: RequestUser, @Body() dto: TenantProofAttachDto) {
+    attach(
+        @CurrentUser() user: RequestUser,
+        @Body() dto: TenantProofAttachDto,
+    ) {
         return this.proofs.attachProof(user, dto);
     }
 }

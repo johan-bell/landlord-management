@@ -1,0 +1,18 @@
+{
+    "nav": {
+        "overview": "Overview",
+        "properties": "Properties",
+        "renters": "Renters",
+        "tenantSignups": "Tenant signups",
+        "leases": "Leases",
+        "payments": "Payments",
+        "receipts": "Receipts",
+        "team": "Team",
+        "support": "Support",
+        "auditLog": "Audit log"
+    },
+    "locale": {
+        "en": "English",
+        "fr": "Français"
+    }
+}

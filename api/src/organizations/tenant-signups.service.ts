@@ -5,7 +5,9 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload';
+import { AuditService } from '../audit/audit.service';
 import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgTeamService } from './org-team.service';
 import { ApproveTenantSignupDto } from './dto/approve-tenant-signup.dto';
@@ -15,6 +17,8 @@ export class TenantSignupsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly orgTeam: OrgTeamService,
+        private readonly email: EmailService,
+        private readonly audit: AuditService,
     ) {}
 
     async listPending(orgId: string, actor: RequestUser) {
@@ -38,16 +42,34 @@ export class TenantSignupsService {
 
     async reject(orgId: string, requestId: string, actor: RequestUser) {
         await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
-        const req = await this.prisma.tenantSignupRequest.findFirst({
+        const row = await this.prisma.tenantSignupRequest.findFirst({
             where: { id: requestId, organizationId: orgId, status: 'PENDING' },
+            include: {
+                user: { select: { email: true } },
+                organization: { select: { name: true } },
+            },
         });
-        if (!req) {
+        if (!row) {
             throw new NotFoundException('Request not found');
         }
-        return this.prisma.tenantSignupRequest.update({
+        const updated = await this.prisma.tenantSignupRequest.update({
             where: { id: requestId },
             data: { status: 'REJECTED' },
         });
+        void this.email.sendTenantSignupRejected({
+            to: row.user.email,
+            organizationName: row.organization.name,
+        });
+        if (actor.typ === 'staff') {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId: actor.userId,
+                action: 'tenant_signup.reject',
+                entityType: 'TenantSignupRequest',
+                entityId: requestId,
+            });
+        }
+        return updated;
     }
 
     async approve(
@@ -60,7 +82,10 @@ export class TenantSignupsService {
 
         const signup = await this.prisma.tenantSignupRequest.findFirst({
             where: { id: requestId, organizationId: orgId, status: 'PENDING' },
-            include: { user: { include: { renterProfile: true } } },
+            include: {
+                user: { include: { renterProfile: true } },
+                organization: { select: { name: true } },
+            },
         });
         if (!signup) {
             throw new NotFoundException('Request not found');
@@ -109,7 +134,7 @@ export class TenantSignupsService {
         const rentDec = new Prisma.Decimal(dto.rentAmount);
         const currency = dto.currency ?? 'XAF';
 
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             const renter = await tx.renter.create({
                 data: {
                     organizationId: orgId,
@@ -150,5 +175,21 @@ export class TenantSignupsService {
 
             return { renterId: renter.id };
         });
+
+        void this.email.sendTenantSignupApproved({
+            to: email,
+            organizationName: signup.organization.name,
+        });
+        if (actor.typ === 'staff') {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId: actor.userId,
+                action: 'tenant_signup.approve',
+                entityType: 'TenantSignupRequest',
+                entityId: requestId,
+                metadata: { unitId: dto.unitId },
+            });
+        }
+        return result;
     }
 }

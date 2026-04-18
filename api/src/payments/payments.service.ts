@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentStatus, Prisma, ProofVerificationStatus } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
+import { OrganizationsService } from '../organizations/organizations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeasesService } from '../leases/leases.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { ListOrgPaymentsQueryDto } from './dto/list-org-payments.query';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 @Injectable()
@@ -10,7 +13,59 @@ export class PaymentsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly leasesService: LeasesService,
+        private readonly organizationsService: OrganizationsService,
+        private readonly audit: AuditService,
     ) {}
+
+    async listForOrganization(orgId: string, query: ListOrgPaymentsQueryDto) {
+        await this.organizationsService.findOneOrThrow(orgId);
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 25;
+        const skip = (page - 1) * limit;
+
+        const leaseFilter: Prisma.LeaseWhereInput = {
+            unit: { property: { organizationId: orgId } },
+        };
+        const q = query.search?.trim();
+        if (q) {
+            leaseFilter.renter = {
+                OR: [
+                    { fullName: { contains: q, mode: 'insensitive' } },
+                    { email: { contains: q, mode: 'insensitive' } },
+                ],
+            };
+        }
+
+        const where: Prisma.PaymentWhereInput = { lease: leaseFilter };
+        if (query.status) {
+            where.status = query.status;
+        }
+
+        const [items, total] = await Promise.all([
+            this.prisma.payment.findMany({
+                where,
+                orderBy: { dueDate: 'desc' },
+                skip,
+                take: limit,
+                include: {
+                    lease: {
+                        include: {
+                            renter: true,
+                            unit: { include: { property: true } },
+                        },
+                    },
+                },
+            }),
+            this.prisma.payment.count({ where }),
+        ]);
+
+        return {
+            items,
+            total,
+            page,
+            limit,
+        };
+    }
 
     async create(orgId: string, leaseId: string, dto: CreatePaymentDto) {
         await this.leasesService.findOne(orgId, leaseId);
@@ -81,14 +136,42 @@ export class PaymentsService {
             }
         }
 
-        return this.prisma.payment.update({
+        const updated = await this.prisma.payment.update({
             where: { id: paymentId },
             data,
         });
+        if (staffUserId) {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId: staffUserId,
+                action: 'payment.update',
+                entityType: 'Payment',
+                entityId: paymentId,
+                metadata: { patch: dto },
+            });
+        }
+        return updated;
     }
 
-    async remove(orgId: string, leaseId: string, paymentId: string) {
+    async remove(
+        orgId: string,
+        leaseId: string,
+        paymentId: string,
+        actorUserId?: string,
+    ) {
         await this.findOne(orgId, leaseId, paymentId);
-        return this.prisma.payment.delete({ where: { id: paymentId } });
+        const deleted = await this.prisma.payment.delete({
+            where: { id: paymentId },
+        });
+        if (actorUserId) {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId,
+                action: 'payment.delete',
+                entityType: 'Payment',
+                entityId: paymentId,
+            });
+        }
+        return deleted;
     }
 }

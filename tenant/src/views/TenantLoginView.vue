@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
+import { setTenantLocale } from '../i18n';
 import TenantMark from '../components/TenantMark.vue';
+
+const { t, locale } = useI18n();
+
+function onLocaleChange(ev: Event) {
+    const v = (ev.target as HTMLSelectElement).value;
+    if (v === 'fr' || v === 'en') {
+        setTenantLocale(v);
+    }
+}
 
 const router = useRouter();
 const route = useRoute();
@@ -20,6 +31,7 @@ async function submit() {
     try {
         const res = await api<{
             access_token: string;
+            refresh_token: string;
             renterId: string | null;
             accountStatus: 'active' | 'pending' | 'rejected';
         }>('/tenant/auth/login', {
@@ -29,7 +41,12 @@ async function submit() {
                 password: password.value,
             }),
         });
-        auth.setSession(res.access_token, res.renterId, res.accountStatus);
+        auth.setSession(
+            res.access_token,
+            res.refresh_token,
+            res.renterId,
+            res.accountStatus,
+        );
         const redirect = (route.query.redirect as string) || '/';
         await router.replace(redirect);
     } catch (e) {
@@ -48,16 +65,28 @@ async function submit() {
             <TenantMark size="lg" class="mb-8" />
 
             <div class="tenant-card p-8 sm:p-9">
+                <div class="mb-4 flex justify-end">
+                    <label class="text-xs text-slate-500">
+                        <span class="sr-only">Language</span>
+                        <select
+                            class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800"
+                            :value="locale"
+                            @change="onLocaleChange"
+                        >
+                            <option value="en">{{ t('locale.en') }}</option>
+                            <option value="fr">{{ t('locale.fr') }}</option>
+                        </select>
+                    </label>
+                </div>
                 <h1
                     class="text-center text-2xl font-bold tracking-tight text-slate-900"
                 >
-                    Welcome back
+                    {{ t('login.title') }}
                 </h1>
                 <p
                     class="mt-2 text-center text-sm leading-relaxed text-slate-600"
                 >
-                    Sign in to view your lease, rent schedule, and messages from
-                    your landlord.
+                    {{ t('login.subtitle') }}
                 </p>
 
                 <form class="mt-8 space-y-5" @submit.prevent="submit">
@@ -102,6 +131,15 @@ async function submit() {
                         {{ loading ? 'Signing in…' : 'Sign in' }}
                     </button>
                 </form>
+
+                <p class="mt-4 text-center text-sm">
+                    <RouterLink
+                        to="/forgot-password"
+                        class="font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
+                    >
+                        Forgot password?
+                    </RouterLink>
+                </p>
 
                 <p class="mt-8 text-center text-sm text-slate-600">
                     First time here?

@@ -9,6 +9,20 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: landlord
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +46,12 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/landlord
         run: npx prisma generate
 
+      - name: API — migrate (e2e / integration)
+        working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/landlord
+        run: npx prisma migrate deploy
+
       - name: API — lint
         working-directory: api
         run: npm run lint
@@ -46,7 +66,15 @@ jobs:
 
       - name: API — test
         working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/landlord
         run: npm test
+
+      - name: API — e2e
+        working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/landlord
+        run: npm run test:e2e
 
       - name: Admin — install, lint, format, build
         working-directory: admin

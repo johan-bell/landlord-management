@@ -113,6 +113,50 @@ model User {
   supportRequestsHandled   SupportRequest[] @relation("SupportHandler")
   paymentProofsVerified    Payment[]        @relation("PaymentProofVerifier")
   utilityBillProofsVerified LeaseUtilityBill[] @relation("UtilityBillProofVerifier")
+  passwordResetTokens      PasswordResetToken[]
+  refreshTokens            RefreshToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// typ: staff | platform | tenant (JWT audience for refresh)
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  typ       String
+  renterId  String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([createdAt])
 }
 
 model OrganizationMember {

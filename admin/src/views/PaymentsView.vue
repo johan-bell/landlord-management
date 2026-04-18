@@ -4,16 +4,27 @@ import { api } from '../lib/api';
 import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
-import type { Lease, Paginated, Payment } from '../types/models';
+import type { Lease, Payment, Property, Renter, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 const { hasOrg, orgApi } = useOrgContext();
 const canMarkPaid = useOrgElevatedAccess();
 
-const leases = ref<Lease[]>([]);
+type PaymentWithLease = Payment & {
+    lease: Lease & {
+        renter: Renter;
+        unit: Unit & { property: Property };
+    };
+};
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const renterFilter = ref('');
+const statusFilter = ref<string>('');
+const page = ref(1);
+const limit = ref(25);
+const total = ref(0);
+const rawItems = ref<PaymentWithLease[]>([]);
 
 type Row = Payment & {
     renterName: string;
@@ -23,19 +34,16 @@ type Row = Payment & {
 
 const rows = computed<Row[]>(() => {
     const out: Row[] = [];
-    for (const lease of leases.value) {
-        for (const p of lease.payments ?? []) {
-            out.push({
-                ...p,
-                renterName: lease.renter.fullName,
-                unitLabel: lease.unit.label,
-                propertyName: lease.unit.property.name,
-            });
-        }
+    for (const p of rawItems.value) {
+        const lease = p.lease;
+        out.push({
+            ...p,
+            renterName: lease.renter.fullName,
+            unitLabel: lease.unit.label,
+            propertyName: lease.unit.property.name,
+        });
     }
-    return out.sort(
-        (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
-    );
+    return out;
 });
 
 const filteredRows = computed(() => {
@@ -47,15 +55,37 @@ const filteredRows = computed(() => {
     });
 });
 
+const totalPages = computed(() =>
+    total.value === 0 ? 0 : Math.ceil(total.value / limit.value),
+);
+
 async function load() {
     if (!hasOrg.value) return;
     loading.value = true;
     error.value = null;
     try {
-        const res = await api<Paginated<Lease>>(orgApi('/leases?limit=500'));
-        leases.value = res.items as Lease[];
+        const params = new URLSearchParams({
+            page: String(page.value),
+            limit: String(limit.value),
+        });
+        const s = renterFilter.value.trim();
+        if (s.length >= 2) {
+            params.set('search', s);
+        }
+        if (statusFilter.value) {
+            params.set('status', statusFilter.value);
+        }
+        const res = await api<{
+            items: PaymentWithLease[];
+            total: number;
+            page: number;
+            limit: number;
+        }>(`${orgApi('/payments')}?${params.toString()}`);
+        rawItems.value = res.items;
+        total.value = res.total;
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed to load';
+        rawItems.value = [];
     } finally {
         loading.value = false;
     }
@@ -91,8 +121,19 @@ function statusClass(s: Payment['status']) {
     return 'bg-amber-50 text-amber-800 ring-amber-200';
 }
 
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleSearchReload() {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        page.value = 1;
+        void load();
+    }, 350);
+}
+
 onMounted(() => void load());
 watch(hasOrg, () => void load());
+watch([page, statusFilter], () => void load());
+watch(renterFilter, () => scheduleSearchReload());
 </script>
 
 <template>
@@ -101,7 +142,8 @@ watch(hasOrg, () => void load());
 
         <template v-else>
             <p class="mb-6 text-sm text-slate-600">
-                Rent charges across all leases. Tenants can upload a receipt; use
+                Rent charges across all leases (paginated). Tenants can upload a
+                receipt; use
                 <strong class="font-medium text-slate-800">Receipts</strong> to
                 verify.
                 <template v-if="canMarkPaid">
@@ -126,17 +168,30 @@ watch(hasOrg, () => void load());
             >
                 <label class="flex min-w-[200px] flex-1 items-center gap-2 text-sm text-slate-600">
                     <span class="shrink-0 font-medium text-slate-700"
-                        >Filter</span
+                        >Search</span
                     >
                     <input
                         v-model="renterFilter"
                         type="search"
-                        placeholder="Renter, unit, or property…"
+                        placeholder="Renter name or email (server)…"
                         class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
                     />
                 </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                    <span class="font-medium text-slate-700">Status</span>
+                    <select
+                        v-model="statusFilter"
+                        class="rounded-xl border border-slate-200 px-2 py-2 text-sm"
+                    >
+                        <option value="">All</option>
+                        <option value="PENDING">PENDING</option>
+                        <option value="PAID">PAID</option>
+                        <option value="LATE">LATE</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                    </select>
+                </label>
                 <span class="text-xs text-slate-500"
-                    >{{ filteredRows.length }} of {{ rows.length }} rows</span
+                    >{{ filteredRows.length }} on this page · {{ total }} total</span
                 >
             </div>
 
@@ -227,6 +282,8 @@ watch(hasOrg, () => void load());
                                         type="button"
                                         class="text-sm font-semibold text-emerald-600 hover:underline"
                                         @click="markPaid(row)"
+                                    >
+                                        Mark paid
                                     </button>
                                     <span
                                         v-else-if="
@@ -244,19 +301,50 @@ watch(hasOrg, () => void load());
                         </tbody>
                     </table>
                 </div>
-                <p
+                <div
                     v-if="!loading && rows.length && !filteredRows.length"
                     class="px-4 py-10 text-center text-sm text-slate-500"
                 >
                     No rows match your filter.
-                </p>
-                <p
+                </div>
+                <div
                     v-else-if="!rows.length"
                     class="px-4 py-10 text-center text-sm text-slate-500"
                 >
-                    No payment records. Add payments via the API or extend this
-                    screen with a “Record payment” flow.
-                </p>
+                    No payment records for this page.
+                </div>
+                <div
+                    v-if="totalPages > 1"
+                    class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-sm"
+                >
+                    <span class="text-slate-500"
+                        >Page {{ page }} of {{ totalPages }}</span
+                    >
+                    <div class="flex gap-2">
+                        <button
+                            type="button"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-700 disabled:opacity-40"
+                            :disabled="page <= 1"
+                            @click="
+                                page--;
+                                void load();
+                            "
+                        >
+                            Previous
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-700 disabled:opacity-40"
+                            :disabled="page >= totalPages"
+                            @click="
+                                page++;
+                                void load();
+                            "
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </template>
     </div>

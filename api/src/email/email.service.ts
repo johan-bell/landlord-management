@@ -70,7 +70,9 @@ export class EmailService {
         const text = [
             `Your landlord could not accept the receipt you uploaded (${params.topicLine}).`,
             '',
-            note ? `Note from the team:\n${note}` : 'Please upload a clearer photo or updated proof of payment.',
+            note
+                ? `Note from the team:\n${note}`
+                : 'Please upload a clearer photo or updated proof of payment.',
             '',
             'Sign in to the tenant app to try again.',
         ].join('\n');
@@ -85,6 +87,198 @@ export class EmailService {
         } catch (err) {
             this.logger.warn(
                 `Failed to send receipt-rejected email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendPasswordResetStaff(params: {
+        to: string;
+        resetUrl: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: 'Reset your landlord admin password',
+                text: [
+                    'You requested a password reset for your landlord admin account.',
+                    '',
+                    `Open this link to choose a new password (valid for 1 hour):`,
+                    params.resetUrl,
+                    '',
+                    'If you did not request this, you can ignore this email.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send staff password reset to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendPasswordResetTenant(params: {
+        to: string;
+        resetUrl: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: 'Reset your tenant portal password',
+                text: [
+                    'You requested a password reset for the tenant portal.',
+                    '',
+                    `Open this link to choose a new password (valid for 1 hour):`,
+                    params.resetUrl,
+                    '',
+                    'If you did not request this, you can ignore this email.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send tenant password reset to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendInvitationAcceptedToInviter(params: {
+        to: string;
+        organizationName: string;
+        inviteeEmail: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `${params.inviteeEmail} joined ${params.organizationName}`,
+                text: [
+                    `${params.inviteeEmail} accepted your team invitation and now has access to ${params.organizationName}.`,
+                    '',
+                    'You can manage roles and access from the Team screen in the admin app.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send invite-accepted notice to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendTenantSignupApproved(params: {
+        to: string;
+        organizationName: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `Your access to ${params.organizationName} is ready`,
+                text: [
+                    `Good news — ${params.organizationName} approved your tenant portal request.`,
+                    '',
+                    'Sign in to the tenant app to view your lease and payments.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send signup-approved email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendTenantSignupRejected(params: {
+        to: string;
+        organizationName: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `Update on your request — ${params.organizationName}`,
+                text: [
+                    `${params.organizationName} did not approve your tenant portal request at this time.`,
+                    '',
+                    'If you think this is a mistake, contact your landlord directly.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send signup-rejected email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendProofApproved(params: {
+        to: string | null | undefined;
+        organizationName: string;
+        topicLine: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `Receipt verified — ${params.organizationName}`,
+                text: [
+                    `Your uploaded receipt (${params.topicLine}) was verified by ${params.organizationName}.`,
+                    '',
+                    'Thank you — no further action is needed for this item.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send proof-approved email to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
+
+    async sendRentDueReminder(params: {
+        to: string | null | undefined;
+        organizationName: string;
+        dueDateLabel: string;
+        amountLabel: string;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `Rent reminder — ${params.organizationName}`,
+                text: [
+                    `This is a reminder that rent of ${params.amountLabel} is due on ${params.dueDateLabel} (${params.organizationName}).`,
+                    '',
+                    'Sign in to the tenant portal to upload proof of payment if required.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send rent reminder to ${to}: ${err instanceof Error ? err.message : String(err)}`,
             );
         }
     }

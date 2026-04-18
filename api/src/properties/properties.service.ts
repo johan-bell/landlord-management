@@ -78,9 +78,7 @@ export class PropertiesService {
         if (dto.name !== undefined) data.name = dto.name;
         if (dto.address !== undefined) {
             data.address =
-                dto.address === '' || dto.address === null
-                    ? null
-                    : dto.address;
+                dto.address === '' || dto.address === null ? null : dto.address;
         }
         return this.prisma.property.update({
             where: { id: propertyId },

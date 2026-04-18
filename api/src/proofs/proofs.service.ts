@@ -5,11 +5,15 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PaymentStatus, ProofVerificationStatus } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import type { RequestUser } from '../auth/types/jwt-payload';
-import { TenantProofAttachDto, TenantProofTarget } from './dto/tenant-proof-attach.dto';
+import {
+    TenantProofAttachDto,
+    TenantProofTarget,
+} from './dto/tenant-proof-attach.dto';
 
 @Injectable()
 export class ProofsService {
@@ -17,6 +21,7 @@ export class ProofsService {
         private readonly prisma: PrismaService,
         private readonly storage: ObjectStorageService,
         private readonly email: EmailService,
+        private readonly audit: AuditService,
     ) {}
 
     private async resolveRenterId(user: RequestUser): Promise<string> {
@@ -33,7 +38,11 @@ export class ProofsService {
         return renterId;
     }
 
-    async createUploadIntent(user: RequestUser, orgId: string, contentType: string) {
+    async createUploadIntent(
+        user: RequestUser,
+        orgId: string,
+        contentType: string,
+    ) {
         this.storage.assertEnabled();
         const renterId = await this.resolveRenterId(user);
         const renter = await this.prisma.renter.findFirst({
@@ -42,7 +51,10 @@ export class ProofsService {
         if (!renter) {
             throw new ForbiddenException('Organization mismatch');
         }
-        const key = this.storage.buildReceiptObjectKey(orgId, contentType.trim());
+        const key = this.storage.buildReceiptObjectKey(
+            orgId,
+            contentType.trim(),
+        );
         const uploadUrl = await this.storage.getPresignedPutUrl(
             key,
             contentType.trim(),
@@ -59,10 +71,14 @@ export class ProofsService {
         const renterId = await this.resolveRenterId(user);
         if (dto.target === TenantProofTarget.RENT) {
             if (!dto.paymentId) {
-                throw new BadRequestException('paymentId required for rent proof');
+                throw new BadRequestException(
+                    'paymentId required for rent proof',
+                );
             }
             if (dto.utilityBillId) {
-                throw new BadRequestException('utilityBillId must be empty for rent');
+                throw new BadRequestException(
+                    'utilityBillId must be empty for rent',
+                );
             }
             return this.attachRentProof(
                 orgId,
@@ -74,10 +90,14 @@ export class ProofsService {
             );
         }
         if (!dto.utilityBillId) {
-            throw new BadRequestException('utilityBillId required for utility proof');
+            throw new BadRequestException(
+                'utilityBillId required for utility proof',
+            );
         }
         if (dto.paymentId) {
-            throw new BadRequestException('paymentId must be empty for utility');
+            throw new BadRequestException(
+                'paymentId must be empty for utility',
+            );
         }
         return this.attachUtilityProof(
             orgId,
@@ -117,9 +137,12 @@ export class ProofsService {
             throw new BadRequestException('Already marked paid');
         }
         if (
-            payment.proofVerification === ProofVerificationStatus.PENDING_VERIFICATION
+            payment.proofVerification ===
+            ProofVerificationStatus.PENDING_VERIFICATION
         ) {
-            throw new BadRequestException('A receipt is already awaiting verification');
+            throw new BadRequestException(
+                'A receipt is already awaiting verification',
+            );
         }
         return this.prisma.payment.update({
             where: { id: paymentId },
@@ -161,9 +184,12 @@ export class ProofsService {
             throw new BadRequestException('Already marked paid');
         }
         if (
-            bill.proofVerification === ProofVerificationStatus.PENDING_VERIFICATION
+            bill.proofVerification ===
+            ProofVerificationStatus.PENDING_VERIFICATION
         ) {
-            throw new BadRequestException('A receipt is already awaiting verification');
+            throw new BadRequestException(
+                'A receipt is already awaiting verification',
+            );
         }
         return this.prisma.leaseUtilityBill.update({
             where: { id: billId },
@@ -226,7 +252,9 @@ export class ProofsService {
             },
         });
         if (belongs) {
-            return { viewUrl: await this.storage.getPresignedGetUrl(objectKey) };
+            return {
+                viewUrl: await this.storage.getPresignedGetUrl(objectKey),
+            };
         }
         const bill = await this.prisma.leaseUtilityBill.findFirst({
             where: {
@@ -235,23 +263,51 @@ export class ProofsService {
             },
         });
         if (bill) {
-            return { viewUrl: await this.storage.getPresignedGetUrl(objectKey) };
+            return {
+                viewUrl: await this.storage.getPresignedGetUrl(objectKey),
+            };
         }
         throw new NotFoundException('Receipt not found');
     }
 
-    async approveRentPayment(orgId: string, staffUserId: string, paymentId: string) {
+    async approveRentPayment(
+        orgId: string,
+        staffUserId: string,
+        paymentId: string,
+    ) {
         const payment = await this.prisma.payment.findFirst({
             where: {
                 id: paymentId,
                 proofVerification: ProofVerificationStatus.PENDING_VERIFICATION,
                 lease: { unit: { property: { organizationId: orgId } } },
             },
+            include: {
+                lease: {
+                    include: {
+                        renter: {
+                            include: {
+                                user: { select: { email: true } },
+                            },
+                        },
+                        unit: {
+                            include: {
+                                property: {
+                                    include: {
+                                        organization: {
+                                            select: { name: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
         if (!payment) {
             throw new NotFoundException('Pending payment proof not found');
         }
-        return this.prisma.payment.update({
+        const updated = await this.prisma.payment.update({
             where: { id: paymentId },
             data: {
                 status: PaymentStatus.PAID,
@@ -262,6 +318,24 @@ export class ProofsService {
                 proofRejectionNote: null,
             },
         });
+        const renter = payment.lease.renter;
+        const to =
+            renter.user?.email?.trim() || renter.email?.trim() || undefined;
+        const orgName = payment.lease.unit.property.organization.name;
+        const due = payment.dueDate.toISOString().slice(0, 10);
+        void this.email.sendProofApproved({
+            to,
+            organizationName: orgName,
+            topicLine: `rent due ${due}`,
+        });
+        void this.audit.record({
+            organizationId: orgId,
+            actorUserId: staffUserId,
+            action: 'proof.approve_rent',
+            entityType: 'Payment',
+            entityId: paymentId,
+        });
+        return updated;
     }
 
     async rejectRentPayment(
@@ -322,21 +396,54 @@ export class ProofsService {
             topicLine: `rent due ${due}`,
             note,
         });
+        void this.audit.record({
+            organizationId: orgId,
+            actorUserId: staffUserId,
+            action: 'proof.reject_rent',
+            entityType: 'Payment',
+            entityId: paymentId,
+        });
         return updated;
     }
 
-    async approveUtilityBill(orgId: string, staffUserId: string, billId: string) {
+    async approveUtilityBill(
+        orgId: string,
+        staffUserId: string,
+        billId: string,
+    ) {
         const bill = await this.prisma.leaseUtilityBill.findFirst({
             where: {
                 id: billId,
                 proofVerification: ProofVerificationStatus.PENDING_VERIFICATION,
                 lease: { unit: { property: { organizationId: orgId } } },
             },
+            include: {
+                lease: {
+                    include: {
+                        renter: {
+                            include: {
+                                user: { select: { email: true } },
+                            },
+                        },
+                        unit: {
+                            include: {
+                                property: {
+                                    include: {
+                                        organization: {
+                                            select: { name: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
         if (!bill) {
             throw new NotFoundException('Pending utility proof not found');
         }
-        return this.prisma.leaseUtilityBill.update({
+        const updated = await this.prisma.leaseUtilityBill.update({
             where: { id: billId },
             data: {
                 status: PaymentStatus.PAID,
@@ -347,6 +454,29 @@ export class ProofsService {
                 proofRejectionNote: null,
             },
         });
+        const renter = bill.lease.renter;
+        const to =
+            renter.user?.email?.trim() || renter.email?.trim() || undefined;
+        const orgName = bill.lease.unit.property.organization.name;
+        const period = new Date(bill.year, bill.month - 1, 1).toLocaleString(
+            'en-US',
+            { month: 'long', year: 'numeric' },
+        );
+        const kind =
+            bill.kind === 'ELECTRICITY' ? 'electricity' : 'water utility';
+        void this.email.sendProofApproved({
+            to,
+            organizationName: orgName,
+            topicLine: `${kind} — ${period}`,
+        });
+        void this.audit.record({
+            organizationId: orgId,
+            actorUserId: staffUserId,
+            action: 'proof.approve_utility',
+            entityType: 'LeaseUtilityBill',
+            entityId: billId,
+        });
+        return updated;
     }
 
     async rejectUtilityBill(
@@ -411,6 +541,13 @@ export class ProofsService {
             organizationName: orgName,
             topicLine: `${kind} — ${period}`,
             note,
+        });
+        void this.audit.record({
+            organizationId: orgId,
+            actorUserId: staffUserId,
+            action: 'proof.reject_utility',
+            entityType: 'LeaseUtilityBill',
+            entityId: billId,
         });
         return updated;
     }

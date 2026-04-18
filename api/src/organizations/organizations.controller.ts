@@ -7,13 +7,19 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     StreamableFile,
     UseGuards,
 } from '@nestjs/common';
+import {
+    PaginationQueryDto,
+    parsePagination,
+} from '../common/dto/pagination-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import type { RequestUser } from '../auth/types/jwt-payload';
+import { AuditService } from '../audit/audit.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { OrgTeamService } from './org-team.service';
@@ -24,6 +30,7 @@ export class OrganizationsController {
     constructor(
         private readonly organizationsService: OrganizationsService,
         private readonly orgTeam: OrgTeamService,
+        private readonly audit: AuditService,
     ) {}
 
     @Post()
@@ -57,6 +64,24 @@ export class OrganizationsController {
     @UseGuards(JwtAuthGuard, OrgMembershipGuard)
     onboardingStatus(@Param('orgId') orgId: string) {
         return this.organizationsService.getOnboardingStatus(orgId);
+    }
+
+    @Get(':orgId/analytics')
+    @UseGuards(JwtAuthGuard, OrgMembershipGuard)
+    analytics(@Param('orgId') orgId: string) {
+        return this.organizationsService.analytics(orgId);
+    }
+
+    @Get(':orgId/audit-logs')
+    @UseGuards(JwtAuthGuard, OrgMembershipGuard)
+    async auditLogs(
+        @Param('orgId') orgId: string,
+        @CurrentUser() user: RequestUser,
+        @Query() query: PaginationQueryDto,
+    ) {
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
+        const { page, limit } = parsePagination(query);
+        return this.audit.listForOrg(orgId, page, limit);
     }
 
     @Get(':orgId/exports/rent-roll')
@@ -94,7 +119,11 @@ export class OrganizationsController {
             throw new ForbiddenException();
         }
         await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
-        return this.organizationsService.update(orgId, dto);
+        return this.organizationsService.update(
+            orgId,
+            dto,
+            user.typ === 'staff' ? user.userId : undefined,
+        );
     }
 
     @Delete(':orgId')
@@ -107,6 +136,9 @@ export class OrganizationsController {
             throw new ForbiddenException();
         }
         await this.orgTeam.assertOwnerOrPlatform(orgId, user);
-        return this.organizationsService.remove(orgId);
+        return this.organizationsService.remove(
+            orgId,
+            user.typ === 'staff' ? user.userId : undefined,
+        );
     }
 }

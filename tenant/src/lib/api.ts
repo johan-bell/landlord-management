@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/auth';
+import type { TenantAccountStatus } from '../stores/auth';
 
 function apiBase(): string {
     const raw = import.meta.env.VITE_API_URL as string | undefined;
@@ -15,7 +16,45 @@ export function getAuthHeaders(): Record<string, string> {
     return { Authorization: `Bearer ${token}` };
 }
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+export async function tryRefreshAccess(): Promise<boolean> {
+    const auth = useAuthStore();
+    const rt = auth.refreshToken;
+    if (!rt) {
+        return false;
+    }
+    const url = `${apiBase()}/tenant/auth/refresh`;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: rt }),
+        });
+        if (!res.ok) {
+            return false;
+        }
+        const data = (await res.json()) as {
+            access_token: string;
+            refresh_token: string;
+            renterId: string | null;
+            accountStatus: TenantAccountStatus;
+        };
+        auth.setSession(
+            data.access_token,
+            data.refresh_token,
+            data.renterId,
+            data.accountStatus,
+        );
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function api<T>(
+    path: string,
+    init?: RequestInit,
+    isRetry = false,
+): Promise<T> {
     const url = `${apiBase()}${path.startsWith('/') ? path : `/${path}`}`;
     const auth = useAuthStore();
     const hadToken = Boolean(auth.accessToken);
@@ -29,7 +68,16 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
         },
     });
 
-    if (res.status === 401 && hadToken && !path.startsWith('/tenant/auth')) {
+    if (
+        res.status === 401 &&
+        hadToken &&
+        !isRetry &&
+        !path.startsWith('/tenant/auth/')
+    ) {
+        const refreshed = await tryRefreshAccess();
+        if (refreshed) {
+            return api<T>(path, init, true);
+        }
         auth.clearSession();
         window.location.href = `${import.meta.env.BASE_URL}login`;
     }

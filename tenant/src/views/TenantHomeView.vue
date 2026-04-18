@@ -309,7 +309,11 @@ const whatsDueNext = computed(() => {
         (a, b) =>
             new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
-    return { next: items[0] ?? null, upcomingCount: items.length };
+    return {
+        next: items[0] ?? null,
+        upcomingCount: items.length,
+        timeline: items.slice(0, 8),
+    };
 });
 
 const pendingProofCount = computed(() => {
@@ -857,6 +861,38 @@ onUnmounted(() => {
                             Jump to lease
                         </a>
                     </div>
+                    <ul
+                        v-if="whatsDueNext.timeline.length > 1"
+                        class="mt-5 space-y-4 border-l-2 border-emerald-200/90 pl-5"
+                        aria-label="Upcoming charges timeline"
+                    >
+                        <li
+                            v-for="(item, idx) in whatsDueNext.timeline"
+                            :key="`${item.kind}-${item.dueDate}-${idx}`"
+                            class="relative"
+                        >
+                            <span
+                                class="absolute -left-[1.15rem] top-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"
+                                aria-hidden="true"
+                            />
+                            <p class="text-sm font-semibold text-slate-900">
+                                {{ nextDueTitle(item) }}
+                                <span class="font-normal text-slate-600">
+                                    ·
+                                    {{ money(item.amount, item.currency) }}
+                                </span>
+                                <span
+                                    v-if="idx === 0"
+                                    class="ml-2 rounded-md bg-emerald-600/10 px-1.5 py-0.5 text-xs font-medium text-emerald-800"
+                                    >Next</span
+                                >
+                            </p>
+                            <p class="mt-0.5 text-xs text-slate-500">
+                                Due {{ formatDate(item.dueDate) }} ·
+                                {{ item.placeLabel }}
+                            </p>
+                        </li>
+                    </ul>
                 </section>
 
                 <section class="mt-10">

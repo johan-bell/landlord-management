@@ -159,7 +159,11 @@ export class RentersService {
                 unit: { include: { property: true } },
                 payments: { orderBy: { dueDate: 'desc' } },
                 utilityBills: {
-                    orderBy: [{ year: 'desc' }, { month: 'desc' }, { kind: 'asc' }],
+                    orderBy: [
+                        { year: 'desc' },
+                        { month: 'desc' },
+                        { kind: 'asc' },
+                    ],
                     take: 120,
                 },
             },

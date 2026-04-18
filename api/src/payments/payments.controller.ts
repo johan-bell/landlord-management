@@ -79,7 +79,12 @@ export class PaymentsController {
         @Param('orgId') orgId: string,
         @Param('leaseId') leaseId: string,
         @Param('paymentId') paymentId: string,
+        @CurrentUser() user: RequestUser,
     ) {
-        return this.paymentsService.remove(orgId, leaseId, paymentId);
+        const actor =
+            user.typ === 'staff' || user.typ === 'platform'
+                ? user.userId
+                : undefined;
+        return this.paymentsService.remove(orgId, leaseId, paymentId, actor);
     }
 }

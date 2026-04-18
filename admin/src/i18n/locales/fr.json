@@ -1,0 +1,18 @@
+{
+    "nav": {
+        "overview": "Vue d'ensemble",
+        "properties": "Biens",
+        "renters": "Locataires",
+        "tenantSignups": "Inscriptions locataires",
+        "leases": "Baux",
+        "payments": "Paiements",
+        "receipts": "Reçus",
+        "team": "Équipe",
+        "support": "Assistance",
+        "auditLog": "Journal d'audit"
+    },
+    "locale": {
+        "en": "English",
+        "fr": "Français"
+    }
+}

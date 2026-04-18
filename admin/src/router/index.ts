@@ -23,6 +23,18 @@ const router = createRouter({
             component: () => import('../views/InviteAcceptView.vue'),
         },
         {
+            path: '/forgot-password',
+            name: 'forgot-password',
+            meta: { public: true },
+            component: () => import('../views/ForgotPasswordView.vue'),
+        },
+        {
+            path: '/reset-password',
+            name: 'reset-password',
+            meta: { public: true },
+            component: () => import('../views/ResetPasswordView.vue'),
+        },
+        {
             path: '/',
             component: () => import('../layouts/AdminLayout.vue'),
             meta: { requiresAuth: true },
@@ -87,6 +99,12 @@ const router = createRouter({
                     meta: { title: 'Support' },
                     component: () => import('../views/SupportRequestsView.vue'),
                 },
+                {
+                    path: 'audit-log',
+                    name: 'audit-log',
+                    meta: { title: 'Audit log' },
+                    component: () => import('../views/AuditLogView.vue'),
+                },
             ],
         },
     ],
@@ -98,7 +116,12 @@ router.beforeEach((to) => {
     if (needsAuth && !auth.accessToken) {
         return { name: 'login', query: { redirect: to.fullPath } };
     }
-    if (to.meta.public && auth.accessToken && to.name !== 'invite') {
+    if (
+        to.meta.public &&
+        auth.accessToken &&
+        to.name !== 'invite' &&
+        to.name !== 'reset-password'
+    ) {
         return { path: '/' };
     }
     return true;

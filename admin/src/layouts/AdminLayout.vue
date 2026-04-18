@@ -7,6 +7,7 @@ import {
     Bars3Icon,
     BuildingOffice2Icon,
     ClipboardDocumentCheckIcon,
+    ClipboardDocumentListIcon,
     ClockIcon,
     DocumentTextIcon,
     LifebuoyIcon,
@@ -15,9 +16,11 @@ import {
     UsersIcon,
     WalletIcon,
 } from '@heroicons/vue/24/outline';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
 import AdminHeaderProfileMenu from '../components/AdminHeaderProfileMenu.vue';
+import { setAdminLocale } from '../i18n';
 import { orgRoleHint, orgRoleLabel } from '../lib/orgRoles';
 
 const NAV_ICON_COMPONENTS: Record<
@@ -29,6 +32,7 @@ const NAV_ICON_COMPONENTS: Record<
     | 'wallet'
     | 'receipt'
     | 'team'
+    | 'audit'
     | 'support',
     Component
 > = {
@@ -40,9 +44,11 @@ const NAV_ICON_COMPONENTS: Record<
     wallet: WalletIcon,
     receipt: ClipboardDocumentCheckIcon,
     team: UserGroupIcon,
+    audit: ClipboardDocumentListIcon,
     support: LifebuoyIcon,
 };
 
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
@@ -98,17 +104,43 @@ function logout() {
     void router.push({ name: 'login' });
 }
 
-const nav = computed(() => [
-    { to: '/', label: 'Overview', icon: 'grid' as const },
-    { to: '/properties', label: 'Properties', icon: 'building' as const },
-    { to: '/renters', label: 'Renters', icon: 'users' as const },
-    { to: '/tenant-signups', label: 'Tenant signups', icon: 'clock' as const },
-    { to: '/leases', label: 'Leases', icon: 'file' as const },
-    { to: '/payments', label: 'Payments', icon: 'wallet' as const },
-    { to: '/receipts', label: 'Receipts', icon: 'receipt' as const },
-    { to: '/team', label: 'Team', icon: 'team' as const },
-    { to: '/support', label: 'Support', icon: 'support' as const },
-]);
+const nav = computed(() => {
+    const items: {
+        to: string;
+        label: string;
+        icon: keyof typeof NAV_ICON_COMPONENTS;
+    }[] = [
+        { to: '/', label: t('nav.overview'), icon: 'grid' },
+        { to: '/properties', label: t('nav.properties'), icon: 'building' },
+        { to: '/renters', label: t('nav.renters'), icon: 'users' },
+        {
+            to: '/tenant-signups',
+            label: t('nav.tenantSignups'),
+            icon: 'clock',
+        },
+        { to: '/leases', label: t('nav.leases'), icon: 'file' },
+        { to: '/payments', label: t('nav.payments'), icon: 'wallet' },
+        { to: '/receipts', label: t('nav.receipts'), icon: 'receipt' },
+        { to: '/team', label: t('nav.team'), icon: 'team' },
+    ];
+    const role = selectedOrgMyRole.value;
+    if (role === 'OWNER' || role === 'MANAGER') {
+        items.push({
+            to: '/audit-log',
+            label: t('nav.auditLog'),
+            icon: 'audit',
+        });
+    }
+    items.push({ to: '/support', label: t('nav.support'), icon: 'support' });
+    return items;
+});
+
+function onLocaleChange(ev: Event) {
+    const v = (ev.target as HTMLSelectElement).value;
+    if (v === 'fr' || v === 'en') {
+        setAdminLocale(v);
+    }
+}
 
 function closeMobileNav() {
     mobileNavOpen.value = false;
@@ -186,6 +218,17 @@ onMounted(() => {
             </nav>
 
             <div class="border-t border-white/10 p-4">
+                <label class="mb-2 block text-xs text-slate-500">
+                    Language
+                    <select
+                        class="mt-1 w-full rounded-lg border border-white/10 bg-slate-800/80 px-2 py-1.5 text-sm text-white"
+                        :value="locale"
+                        @change="onLocaleChange"
+                    >
+                        <option value="en">{{ t('locale.en') }}</option>
+                        <option value="fr">{{ t('locale.fr') }}</option>
+                    </select>
+                </label>
                 <p class="text-xs text-slate-500">Property & rent operations</p>
                 <p class="mt-1 text-xs text-slate-400">v0.1 · local dev</p>
             </div>

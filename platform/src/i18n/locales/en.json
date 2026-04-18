@@ -1,0 +1,5 @@
+{
+    "nav": { "organizations": "Organizations", "support": "Support" },
+    "actions": { "signOut": "Sign out" },
+    "locale": { "en": "English", "fr": "Français" }
+}

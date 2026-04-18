@@ -18,17 +18,18 @@ async function submit() {
     loading.value = true;
     error.value = null;
     try {
-        const res = await api<{ access_token: string; user: AuthUser }>(
-            '/auth/login',
-            {
-                method: 'POST',
-                body: JSON.stringify({
-                    email: email.value.trim(),
-                    password: password.value,
-                }),
-            },
-        );
-        auth.setSession(res.access_token, res.user);
+        const res = await api<{
+            access_token: string;
+            refresh_token: string;
+            user: AuthUser;
+        }>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+                email: email.value.trim(),
+                password: password.value,
+            }),
+        });
+        auth.setSession(res.access_token, res.refresh_token, res.user);
         const redirect = (route.query.redirect as string) || '/';
         await router.replace(redirect);
     } catch (e) {
@@ -91,6 +92,14 @@ async function submit() {
                     {{ loading ? 'Signing in…' : 'Sign in' }}
                 </button>
             </form>
+            <p class="mt-4 text-center text-sm">
+                <RouterLink
+                    to="/forgot-password"
+                    class="font-medium text-slate-600 hover:text-slate-900"
+                >
+                    Forgot password?
+                </RouterLink>
+            </p>
             <p class="mt-6 text-center text-sm text-slate-500">
                 No account?
                 <RouterLink

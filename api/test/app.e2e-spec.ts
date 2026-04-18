@@ -21,14 +21,20 @@ describe('AppController (e2e)', () => {
             .get('/health/ready')
             .expect(200)
             .expect((res) => {
-                expect(res.body).toEqual(
+                const body = res.body as {
+                    ok: boolean;
+                    service: string;
+                    database: string;
+                    time: string;
+                };
+                expect(body).toEqual(
                     expect.objectContaining({
                         ok: true,
                         service: 'landlord-management-api',
                         database: 'ok',
                     }),
                 );
-                expect(typeof res.body.time).toBe('string');
+                expect(typeof body.time).toBe('string');
             });
     });
 

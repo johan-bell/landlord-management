@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import { api, getAuthHeaders, resolveApiUrl } from '../lib/api';
+import { api, authorizedFetch } from '../lib/api';
 import { useOrgStore } from '../stores/org';
 import type { OrgSummary } from '../types/models';
 import { formatMoney } from '../composables/format';
@@ -29,6 +29,24 @@ const onboarding = ref<{
 const onboardingLoading = ref(false);
 const exportBusy = ref(false);
 const exportErr = ref<string | null>(null);
+
+type OrgAnalytics = {
+    vacancyRate: number;
+    collectionRateLast30Days: number | null;
+    overduePaymentCount: number;
+    rentRollLast30Days: {
+        totalDue: number;
+        totalPaid: number;
+        byCurrency: Record<string, { due: number; paid: number }>;
+    };
+    arrearsAgingDays: Record<
+        string,
+        { paymentCount: number; totalAmount: number }
+    >;
+};
+
+const analytics = ref<OrgAnalytics | null>(null);
+const analyticsLoading = ref(false);
 
 const selectedId = computed(() => orgStore.selectedOrgId);
 
@@ -72,6 +90,22 @@ async function loadSummary() {
     }
 }
 
+async function loadAnalytics() {
+    const id = orgStore.selectedOrgId;
+    if (!id) {
+        analytics.value = null;
+        return;
+    }
+    analyticsLoading.value = true;
+    try {
+        analytics.value = await api<OrgAnalytics>(`/organizations/${id}/analytics`);
+    } catch {
+        analytics.value = null;
+    } finally {
+        analyticsLoading.value = false;
+    }
+}
+
 async function loadOnboarding() {
     const id = orgStore.selectedOrgId;
     if (!id) {
@@ -98,8 +132,8 @@ async function downloadRentRoll() {
     exportBusy.value = true;
     exportErr.value = null;
     try {
-        const url = resolveApiUrl(`/organizations/${id}/exports/rent-roll`);
-        const res = await fetch(url, { headers: getAuthHeaders() });
+        const path = `/organizations/${id}/exports/rent-roll`;
+        const res = await authorizedFetch(path);
         if (!res.ok) {
             const text = await res.text();
             let message = res.statusText;
@@ -153,6 +187,7 @@ async function createOrg() {
 onMounted(() => {
     void loadSummary();
     void loadOnboarding();
+    void loadAnalytics();
 });
 
 watch(
@@ -160,6 +195,7 @@ watch(
     () => {
         void loadSummary();
         void loadOnboarding();
+        void loadAnalytics();
     },
 );
 
@@ -484,16 +520,108 @@ const statCards = computed(() => {
         </section>
 
         <section
+            v-if="selectedId"
             class="rounded-2xl border border-slate-200 bg-slate-900 px-6 py-8 text-slate-300 sm:px-8"
         >
-            <h3 class="text-sm font-semibold text-white">
-                Revenue placeholder
-            </h3>
-            <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-                When you connect payment providers, this panel can show
-                collected rent (e.g.
-                {{ formatMoney(0, 'XAF') }} this month). For now it keeps the
-                layout ready for charts and KPIs.
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-sm font-semibold text-white">
+                    Portfolio analytics
+                </h3>
+                <span v-if="analyticsLoading" class="text-xs text-slate-500"
+                    >Updating…</span
+                >
+            </div>
+            <template v-if="analytics">
+                <div
+                    class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm"
+                >
+                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                            Vacancy rate
+                        </p>
+                        <p class="mt-1 text-2xl font-bold text-white tabular-nums">
+                            {{ Math.round(analytics.vacancyRate * 100) }}%
+                        </p>
+                    </div>
+                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                            Collection (30d)
+                        </p>
+                        <p class="mt-1 text-2xl font-bold text-white tabular-nums">
+                            {{
+                                analytics.collectionRateLast30Days == null
+                                    ? '—'
+                                    : `${Math.round(analytics.collectionRateLast30Days * 100)}%`
+                            }}
+                        </p>
+                    </div>
+                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                            Overdue charges
+                        </p>
+                        <p class="mt-1 text-2xl font-bold text-amber-300 tabular-nums">
+                            {{ analytics.overduePaymentCount }}
+                        </p>
+                    </div>
+                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                            Rent roll 30d (paid / due)
+                        </p>
+                        <p
+                            class="mt-1 text-lg font-semibold text-white tabular-nums"
+                        >
+                            {{
+                                formatMoney(
+                                    analytics.rentRollLast30Days.totalPaid,
+                                    'XAF',
+                                )
+                            }}
+                            <span class="text-slate-500">/</span>
+                            {{
+                                formatMoney(
+                                    analytics.rentRollLast30Days.totalDue,
+                                    'XAF',
+                                )
+                            }}
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Arrears aging (open charges)
+                    </p>
+                    <ul class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                        <li
+                            v-for="b in [
+                                { k: '0_30', label: '0–30 days' },
+                                { k: '31_60', label: '31–60 days' },
+                                { k: '61_90', label: '61–90 days' },
+                                { k: '91_plus', label: '91+ days' },
+                            ]"
+                            :key="b.k"
+                            class="rounded-lg bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                        >
+                            <span class="text-slate-500">{{ b.label }}</span>
+                            <span class="mt-1 block font-medium text-white">
+                                {{
+                                    analytics.arrearsAgingDays[b.k]?.paymentCount ??
+                                    0
+                                }}
+                                charges ·
+                                {{
+                                    formatMoney(
+                                        analytics.arrearsAgingDays[b.k]
+                                            ?.totalAmount ?? 0,
+                                        'XAF',
+                                    )
+                                }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </template>
+            <p v-else class="mt-2 text-sm text-slate-500">
+                Analytics load when an organization is selected.
             </p>
         </section>
     </div>

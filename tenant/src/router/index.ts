@@ -17,6 +17,18 @@ const router = createRouter({
             component: () => import('../views/TenantRegisterView.vue'),
         },
         {
+            path: '/forgot-password',
+            name: 'forgot-password',
+            meta: { public: true },
+            component: () => import('../views/TenantForgotPasswordView.vue'),
+        },
+        {
+            path: '/reset-password',
+            name: 'reset-password',
+            meta: { public: true },
+            component: () => import('../views/TenantResetPasswordView.vue'),
+        },
+        {
             path: '/',
             name: 'home',
             meta: { requiresAuth: true },
@@ -31,7 +43,11 @@ router.beforeEach((to) => {
     if (needsAuth && !auth.accessToken) {
         return { name: 'login', query: { redirect: to.fullPath } };
     }
-    if (to.meta.public && auth.accessToken) {
+    if (
+        to.meta.public &&
+        auth.accessToken &&
+        to.name !== 'reset-password'
+    ) {
         return { path: '/' };
     }
     return true;

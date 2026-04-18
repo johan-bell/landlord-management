@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import {
+    Injectable,
+    Logger,
+    OnModuleInit,
+    ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { Client as MinioClient } from 'minio';
@@ -39,9 +44,9 @@ export class ObjectStorageService implements OnModuleInit {
     isConfigured(): boolean {
         return Boolean(
             this.config.get<string>('S3_ENDPOINT') &&
-                this.config.get<string>('S3_ACCESS_KEY') &&
-                this.config.get<string>('S3_SECRET_KEY') &&
-                this.config.get<string>('S3_BUCKET'),
+            this.config.get<string>('S3_ACCESS_KEY') &&
+            this.config.get<string>('S3_SECRET_KEY') &&
+            this.config.get<string>('S3_BUCKET'),
         );
     }
 
@@ -130,8 +135,9 @@ export class ObjectStorageService implements OnModuleInit {
      */
     async getPresignedPutUrl(
         objectKey: string,
-        _contentType: string,
+        contentType: string,
     ): Promise<string> {
+        void contentType;
         this.assertEnabled();
         return this.client!.presignedPutObject(
             this.bucket!,

@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PaymentStatus } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -12,7 +14,10 @@ function csvEscapeCell(value: string): string {
 
 @Injectable()
 export class OrganizationsService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly audit: AuditService,
+    ) {}
 
     async createForUser(userId: string, dto: CreateOrganizationDto) {
         return this.prisma.$transaction(async (tx) => {
@@ -50,7 +55,7 @@ export class OrganizationsService {
         });
         return rows.map(({ members, ...org }) => ({
             ...org,
-            myRole: members[0]!.role,
+            myRole: members[0].role,
         }));
     }
 
@@ -64,17 +69,145 @@ export class OrganizationsService {
         return org;
     }
 
-    async update(id: string, dto: UpdateOrganizationDto) {
+    async update(id: string, dto: UpdateOrganizationDto, actorUserId?: string) {
         await this.findOneOrThrow(id);
-        return this.prisma.organization.update({
+        const updated = await this.prisma.organization.update({
             where: { id },
             data: dto,
         });
+        if (actorUserId) {
+            void this.audit.record({
+                organizationId: id,
+                actorUserId,
+                action: 'organization.update',
+                entityType: 'Organization',
+                entityId: id,
+                metadata: { patch: dto },
+            });
+        }
+        return updated;
     }
 
-    async remove(id: string) {
+    async remove(id: string, actorUserId?: string) {
         await this.findOneOrThrow(id);
-        return this.prisma.organization.delete({ where: { id } });
+        const deleted = await this.prisma.organization.delete({
+            where: { id },
+        });
+        if (actorUserId) {
+            void this.audit.record({
+                organizationId: id,
+                actorUserId,
+                action: 'organization.delete',
+                entityType: 'Organization',
+                entityId: id,
+            });
+        }
+        return deleted;
+    }
+
+    async analytics(orgId: string) {
+        await this.findOneOrThrow(orgId);
+        const now = new Date();
+        const unitCount = await this.prisma.unit.count({
+            where: { property: { organizationId: orgId } },
+        });
+        const vacantCount = await this.prisma.unit.count({
+            where: {
+                property: { organizationId: orgId },
+                status: 'VACANT',
+            },
+        });
+        const vacancyRate =
+            unitCount === 0
+                ? 0
+                : Math.round((vacantCount / unitCount) * 1000) / 1000;
+
+        const thirtyAgo = new Date(now.getTime() - 30 * 86400000);
+        const payments30 = await this.prisma.payment.findMany({
+            where: {
+                lease: { unit: { property: { organizationId: orgId } } },
+                dueDate: { gte: thirtyAgo, lte: now },
+            },
+            select: { amount: true, currency: true, status: true },
+        });
+        let dueSum = 0;
+        let paidSum = 0;
+        const byCurrency: Record<string, { due: number; paid: number }> = {};
+        for (const p of payments30) {
+            const c = p.currency || 'XAF';
+            if (!byCurrency[c]) {
+                byCurrency[c] = { due: 0, paid: 0 };
+            }
+            const amt = Number(p.amount);
+            dueSum += amt;
+            byCurrency[c].due += amt;
+            if (p.status === PaymentStatus.PAID) {
+                paidSum += amt;
+                byCurrency[c].paid += amt;
+            }
+        }
+        const collectionRateLast30Days =
+            dueSum === 0 ? null : Math.round((paidSum / dueSum) * 1000) / 1000;
+
+        const startTodayUtc = Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+        );
+        const overdue = await this.prisma.payment.findMany({
+            where: {
+                status: { in: [PaymentStatus.PENDING, PaymentStatus.LATE] },
+                dueDate: { lt: new Date(startTodayUtc) },
+                lease: { unit: { property: { organizationId: orgId } } },
+            },
+            select: { amount: true, currency: true, dueDate: true },
+        });
+
+        type BucketKey = '0_30' | '31_60' | '61_90' | '91_plus';
+        const arrears: Record<
+            BucketKey,
+            { paymentCount: number; totalAmount: number }
+        > = {
+            '0_30': { paymentCount: 0, totalAmount: 0 },
+            '31_60': { paymentCount: 0, totalAmount: 0 },
+            '61_90': { paymentCount: 0, totalAmount: 0 },
+            '91_plus': { paymentCount: 0, totalAmount: 0 },
+        };
+
+        const msDay = 86400000;
+        for (const p of overdue) {
+            const days = Math.floor(
+                (startTodayUtc - p.dueDate.getTime()) / msDay,
+            );
+            const amt = Number(p.amount);
+            let key: BucketKey;
+            if (days <= 30) {
+                key = '0_30';
+            } else if (days <= 60) {
+                key = '31_60';
+            } else if (days <= 90) {
+                key = '61_90';
+            } else {
+                key = '91_plus';
+            }
+            arrears[key].paymentCount += 1;
+            arrears[key].totalAmount += amt;
+        }
+
+        return {
+            organizationId: orgId,
+            unitCount,
+            vacantUnitCount: vacantCount,
+            vacancyRate,
+            collectionRateLast30Days,
+            rentRollLast30Days: {
+                totalDue: dueSum,
+                totalPaid: paidSum,
+                byCurrency,
+            },
+            arrearsAgingDays: arrears,
+            overduePaymentCount: overdue.length,
+        };
     }
 
     async summary(orgId: string) {
@@ -143,7 +276,8 @@ export class OrganizationsService {
             {
                 id: 'properties',
                 label: 'Add a property',
-                description: 'Create your first building or site in the portfolio.',
+                description:
+                    'Create your first building or site in the portfolio.',
                 done: propertyCount > 0,
                 route: '/properties',
             },
@@ -174,7 +308,8 @@ export class OrganizationsService {
             {
                 id: 'team',
                 label: 'Invite your team',
-                description: 'Add managers or staff to help run day-to-day work.',
+                description:
+                    'Add managers or staff to help run day-to-day work.',
                 done: memberCount > 1,
                 route: '/team',
             },

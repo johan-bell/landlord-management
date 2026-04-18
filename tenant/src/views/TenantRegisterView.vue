@@ -127,13 +127,19 @@ async function submit() {
         }
         const res = await api<{
             access_token: string;
+            refresh_token: string;
             renterId: string | null;
             accountStatus: 'active' | 'pending' | 'rejected';
         }>('/tenant/auth/register', {
             method: 'POST',
             body: JSON.stringify(body),
         });
-        auth.setSession(res.access_token, res.renterId, res.accountStatus);
+        auth.setSession(
+            res.access_token,
+            res.refresh_token,
+            res.renterId,
+            res.accountStatus,
+        );
         await router.replace('/');
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Registration failed';

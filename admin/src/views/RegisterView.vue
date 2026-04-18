@@ -21,6 +21,7 @@ async function submit() {
     try {
         const res = await api<{
             access_token: string;
+            refresh_token: string;
             user: AuthUser;
             organization: { id: string };
         }>('/auth/register', {
@@ -32,7 +33,7 @@ async function submit() {
                 organizationName: organizationName.value.trim(),
             }),
         });
-        auth.setSession(res.access_token, res.user);
+        auth.setSession(res.access_token, res.refresh_token, res.user);
         await router.replace('/');
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Registration failed';

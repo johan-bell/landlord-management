@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { requestContext } from './common/request-context';
 
 const envCandidates = [
     join(process.cwd(), '.env'),
@@ -14,6 +19,17 @@ for (const path of envCandidates) {
         loadEnv({ path });
         break;
     }
+}
+
+const dsn = process.env.SENTRY_DSN?.trim();
+if (dsn) {
+    void import('@sentry/node').then((Sentry) => {
+        Sentry.init({
+            dsn,
+            environment: process.env.NODE_ENV ?? 'development',
+            tracesSampleRate: 0.05,
+        });
+    });
 }
 
 const bootstrapLogger = new Logger('Bootstrap');
@@ -44,7 +60,17 @@ function corsOriginOption(): false | string[] {
 }
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    app.use(helmet());
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        const headerId = req.headers['x-request-id'];
+        const id =
+            typeof headerId === 'string' && headerId.trim().length > 0
+                ? headerId.trim()
+                : randomUUID();
+        res.setHeader('x-request-id', id);
+        requestContext.run({ requestId: id }, () => next());
+    });
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,

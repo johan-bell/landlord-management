@@ -8,6 +8,8 @@ import {
 import { randomBytes } from 'node:crypto';
 import { OrgRole } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload';
+import { AuditService } from '../audit/audit.service';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from './organizations.service';
 
@@ -22,6 +24,8 @@ export class OrgTeamService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly organizationsService: OrganizationsService,
+        private readonly audit: AuditService,
+        private readonly email: EmailService,
     ) {}
 
     private async memberOrThrow(orgId: string, userId: string) {
@@ -140,13 +144,24 @@ export class OrgTeamService {
             }
         }
 
-        return this.prisma.organizationMember.update({
+        const updated = await this.prisma.organizationMember.update({
             where: { id: memberId },
             data: { role: newRole },
             include: {
                 user: { select: { id: true, email: true, name: true } },
             },
         });
+        if (actor.typ === 'staff') {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId: actor.userId,
+                action: 'member.role_update',
+                entityType: 'OrganizationMember',
+                entityId: memberId,
+                metadata: { newRole },
+            });
+        }
+        return updated;
     }
 
     async removeMember(orgId: string, memberId: string, actor: RequestUser) {
@@ -180,9 +195,19 @@ export class OrgTeamService {
             throw new BadRequestException('Cannot remove the last owner');
         }
 
-        return this.prisma.organizationMember.delete({
+        const removed = await this.prisma.organizationMember.delete({
             where: { id: memberId },
         });
+        if (actor.typ === 'staff') {
+            void this.audit.record({
+                organizationId: orgId,
+                actorUserId: actor.userId,
+                action: 'member.remove',
+                entityType: 'OrganizationMember',
+                entityId: memberId,
+            });
+        }
+        return removed;
     }
 
     async listInvitations(orgId: string, actor: RequestUser) {
@@ -289,7 +314,10 @@ export class OrgTeamService {
         }
         const inv = await this.prisma.organizationInvitation.findUnique({
             where: { token },
-            include: { organization: true },
+            include: {
+                organization: true,
+                createdBy: { select: { id: true, email: true } },
+            },
         });
         if (!inv || inv.expiresAt < new Date()) {
             throw new NotFoundException('Invalid or expired invitation');
@@ -327,6 +355,23 @@ export class OrgTeamService {
             });
             await tx.organizationInvitation.delete({ where: { id: inv.id } });
         });
+
+        void this.audit.record({
+            organizationId: inv.organizationId,
+            actorUserId: userId,
+            action: 'invitation.accept',
+            entityType: 'Organization',
+            entityId: inv.organizationId,
+            metadata: { role: inv.role },
+        });
+        const inviterEmail = inv.createdBy.email?.trim();
+        if (inviterEmail) {
+            void this.email.sendInvitationAcceptedToInviter({
+                to: inviterEmail,
+                organizationName: inv.organization.name,
+                inviteeEmail: user.email,
+            });
+        }
 
         return { organizationId: inv.organizationId, role: inv.role };
     }
