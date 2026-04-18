@@ -128,7 +128,8 @@ watch(
             </h1>
             <p class="mt-1 text-sm text-slate-600">
                 Tenant and landlord-originated tickets. Open a row to update
-                status and add an internal note.
+                status. The resolution note is shown to renters when the ticket
+                is resolved or closed.
             </p>
         </div>
 
@@ -359,7 +360,7 @@ watch(
                             v-model="editNote"
                             rows="4"
                             class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                            placeholder="Internal note or reply summary…"
+                            placeholder="Visible to the renter when status is RESOLVED or CLOSED…"
                         />
                     </label>
                     <div class="flex justify-end gap-2">

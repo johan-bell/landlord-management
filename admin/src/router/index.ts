@@ -81,6 +81,12 @@ const router = createRouter({
                     meta: { title: 'Team' },
                     component: () => import('../views/TeamView.vue'),
                 },
+                {
+                    path: 'support',
+                    name: 'support',
+                    meta: { title: 'Support' },
+                    component: () => import('../views/SupportRequestsView.vue'),
+                },
             ],
         },
     ],

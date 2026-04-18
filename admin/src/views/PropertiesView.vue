@@ -2,7 +2,6 @@
 import {
     BuildingOffice2Icon,
     CalendarDaysIcon,
-    HomeModernIcon,
     MapPinIcon,
     PencilSquareIcon,
     RectangleStackIcon,

@@ -9,6 +9,7 @@ import {
     ClipboardDocumentCheckIcon,
     ClockIcon,
     DocumentTextIcon,
+    LifebuoyIcon,
     Squares2X2Icon,
     UserGroupIcon,
     UsersIcon,
@@ -27,7 +28,8 @@ const NAV_ICON_COMPONENTS: Record<
     | 'file'
     | 'wallet'
     | 'receipt'
-    | 'team',
+    | 'team'
+    | 'support',
     Component
 > = {
     grid: Squares2X2Icon,
@@ -38,6 +40,7 @@ const NAV_ICON_COMPONENTS: Record<
     wallet: WalletIcon,
     receipt: ClipboardDocumentCheckIcon,
     team: UserGroupIcon,
+    support: LifebuoyIcon,
 };
 
 const route = useRoute();
@@ -104,6 +107,7 @@ const nav = computed(() => [
     { to: '/payments', label: 'Payments', icon: 'wallet' as const },
     { to: '/receipts', label: 'Receipts', icon: 'receipt' as const },
     { to: '/team', label: 'Team', icon: 'team' as const },
+    { to: '/support', label: 'Support', icon: 'support' as const },
 ]);
 
 function closeMobileNav() {

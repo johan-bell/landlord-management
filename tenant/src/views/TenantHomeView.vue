@@ -46,6 +46,8 @@ type SupportTicket = {
     message: string;
     status: string;
     createdAt: string;
+    closedAt: string | null;
+    resolutionNote: string | null;
     organization: { id: string; name: string } | null;
 };
 
@@ -1739,7 +1741,9 @@ onUnmounted(() => {
                         class="font-medium text-slate-600"
                         >Support request</span
                     >) for billing, access, or platform issues. Your landlord is
-                    still the first contact for unit-specific matters.
+                    still the first contact for unit-specific matters. When the
+                    platform team resolves your ticket, their reply appears
+                    below.
                 </p>
 
                 <div
@@ -1797,6 +1801,23 @@ onUnmounted(() => {
                             >
                                 {{ t.message }}
                             </p>
+                            <div
+                                v-if="
+                                    t.resolutionNote &&
+                                    (t.status === 'RESOLVED' ||
+                                        t.status === 'CLOSED')
+                                "
+                                class="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/90 px-3 py-2 text-xs leading-relaxed text-emerald-950"
+                            >
+                                <p
+                                    class="font-semibold text-emerald-900"
+                                >
+                                    Platform reply
+                                </p>
+                                <p class="mt-1 whitespace-pre-wrap">
+                                    {{ t.resolutionNote }}
+                                </p>
+                            </div>
                             <p class="mt-3 text-xs text-slate-400">
                                 {{ formatDate(t.createdAt) }}
                             </p>
