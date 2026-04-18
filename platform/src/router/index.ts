@@ -89,6 +89,12 @@ const router = createRouter({
                             component: () =>
                                 import('../views/platform-org/PlatformOrgSignupsView.vue'),
                         },
+                        {
+                            path: 'audit-log',
+                            name: 'organization-audit-log',
+                            component: () =>
+                                import('../views/platform-org/PlatformOrgAuditLogView.vue'),
+                        },
                     ],
                 },
             ],
