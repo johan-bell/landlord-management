@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { UsersIcon } from '@heroicons/vue/24/outline';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
 import type { Lease, Paginated, Renter } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
+import { useToastStore } from '../stores/toast';
 
 const { hasOrg, orgApi } = useOrgContext();
+const toast = useToastStore();
 
 const renters = ref<Renter[]>([]);
 const page = ref(1);
@@ -15,7 +20,6 @@ const search = ref('');
 const loading = ref(true);
 const error = ref<string | null>(null);
 const showAdd = ref(false);
-const copyMsg = ref<string | null>(null);
 const form = ref({
     fullName: '',
     phone: '',
@@ -30,13 +34,40 @@ const historyLoading = ref(false);
 const historyError = ref<string | null>(null);
 const historyLeases = ref<Lease[]>([]);
 
+const confirmRemoveRenter = ref<Renter | null>(null);
+
 const PAGE_SIZE = 20;
+
+const renterReliability = computed(() => {
+    if (!historyLeases.value.length) return null;
+    let total = 0;
+    let paid = 0;
+    let late = 0;
+    for (const lease of historyLeases.value) {
+        for (const p of lease.payments ?? []) {
+            if (p.status === 'CANCELLED') continue;
+            total++;
+            if (p.status === 'PAID') paid++;
+            if (p.status === 'LATE') late++;
+        }
+    }
+    if (total === 0) return null;
+    const rate = paid / total;
+    const grade =
+        rate >= 0.95
+            ? 'excellent'
+            : rate >= 0.8
+              ? 'good'
+              : rate >= 0.6
+                ? 'fair'
+                : 'poor';
+    return { total, paid, late, pending: total - paid - late, rate, grade };
+});
 
 async function load() {
     if (!hasOrg.value) return;
     loading.value = true;
     error.value = null;
-    copyMsg.value = null;
     try {
         const qs = new URLSearchParams({
             page: String(page.value),
@@ -61,19 +92,15 @@ function applySearch() {
 }
 
 async function copyTenantInvite(r: Renter) {
-    copyMsg.value = null;
     try {
         const res = await api<{ registerUrl: string }>(
             orgApi(`/renters/${r.id}/tenant-invite`),
-            {
-                method: 'POST',
-            },
+            { method: 'POST' },
         );
         await navigator.clipboard.writeText(res.registerUrl);
-        copyMsg.value = 'Invite link copied for ' + r.fullName;
+        toast.success(`Invite link copied for ${r.fullName}`);
     } catch (e) {
-        error.value =
-            e instanceof Error ? e.message : 'Could not create invite';
+        toast.error(e instanceof Error ? e.message : 'Could not create invite');
     }
 }
 
@@ -117,6 +144,7 @@ async function save() {
             initialPasswordConfirm: '',
         };
         showAdd.value = false;
+        toast.success(`${fullName} added`);
         await load();
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Save failed';
@@ -149,6 +177,19 @@ async function openHistory(r: Renter) {
     }
 }
 
+async function confirmRemove() {
+    const r = confirmRemoveRenter.value;
+    if (!r) return;
+    confirmRemoveRenter.value = null;
+    try {
+        await api(orgApi(`/renters/${r.id}`), { method: 'DELETE' });
+        toast.success(`${r.fullName} removed`);
+        await load();
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Delete failed');
+    }
+}
+
 function utilityPeriod(y: number, m: number) {
     return new Date(y, m - 1, 1).toLocaleDateString(undefined, {
         year: 'numeric',
@@ -162,14 +203,26 @@ function payStatusClass(s: string) {
     return 'bg-amber-50 text-amber-800 ring-amber-200';
 }
 
-async function remove(r: Renter) {
-    if (!confirm(`Remove ${r.fullName} from this organization?`)) return;
-    try {
-        await api(orgApi(`/renters/${r.id}`), { method: 'DELETE' });
-        await load();
-    } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Delete failed';
-    }
+function reliabilityColors(grade: string) {
+    if (grade === 'excellent')
+        return {
+            badge: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
+            bar: 'bg-emerald-500',
+        };
+    if (grade === 'good')
+        return {
+            badge: 'bg-sky-100 text-sky-800 ring-sky-200',
+            bar: 'bg-sky-500',
+        };
+    if (grade === 'fair')
+        return {
+            badge: 'bg-amber-100 text-amber-800 ring-amber-200',
+            bar: 'bg-amber-400',
+        };
+    return {
+        badge: 'bg-red-100 text-red-800 ring-red-200',
+        bar: 'bg-red-500',
+    };
 }
 
 onMounted(() => void load());
@@ -193,7 +246,7 @@ watch(page, () => void load());
                         v-model="search"
                         type="search"
                         placeholder="Search name, email, phone…"
-                        class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        class="min-w-50 rounded-xl border border-slate-200 px-3 py-2 text-sm"
                         @keydown.enter.prevent="applySearch"
                     />
                     <button
@@ -213,10 +266,12 @@ watch(page, () => void load());
                 </button>
             </div>
 
-            <p v-if="copyMsg" class="mb-2 text-sm text-emerald-700">
-                {{ copyMsg }}
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+                {{ error }}
             </p>
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
 
             <div
                 v-if="loading"
@@ -225,94 +280,97 @@ watch(page, () => void load());
                 Loading…
             </div>
 
-            <div
-                v-else
-                class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-                <table
-                    class="min-w-full divide-y divide-slate-200 text-left text-sm"
+            <template v-else>
+                <EmptyState
+                    v-if="!renters.length && !search"
+                    :icon="UsersIcon"
+                    title="No renters yet"
+                    description="Add your first renter to start assigning units and tracking rent."
+                    action-label="Add renter"
+                    @action="showAdd = true"
+                />
+
+                <div
+                    v-else
+                    class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
-                    <thead
-                        class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                    <table
+                        class="min-w-full divide-y divide-slate-200 text-left text-sm"
                     >
-                        <tr>
-                            <th class="px-4 py-3">Name</th>
-                            <th class="hidden px-4 py-3 sm:table-cell">
-                                Phone
-                            </th>
-                            <th class="hidden px-4 py-3 md:table-cell">
-                                Email
-                            </th>
-                            <th class="hidden px-4 py-3 lg:table-cell">
-                                Portal
-                            </th>
-                            <th class="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr
-                            v-for="r in renters"
-                            :key="r.id"
-                            class="hover:bg-slate-50/80"
+                        <thead
+                            class="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
                         >
-                            <td class="px-4 py-3 font-medium text-slate-900">
-                                {{ r.fullName }}
-                            </td>
-                            <td
-                                class="hidden px-4 py-3 text-slate-600 sm:table-cell"
+                            <tr>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="hidden px-4 py-3 sm:table-cell">Phone</th>
+                                <th class="hidden px-4 py-3 md:table-cell">Email</th>
+                                <th class="hidden px-4 py-3 lg:table-cell">Portal</th>
+                                <th class="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="r in renters"
+                                :key="r.id"
+                                class="hover:bg-slate-50/80"
                             >
-                                {{ r.phone ?? '—' }}
-                            </td>
-                            <td
-                                class="hidden px-4 py-3 text-slate-600 md:table-cell"
-                            >
-                                {{ r.email ?? '—' }}
-                            </td>
-                            <td class="hidden px-4 py-3 lg:table-cell">
-                                <span
-                                    v-if="r.userId"
-                                    class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200"
+                                <td class="px-4 py-3 font-medium text-slate-900">
+                                    {{ r.fullName }}
+                                </td>
+                                <td
+                                    class="hidden px-4 py-3 text-slate-600 sm:table-cell"
                                 >
-                                    Active
-                                </span>
-                                <span v-else class="text-xs text-slate-400"
-                                    >—</span
+                                    {{ r.phone ?? '—' }}
+                                </td>
+                                <td
+                                    class="hidden px-4 py-3 text-slate-600 md:table-cell"
                                 >
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <button
-                                    type="button"
-                                    class="mr-3 text-sm font-medium text-indigo-700 hover:underline"
-                                    @click="openHistory(r)"
-                                >
-                                    History
-                                </button>
-                                <button
-                                    v-if="r.email && !r.userId"
-                                    type="button"
-                                    class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
-                                    @click="copyTenantInvite(r)"
-                                >
-                                    Copy invite
-                                </button>
-                                <button
-                                    type="button"
-                                    class="text-sm font-medium text-red-600 hover:underline"
-                                    @click="remove(r)"
-                                >
-                                    Remove
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p
-                    v-if="!renters.length"
-                    class="px-4 py-10 text-center text-sm text-slate-500"
-                >
-                    No renters yet.
-                </p>
-            </div>
+                                    {{ r.email ?? '—' }}
+                                </td>
+                                <td class="hidden px-4 py-3 lg:table-cell">
+                                    <span
+                                        v-if="r.userId"
+                                        class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200"
+                                    >
+                                        Active
+                                    </span>
+                                    <span v-else class="text-xs text-slate-400">—</span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <button
+                                        type="button"
+                                        class="mr-3 text-sm font-medium text-indigo-700 hover:underline"
+                                        @click="openHistory(r)"
+                                    >
+                                        History
+                                    </button>
+                                    <button
+                                        v-if="r.email && !r.userId"
+                                        type="button"
+                                        class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
+                                        @click="copyTenantInvite(r)"
+                                    >
+                                        Copy invite
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="text-sm font-medium text-red-600 hover:underline"
+                                        @click="confirmRemoveRenter = r"
+                                    >
+                                        Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p
+                        v-if="renters.length === 0 && search"
+                        class="px-4 py-10 text-center text-sm text-slate-500"
+                    >
+                        No renters match your search.
+                    </p>
+                </div>
+            </template>
 
             <div
                 v-if="!loading && totalPages > 1"
@@ -337,6 +395,16 @@ watch(page, () => void load());
                 </button>
             </div>
 
+            <ConfirmDialog
+                :open="confirmRemoveRenter !== null"
+                title="Remove renter"
+                :message="`Remove ${confirmRemoveRenter?.fullName ?? 'this renter'} from the organization? This does not delete their lease history.`"
+                confirm-label="Remove"
+                danger
+                @update:open="(v) => { if (!v) confirmRemoveRenter = null; }"
+                @confirm="confirmRemove"
+            />
+
             <Teleport to="body">
                 <div
                     v-if="historyRenter"
@@ -350,19 +418,46 @@ watch(page, () => void load());
                         <div
                             class="shrink-0 border-b border-slate-100 px-5 py-4 sm:px-6"
                         >
-                            <h3 class="text-lg font-semibold text-slate-900">
-                                Payment history
-                            </h3>
-                            <p class="mt-0.5 text-sm text-slate-600">
-                                {{ historyRenter.fullName }}
-                                <span
-                                    v-if="historyRenter.email"
-                                    class="text-slate-500"
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-900">
+                                        Payment history
+                                    </h3>
+                                    <p class="mt-0.5 text-sm text-slate-600">
+                                        {{ historyRenter.fullName }}
+                                        <span v-if="historyRenter.email" class="text-slate-500">
+                                            · {{ historyRenter.email }}
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div
+                                    v-if="renterReliability"
+                                    class="flex flex-col items-end gap-1.5"
                                 >
-                                    · {{ historyRenter.email }}</span
-                                >
-                            </p>
+                                    <span
+                                        class="inline-flex rounded-full px-3 py-0.5 text-xs font-semibold capitalize ring-1"
+                                        :class="reliabilityColors(renterReliability.grade).badge"
+                                    >
+                                        {{ renterReliability.grade }} payer
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+                                            <div
+                                                class="h-full rounded-full transition-all"
+                                                :class="reliabilityColors(renterReliability.grade).bar"
+                                                :style="{ width: `${Math.round(renterReliability.rate * 100)}%` }"
+                                            />
+                                        </div>
+                                        <span class="text-xs text-slate-500 tabular-nums">
+                                            {{ Math.round(renterReliability.rate * 100) }}% on time
+                                            ({{ renterReliability.paid }}/{{ renterReliability.total }})
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
                             <div
                                 v-if="historyLoading"
@@ -370,15 +465,14 @@ watch(page, () => void load());
                             >
                                 Loading…
                             </div>
-                            <p
-                                v-else-if="historyError"
-                                class="text-sm text-red-600"
-                            >
+                            <p v-else-if="historyError" class="text-sm text-red-600">
                                 {{ historyError }}
                             </p>
-                            <div v-else-if="!historyLeases.length" class="py-8 text-center text-sm text-slate-500">
-                                No leases yet — add a lease to see rent and
-                                utility charges.
+                            <div
+                                v-else-if="!historyLeases.length"
+                                class="py-8 text-center text-sm text-slate-500"
+                            >
+                                No leases yet — add a lease to see rent and utility charges.
                             </div>
                             <div v-else class="space-y-8">
                                 <section
@@ -387,19 +481,12 @@ watch(page, () => void load());
                                     class="rounded-xl border border-slate-200 bg-slate-50/50 p-4"
                                 >
                                     <p class="text-sm font-semibold text-slate-900">
-                                        {{ lease.unit.property.name }} ·
-                                        {{ lease.unit.label }}
+                                        {{ lease.unit.property.name }} · {{ lease.unit.label }}
                                     </p>
                                     <p class="mt-1 text-xs text-slate-500">
-                                        Lease {{ formatDate(lease.startDate) }}
-                                        —
-                                        {{
-                                            lease.endDate
-                                                ? formatDate(lease.endDate)
-                                                : 'Ongoing'
-                                        }}
-                                        · Rent
-                                        {{ formatMoney(lease.rentAmount, lease.currency) }}/mo
+                                        Lease {{ formatDate(lease.startDate) }} —
+                                        {{ lease.endDate ? formatDate(lease.endDate) : 'Ongoing' }}
+                                        · Rent {{ formatMoney(lease.rentAmount, lease.currency) }}/mo
                                     </p>
 
                                     <h4
@@ -415,18 +502,10 @@ watch(page, () => void load());
                                         >
                                             <thead class="bg-slate-50 text-slate-500">
                                                 <tr>
-                                                    <th class="px-3 py-2 font-medium">
-                                                        Due
-                                                    </th>
-                                                    <th class="px-3 py-2 font-medium">
-                                                        Amount
-                                                    </th>
-                                                    <th class="px-3 py-2 font-medium">
-                                                        Status
-                                                    </th>
-                                                    <th class="px-3 py-2 font-medium">
-                                                        Paid at
-                                                    </th>
+                                                    <th class="px-3 py-2 font-medium">Due</th>
+                                                    <th class="px-3 py-2 font-medium">Amount</th>
+                                                    <th class="px-3 py-2 font-medium">Status</th>
+                                                    <th class="px-3 py-2 font-medium">Paid at</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100">
@@ -437,49 +516,24 @@ watch(page, () => void load());
                                                     <td class="px-3 py-2 text-slate-700">
                                                         {{ formatDate(p.dueDate) }}
                                                     </td>
-                                                    <td
-                                                        class="px-3 py-2 font-medium tabular-nums text-slate-900"
-                                                    >
-                                                        {{
-                                                            formatMoney(
-                                                                p.amount,
-                                                                p.currency,
-                                                            )
-                                                        }}
+                                                    <td class="px-3 py-2 font-medium tabular-nums text-slate-900">
+                                                        {{ formatMoney(p.amount, p.currency) }}
                                                     </td>
                                                     <td class="px-3 py-2">
                                                         <span
                                                             class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
-                                                            :class="
-                                                                payStatusClass(
-                                                                    p.status,
-                                                                )
-                                                            "
-                                                            >{{ p.status }}</span
-                                                        >
+                                                            :class="payStatusClass(p.status)"
+                                                        >{{ p.status }}</span>
                                                     </td>
-                                                    <td
-                                                        class="px-3 py-2 text-slate-500"
-                                                    >
-                                                        {{
-                                                            p.paidAt
-                                                                ? formatDateTime(
-                                                                      p.paidAt,
-                                                                  )
-                                                                : '—'
-                                                        }}
+                                                    <td class="px-3 py-2 text-slate-500">
+                                                        {{ p.paidAt ? formatDateTime(p.paidAt) : '—' }}
                                                     </td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </div>
 
-                                    <template
-                                        v-if="
-                                            (lease.utilityBills ?? []).length >
-                                            0
-                                        "
-                                    >
+                                    <template v-if="(lease.utilityBills ?? []).length > 0">
                                         <h4
                                             class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500"
                                         >
@@ -491,107 +545,41 @@ watch(page, () => void load());
                                             <table
                                                 class="min-w-full divide-y divide-slate-100 text-left text-xs"
                                             >
-                                                <thead
-                                                    class="bg-slate-50 text-slate-500"
-                                                >
+                                                <thead class="bg-slate-50 text-slate-500">
                                                     <tr>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Period
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Kind
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Due
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Amount
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Status
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-2 font-medium"
-                                                        >
-                                                            Paid at
-                                                        </th>
+                                                        <th class="px-3 py-2 font-medium">Period</th>
+                                                        <th class="px-3 py-2 font-medium">Kind</th>
+                                                        <th class="px-3 py-2 font-medium">Due</th>
+                                                        <th class="px-3 py-2 font-medium">Amount</th>
+                                                        <th class="px-3 py-2 font-medium">Status</th>
+                                                        <th class="px-3 py-2 font-medium">Paid at</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody
-                                                    class="divide-y divide-slate-100"
-                                                >
+                                                <tbody class="divide-y divide-slate-100">
                                                     <tr
-                                                        v-for="b in lease.utilityBills ??
-                                                        []"
+                                                        v-for="b in lease.utilityBills ?? []"
                                                         :key="b.id"
                                                     >
-                                                        <td
-                                                            class="px-3 py-2 text-slate-700"
-                                                        >
-                                                            {{
-                                                                utilityPeriod(
-                                                                    b.year,
-                                                                    b.month,
-                                                                )
-                                                            }}
+                                                        <td class="px-3 py-2 text-slate-700">
+                                                            {{ utilityPeriod(b.year, b.month) }}
                                                         </td>
-                                                        <td
-                                                            class="px-3 py-2 text-slate-600"
-                                                        >
+                                                        <td class="px-3 py-2 text-slate-600">
                                                             {{ b.kind }}
                                                         </td>
-                                                        <td
-                                                            class="px-3 py-2 text-slate-700"
-                                                        >
-                                                            {{
-                                                                formatDate(
-                                                                    b.dueDate,
-                                                                )
-                                                            }}
+                                                        <td class="px-3 py-2 text-slate-700">
+                                                            {{ formatDate(b.dueDate) }}
                                                         </td>
-                                                        <td
-                                                            class="px-3 py-2 font-medium tabular-nums text-slate-900"
-                                                        >
-                                                            {{
-                                                                formatMoney(
-                                                                    b.amount,
-                                                                    b.currency,
-                                                                )
-                                                            }}
+                                                        <td class="px-3 py-2 font-medium tabular-nums text-slate-900">
+                                                            {{ formatMoney(b.amount, b.currency) }}
                                                         </td>
                                                         <td class="px-3 py-2">
                                                             <span
                                                                 class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
-                                                                :class="
-                                                                    payStatusClass(
-                                                                        b.status,
-                                                                    )
-                                                                "
-                                                                >{{
-                                                                    b.status
-                                                                }}</span
-                                                            >
+                                                                :class="payStatusClass(b.status)"
+                                                            >{{ b.status }}</span>
                                                         </td>
-                                                        <td
-                                                            class="px-3 py-2 text-slate-500"
-                                                        >
-                                                            {{
-                                                                b.paidAt
-                                                                    ? formatDateTime(
-                                                                          b.paidAt,
-                                                                      )
-                                                                    : '—'
-                                                            }}
+                                                        <td class="px-3 py-2 text-slate-500">
+                                                            {{ b.paidAt ? formatDateTime(b.paidAt) : '—' }}
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -601,9 +589,8 @@ watch(page, () => void load());
                                 </section>
                             </div>
                         </div>
-                        <div
-                            class="shrink-0 border-t border-slate-100 px-5 py-3 sm:px-6"
-                        >
+
+                        <div class="shrink-0 border-t border-slate-100 px-5 py-3 sm:px-6">
                             <button
                                 type="button"
                                 class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -635,9 +622,7 @@ watch(page, () => void load());
                             />
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium"
-                                >Phone (optional)</span
-                            >
+                            <span class="text-sm font-medium">Phone (optional)</span>
                             <input
                                 v-model="form.phone"
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
@@ -651,15 +636,12 @@ watch(page, () => void load());
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
                                 autocomplete="off"
                             />
-                            <span class="mt-1 block text-xs text-slate-500"
-                                >Required if you set a portal password
-                                below.</span
-                            >
+                            <span class="mt-1 block text-xs text-slate-500">
+                                Required if you set a portal password below.
+                            </span>
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium"
-                                >Initial portal password</span
-                            >
+                            <span class="text-sm font-medium">Initial portal password</span>
                             <input
                                 v-model="form.initialPassword"
                                 type="password"
@@ -670,9 +652,7 @@ watch(page, () => void load());
                             />
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium"
-                                >Confirm password</span
-                            >
+                            <span class="text-sm font-medium">Confirm password</span>
                             <input
                                 v-model="form.initialPasswordConfirm"
                                 type="password"
@@ -681,10 +661,13 @@ watch(page, () => void load());
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
                             />
                         </label>
+                        <p v-if="error" class="mt-3 text-sm text-red-600">
+                            {{ error }}
+                        </p>
                         <div class="mt-6 flex justify-end gap-2">
                             <button
                                 type="button"
-                                class="rounded-xl px-4 py-2 text-sm text-slate-600"
+                                class="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
                                 @click="showAdd = false"
                             >
                                 Cancel

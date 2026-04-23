@@ -20,12 +20,12 @@ The seed script (`api/prisma/seed.ts`) loads JSON fixtures from `api/prisma/seed
 
 ### Demo accounts (after `prisma db seed`)
 
-| App        | Email                         | Password           | Notes                                      |
-|------------|-------------------------------|--------------------|--------------------------------------------|
-| Admin      | `owner@demo.landlord.local`   | `DemoLandlord123!` | Org **Owner** (e.g. Douala Rentals Demo)   |
-| Admin      | `manager@demo.landlord.local` | `DemoLandlord123!` | Org **Manager**                            |
-| Platform   | `platform@landlord.local`    | `PlatformDev123!`  | `isPlatformAdmin` — **not** the org Owner |
-| Tenant     | `jean.mbarga@example.com`    | `DemoTenant123!`   | Linked to seeded renter Jean Mbarga        |
+| App      | Email                         | Password           | Notes                                     |
+| -------- | ----------------------------- | ------------------ | ----------------------------------------- |
+| Admin    | `owner@demo.landlord.local`   | `DemoLandlord123!` | Org **Owner** (e.g. Douala Rentals Demo)  |
+| Admin    | `manager@demo.landlord.local` | `DemoLandlord123!` | Org **Manager**                           |
+| Platform | `platform@landlord.local`     | `PlatformDev123!`  | `isPlatformAdmin` — **not** the org Owner |
+| Tenant   | `jean.mbarga@example.com`     | `DemoTenant123!`   | Linked to seeded renter Jean Mbarga       |
 
 The seed run also prints these lines to the console.
 
@@ -82,13 +82,13 @@ npx prisma migrate dev --name describe_your_change
 
 ## Files and configuration
 
-| Path | Role |
-|------|------|
-| `api/prisma/schema.prisma` | Data model |
-| `api/prisma/migrations/` | SQL migrations (source of truth for schema history) |
-| `api/prisma.config.ts` | Prisma config, including **seed command**: `tsx prisma/seed.ts` |
-| `api/prisma/seed.ts` | Seed implementation |
-| `api/prisma/seed-data/*.json` | Fixture data (IDs use `seed_` prefix) |
+| Path                          | Role                                                            |
+| ----------------------------- | --------------------------------------------------------------- |
+| `api/prisma/schema.prisma`    | Data model                                                      |
+| `api/prisma/migrations/`      | SQL migrations (source of truth for schema history)             |
+| `api/prisma.config.ts`        | Prisma config, including **seed command**: `tsx prisma/seed.ts` |
+| `api/prisma/seed.ts`          | Seed implementation                                             |
+| `api/prisma/seed-data/*.json` | Fixture data (IDs use `seed_` prefix)                           |
 
 New migrations (e.g. tenant signup requests) are applied with `npx prisma migrate deploy` from `api/`.
 

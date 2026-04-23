@@ -282,4 +282,36 @@ export class EmailService {
             );
         }
     }
+
+    async sendLeaseExpiryAlert(params: {
+        to: string | null | undefined;
+        organizationName: string;
+        renterName: string;
+        unitLabel: string;
+        expiryDate: string;
+        daysUntilExpiry: number;
+    }): Promise<void> {
+        const to = params.to?.trim();
+        if (!to || !this.transporter) {
+            return;
+        }
+        try {
+            await this.transporter.sendMail({
+                from: this.fromAddress(),
+                to,
+                subject: `Lease expiring in ${params.daysUntilExpiry} days — ${params.organizationName}`,
+                text: [
+                    `This is an advance notice that the lease for ${params.renterName} (${params.unitLabel}) in ${params.organizationName} expires on ${params.expiryDate}.`,
+                    '',
+                    `Days remaining: ${params.daysUntilExpiry}`,
+                    '',
+                    'Sign in to the admin panel to review or renew this lease.',
+                ].join('\n'),
+            });
+        } catch (err) {
+            this.logger.warn(
+                `Failed to send lease expiry alert to ${to}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+        }
+    }
 }

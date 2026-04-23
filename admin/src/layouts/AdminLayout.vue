@@ -6,6 +6,8 @@ import { storeToRefs } from 'pinia';
 import {
     Bars3Icon,
     BuildingOffice2Icon,
+    ChevronDoubleLeftIcon,
+    ChevronDoubleRightIcon,
     ClipboardDocumentCheckIcon,
     ClipboardDocumentListIcon,
     ClockIcon,
@@ -20,6 +22,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { useOrgStore } from '../stores/org';
 import AdminHeaderProfileMenu from '../components/AdminHeaderProfileMenu.vue';
+import ToastNotifications from '../components/ToastNotifications.vue';
 import { setAdminLocale } from '../i18n';
 import { orgRoleHint, orgRoleLabel } from '../lib/orgRoles';
 
@@ -61,6 +64,9 @@ const {
 } = storeToRefs(orgStore);
 
 const mobileNavOpen = ref(false);
+const sidebarCollapsed = ref(
+    localStorage.getItem('lm_sidebar_collapsed') === 'true',
+);
 
 const pageTitle = computed(() => (route.meta.title as string) ?? 'Admin');
 
@@ -105,6 +111,9 @@ function logout() {
 }
 
 const nav = computed(() => {
+    const role = selectedOrgMyRole.value;
+    const isElevated = role === 'OWNER' || role === 'MANAGER';
+
     const items: {
         to: string;
         label: string;
@@ -113,24 +122,17 @@ const nav = computed(() => {
         { to: '/', label: t('nav.overview'), icon: 'grid' },
         { to: '/properties', label: t('nav.properties'), icon: 'building' },
         { to: '/renters', label: t('nav.renters'), icon: 'users' },
-        {
-            to: '/tenant-signups',
-            label: t('nav.tenantSignups'),
-            icon: 'clock',
-        },
+        { to: '/tenant-signups', label: t('nav.tenantSignups'), icon: 'clock' },
         { to: '/leases', label: t('nav.leases'), icon: 'file' },
         { to: '/payments', label: t('nav.payments'), icon: 'wallet' },
         { to: '/receipts', label: t('nav.receipts'), icon: 'receipt' },
-        { to: '/team', label: t('nav.team'), icon: 'team' },
     ];
-    const role = selectedOrgMyRole.value;
-    if (role === 'OWNER' || role === 'MANAGER') {
-        items.push({
-            to: '/audit-log',
-            label: t('nav.auditLog'),
-            icon: 'audit',
-        });
+
+    if (isElevated) {
+        items.push({ to: '/team', label: t('nav.team'), icon: 'team' });
+        items.push({ to: '/audit-log', label: t('nav.auditLog'), icon: 'audit' });
     }
+
     items.push({ to: '/support', label: t('nav.support'), icon: 'support' });
     return items;
 });
@@ -144,6 +146,14 @@ function onLocaleChange(ev: Event) {
 
 function closeMobileNav() {
     mobileNavOpen.value = false;
+}
+
+function toggleSidebar() {
+    sidebarCollapsed.value = !sidebarCollapsed.value;
+    localStorage.setItem(
+        'lm_sidebar_collapsed',
+        String(sidebarCollapsed.value),
+    );
 }
 
 watch(
@@ -169,33 +179,47 @@ onMounted(() => {
 
         <aside
             :class="[
-                'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-800/80 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-xl transition-transform duration-200 lg:translate-x-0',
+                'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-800/80 bg-linear-to-b from-slate-900 via-slate-900 to-slate-950 shadow-xl transition-all duration-200 lg:translate-x-0',
+                sidebarCollapsed ? 'w-16' : 'w-72',
                 mobileNavOpen
                     ? 'translate-x-0'
                     : '-translate-x-full lg:translate-x-0',
             ]"
         >
             <div
-                class="flex h-16 items-center gap-3 border-b border-white/10 px-5"
+                class="flex h-16 items-center gap-3 border-b border-white/10 px-4"
+                :class="sidebarCollapsed ? 'justify-center' : 'px-5'"
             >
                 <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-lg font-bold text-white shadow-lg shadow-emerald-900/40"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-teal-600 text-lg font-bold text-white shadow-lg shadow-emerald-900/40"
                 >
                     LM
                 </div>
-                <div>
-                    <p
-                        class="text-xs font-medium uppercase tracking-wider text-slate-400"
-                    >
-                        Console
-                    </p>
-                    <p class="text-sm font-semibold text-white">
-                        Landlord Admin
-                    </p>
-                </div>
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 -translate-x-2"
+                    enter-to-class="opacity-100 translate-x-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <div v-if="!sidebarCollapsed">
+                        <p
+                            class="text-xs font-medium uppercase tracking-wider text-slate-400"
+                        >
+                            Console
+                        </p>
+                        <p class="text-sm font-semibold text-white">
+                            Landlord Admin
+                        </p>
+                    </div>
+                </Transition>
             </div>
 
-            <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+            <nav
+                class="flex-1 space-y-1 overflow-y-auto py-4"
+                :class="sidebarCollapsed ? 'px-2' : 'px-3'"
+            >
                 <RouterLink
                     v-for="item in nav"
                     :key="item.to"
@@ -203,6 +227,8 @@ onMounted(() => {
                     end
                     class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition duration-150 hover:bg-white/5 hover:text-white"
                     active-class="!bg-white/10 !text-white shadow-inner ring-1 ring-white/10"
+                    :title="sidebarCollapsed ? item.label : undefined"
+                    :class="sidebarCollapsed ? 'justify-center px-2' : ''"
                 >
                     <span
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/5 text-slate-400 group-[.router-link-active]:bg-emerald-500/20 group-[.router-link-active]:text-emerald-400"
@@ -213,28 +239,59 @@ onMounted(() => {
                             aria-hidden="true"
                         />
                     </span>
-                    {{ item.label }}
+                    <span v-if="!sidebarCollapsed">{{ item.label }}</span>
                 </RouterLink>
             </nav>
 
-            <div class="border-t border-white/10 p-4">
-                <label class="mb-2 block text-xs text-slate-500">
-                    Language
-                    <select
-                        class="mt-1 w-full rounded-lg border border-white/10 bg-slate-800/80 px-2 py-1.5 text-sm text-white"
-                        :value="locale"
-                        @change="onLocaleChange"
-                    >
-                        <option value="en">{{ t('locale.en') }}</option>
-                        <option value="fr">{{ t('locale.fr') }}</option>
-                    </select>
-                </label>
-                <p class="text-xs text-slate-500">Property & rent operations</p>
-                <p class="mt-1 text-xs text-slate-400">v0.1 · local dev</p>
+            <div
+                class="border-t border-white/10 p-4"
+                :class="sidebarCollapsed ? 'px-2' : ''"
+            >
+                <template v-if="!sidebarCollapsed">
+                    <label class="mb-2 block text-xs text-slate-500">
+                        Language
+                        <select
+                            class="mt-1 w-full rounded-lg border border-white/10 bg-slate-800/80 px-2 py-1.5 text-sm text-white"
+                            :value="locale"
+                            @change="onLocaleChange"
+                        >
+                            <option value="en">{{ t('locale.en') }}</option>
+                            <option value="fr">{{ t('locale.fr') }}</option>
+                        </select>
+                    </label>
+                    <p class="text-xs text-slate-500">
+                        Property & rent operations
+                    </p>
+                    <p class="mt-1 text-xs text-slate-400">v0.1 · local dev</p>
+                </template>
+                <button
+                    type="button"
+                    class="mt-3 flex w-full items-center justify-center rounded-lg py-2 text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+                    :aria-label="
+                        sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+                    "
+                    @click="toggleSidebar"
+                >
+                    <ChevronDoubleLeftIcon
+                        v-if="!sidebarCollapsed"
+                        class="h-4 w-4"
+                        aria-hidden="true"
+                    />
+                    <ChevronDoubleRightIcon
+                        v-else
+                        class="h-4 w-4"
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
         </aside>
 
-        <div class="lg:pl-72">
+        <div
+            :class="[
+                'transition-all duration-200',
+                sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-72',
+            ]"
+        >
             <header
                 class="sticky top-0 z-30 flex min-h-16 flex-col gap-3 border-b border-slate-200/70 bg-white/85 px-4 py-3 shadow-sm shadow-slate-200/30 backdrop-blur-lg sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
@@ -316,6 +373,8 @@ onMounted(() => {
             </main>
         </div>
     </div>
+
+    <ToastNotifications />
 </template>
 
 <style scoped>

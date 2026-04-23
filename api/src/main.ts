@@ -8,6 +8,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { requestContext } from './common/request-context';
 
 const envCandidates = [
@@ -79,6 +80,7 @@ async function bootstrap() {
             transformOptions: { enableImplicitConversion: true },
         }),
     );
+    app.useGlobalFilters(new PrismaExceptionFilter());
     const corsOrigins = corsOriginOption();
     if (corsOrigins === false) {
         bootstrapLogger.warn(
