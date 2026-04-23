@@ -6,9 +6,11 @@ import { useOrgContext } from '../composables/useOrgContext';
 import { formatDate, formatDateTime, formatMoney } from '../composables/format';
 import type { LeaseUtilityBill, Payment } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import { useToastStore } from '../stores/toast';
 
 const { hasOrg, orgApi } = useOrgContext();
 const canVerify = useOrgElevatedAccess();
+const toast = useToastStore();
 
 type PendingPayment = Payment & {
     lease: {
@@ -33,6 +35,13 @@ const error = ref<string | null>(null);
 const payments = ref<PendingPayment[]>([]);
 const utilityBills = ref<PendingUtility[]>([]);
 const busyId = ref<string | null>(null);
+
+const rejectModal = ref<{
+    open: boolean;
+    kind: 'payment' | 'utility';
+    item: PendingPayment | PendingUtility | null;
+    note: string;
+}>({ open: false, kind: 'payment', item: null, note: '' });
 
 async function load() {
     if (!hasOrg.value) return;
@@ -66,30 +75,17 @@ async function approveRent(p: PendingPayment) {
     error.value = null;
     try {
         await api(orgApi(`/proofs/payments/${p.id}/approve`), { method: 'POST' });
+        toast.success('Receipt approved');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Approve failed';
+        toast.error(e instanceof Error ? e.message : 'Approve failed');
     } finally {
         busyId.value = null;
     }
 }
 
-async function rejectRent(p: PendingPayment) {
-    const note = window.prompt('Optional note to the tenant (shown in the portal):');
-    if (note === null) return;
-    busyId.value = p.id;
-    error.value = null;
-    try {
-        await api(orgApi(`/proofs/payments/${p.id}/reject`), {
-            method: 'POST',
-            body: JSON.stringify({ note: note.trim() || undefined }),
-        });
-        await load();
-    } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Reject failed';
-    } finally {
-        busyId.value = null;
-    }
+function openRejectPayment(p: PendingPayment) {
+    rejectModal.value = { open: true, kind: 'payment', item: p, note: '' };
 }
 
 async function approveUtility(b: PendingUtility) {
@@ -99,27 +95,41 @@ async function approveUtility(b: PendingUtility) {
         await api(orgApi(`/proofs/utility-bills/${b.id}/approve`), {
             method: 'POST',
         });
+        toast.success('Receipt approved');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Approve failed';
+        toast.error(e instanceof Error ? e.message : 'Approve failed');
     } finally {
         busyId.value = null;
     }
 }
 
-async function rejectUtility(b: PendingUtility) {
-    const note = window.prompt('Optional note to the tenant (shown in the portal):');
-    if (note === null) return;
-    busyId.value = b.id;
-    error.value = null;
+function openRejectUtility(b: PendingUtility) {
+    rejectModal.value = { open: true, kind: 'utility', item: b, note: '' };
+}
+
+async function submitReject() {
+    const { item, kind, note } = rejectModal.value;
+    if (!item) return;
+    busyId.value = item.id;
     try {
-        await api(orgApi(`/proofs/utility-bills/${b.id}/reject`), {
-            method: 'POST',
-            body: JSON.stringify({ note: note.trim() || undefined }),
-        });
+        const body = JSON.stringify({ note: note.trim() || undefined });
+        if (kind === 'payment') {
+            await api(orgApi(`/proofs/payments/${item.id}/reject`), {
+                method: 'POST',
+                body,
+            });
+        } else {
+            await api(orgApi(`/proofs/utility-bills/${item.id}/reject`), {
+                method: 'POST',
+                body,
+            });
+        }
+        rejectModal.value.open = false;
+        toast.success('Receipt rejected');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Reject failed';
+        toast.error(e instanceof Error ? e.message : 'Reject failed');
     } finally {
         busyId.value = null;
     }
@@ -158,7 +168,12 @@ watch(hasOrg, () => void load());
                 </template>
             </p>
 
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+                {{ error }}
+            </p>
 
             <div
                 v-if="loading"
@@ -225,7 +240,7 @@ watch(hasOrg, () => void load());
                                     type="button"
                                     class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                                     :disabled="busyId === p.id"
-                                    @click="rejectRent(p)"
+                                    @click="openRejectPayment(p)"
                                 >
                                     Reject
                                 </button>
@@ -300,7 +315,7 @@ watch(hasOrg, () => void load());
                                     type="button"
                                     class="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                                     :disabled="busyId === b.id"
-                                    @click="rejectUtility(b)"
+                                    @click="openRejectUtility(b)"
                                 >
                                     Reject
                                 </button>
@@ -310,5 +325,72 @@ watch(hasOrg, () => void load());
                 </section>
             </div>
         </template>
+
+        <Teleport to="body">
+            <Transition
+                enter-active-class="duration-150 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="duration-100 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="rejectModal.open"
+                    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="reject-modal-title"
+                >
+                    <div
+                        class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        @click="rejectModal.open = false"
+                    />
+                    <div
+                        class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl shadow-slate-900/20 ring-1 ring-slate-200/60"
+                    >
+                        <h3
+                            id="reject-modal-title"
+                            class="text-base font-semibold text-slate-900"
+                        >
+                            Reject receipt
+                        </h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-slate-600">
+                            Optionally explain why to the tenant. This note will
+                            appear in their portal.
+                        </p>
+                        <label class="mt-4 block">
+                            <span class="text-sm font-medium text-slate-700"
+                                >Note <span class="font-normal text-slate-500">(optional)</span></span
+                            >
+                            <textarea
+                                v-model="rejectModal.note"
+                                rows="3"
+                                class="mt-1.5 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/20"
+                                placeholder="e.g. Receipt is blurry, please re-upload a clear photo."
+                                autofocus
+                            />
+                        </label>
+                        <div class="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                @click="rejectModal.open = false"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                :disabled="!!busyId"
+                                @click="submitReject"
+                            >
+                                {{ busyId ? 'Rejecting…' : 'Reject receipt' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>

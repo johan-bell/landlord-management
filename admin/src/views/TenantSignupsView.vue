@@ -5,6 +5,8 @@ import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
 import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
+import { useToastStore } from '../stores/toast';
 
 type SignupRow = {
     id: string;
@@ -21,11 +23,11 @@ type SignupRow = {
 
 const { hasOrg, orgApi, selectedOrgId } = useOrgContext();
 const canDecideSignups = useOrgElevatedAccess();
+const toast = useToastStore();
 
 const rows = ref<SignupRow[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const actionError = ref<string | null>(null);
 
 const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
     [],
@@ -40,7 +42,10 @@ const form = ref({
     currency: 'XAF',
     prepaidMonths: '0',
 });
+const formError = ref<string | null>(null);
 const saving = ref(false);
+
+const confirmRejectRow = ref<SignupRow | null>(null);
 
 async function loadSignups() {
     if (!hasOrg.value) return;
@@ -82,7 +87,7 @@ async function load() {
 }
 
 function openApprove(row: SignupRow) {
-    actionError.value = null;
+    formError.value = null;
     form.value = {
         unitId: '',
         startDate: new Date().toISOString().slice(0, 10),
@@ -99,11 +104,11 @@ async function submitApprove() {
     if (!row) return;
     const rent = Number.parseFloat(form.value.rentAmount);
     if (!form.value.unitId || Number.isNaN(rent)) {
-        actionError.value = 'Choose a unit and enter rent.';
+        formError.value = 'Choose a unit and enter rent.';
         return;
     }
     saving.value = true;
-    actionError.value = null;
+    formError.value = null;
     try {
         const prepaid = Number.parseInt(form.value.prepaidMonths, 10);
         await api(orgApi(`/tenant-signups/${row.id}/approve`), {
@@ -120,24 +125,28 @@ async function submitApprove() {
             }),
         });
         showApprove.value = null;
+        toast.success(`${row.user.email} approved and lease created`);
         await load();
     } catch (e) {
-        actionError.value = e instanceof Error ? e.message : 'Approve failed';
+        formError.value = e instanceof Error ? e.message : 'Approve failed';
     } finally {
         saving.value = false;
     }
 }
 
-async function reject(row: SignupRow) {
-    if (!confirm(`Reject signup for ${row.user.email}?`)) return;
-    actionError.value = null;
+async function doReject() {
+    const row = confirmRejectRow.value;
+    if (!row) return;
     try {
         await api(orgApi(`/tenant-signups/${row.id}/reject`), {
             method: 'POST',
         });
+        toast.success(`Signup for ${row.user.email} rejected`);
         await load();
     } catch (e) {
-        actionError.value = e instanceof Error ? e.message : 'Reject failed';
+        toast.error(e instanceof Error ? e.message : 'Reject failed');
+    } finally {
+        confirmRejectRow.value = null;
     }
 }
 
@@ -169,9 +178,11 @@ watch([hasOrg, selectedOrgId], () => void load());
                 </p>
             </div>
 
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
-            <p v-if="actionError" class="mb-4 text-sm text-red-600">
-                {{ actionError }}
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+                {{ error }}
             </p>
 
             <div
@@ -231,7 +242,7 @@ watch([hasOrg, selectedOrgId], () => void load());
                                     <button
                                         type="button"
                                         class="text-sm font-medium text-red-600 hover:underline"
-                                        @click="reject(r)"
+                                        @click="confirmRejectRow = r"
                                     >
                                         Reject
                                     </button>
@@ -254,7 +265,7 @@ watch([hasOrg, selectedOrgId], () => void load());
             <Teleport to="body">
                 <div
                     v-if="showApprove"
-                    class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showApprove = null"
                 >
                     <div
@@ -353,8 +364,11 @@ watch([hasOrg, selectedOrgId], () => void load());
                                 >
                             </label>
                         </div>
-                        <p v-if="actionError" class="mt-3 text-sm text-red-600">
-                            {{ actionError }}
+                        <p
+                            v-if="formError"
+                            class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                        >
+                            {{ formError }}
                         </p>
                         <div class="mt-6 flex justify-end gap-2">
                             <button
@@ -381,5 +395,15 @@ watch([hasOrg, selectedOrgId], () => void load());
                 </div>
             </Teleport>
         </template>
+
+        <ConfirmDialog
+            :open="!!confirmRejectRow"
+            title="Reject signup"
+            :message="`Reject the signup request from ${confirmRejectRow?.user.email}? They will need to request access again.`"
+            confirm-label="Reject"
+            danger
+            @update:open="confirmRejectRow = null"
+            @confirm="doReject"
+        />
     </div>
 </template>

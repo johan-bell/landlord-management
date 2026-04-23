@@ -8,6 +8,7 @@ import {
     CheckIcon,
     ClipboardDocumentCheckIcon,
     ClockIcon,
+    DocumentTextIcon,
     MinusSmallIcon,
     TrashIcon,
     XCircleIcon,
@@ -26,9 +27,13 @@ import type {
     Unit,
 } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
+import { useToastStore } from '../stores/toast';
 
 const { hasOrg, orgApi } = useOrgContext();
 const canManageUtilityPaymentStatus = useOrgElevatedAccess();
+const toast = useToastStore();
 
 const leases = ref<Lease[]>([]);
 const page = ref(1);
@@ -73,6 +78,9 @@ const utilForm = ref({
     previousMeterIndex: '',
     dueDate: '',
 });
+
+const confirmLeaseDelete = ref<Lease | null>(null);
+const confirmUtilDelete = ref<LeaseUtilityBill | null>(null);
 
 function defaultUtilityDueIso(lease: Lease, year: number, month: number) {
     const day = Math.min(Math.max(1, lease.dueDay), 28);
@@ -147,7 +155,7 @@ function utilityLastReadingHint() {
         .filter((b) => b.kind === utilForm.value.kind)
         .sort((a, b) => b.year - a.year || b.month - a.month)[0];
     if (same?.currentIndex != null && same.currentIndex !== '') {
-        return `Last reading on file: ${same.currentIndex} (${utilityMonthLabel(same)}). Leave “previous” empty to reuse it.`;
+        return `Last reading on file: ${same.currentIndex} (${utilityMonthLabel(same)}). Leave "previous" empty to reuse it.`;
     }
     return 'First bill for this utility: enter the previous meter reading below (or add an earlier month first).';
 }
@@ -184,10 +192,10 @@ async function saveUtilityBill() {
         utilForm.value.amount = '';
         utilForm.value.currentMeterIndex = '';
         utilForm.value.previousMeterIndex = '';
+        toast.success('Utility charge saved');
         await loadUtilityBills();
     } catch (e) {
-        error.value =
-            e instanceof Error ? e.message : 'Could not save utility bill';
+        toast.error(e instanceof Error ? e.message : 'Could not save utility bill');
     } finally {
         utilSaving.value = false;
     }
@@ -203,7 +211,7 @@ async function markUtilityPaid(b: LeaseUtilityBill) {
         });
         await loadUtilityBills();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Update failed';
+        toast.error(e instanceof Error ? e.message : 'Update failed');
     }
 }
 
@@ -217,21 +225,24 @@ async function markUtilityPending(b: LeaseUtilityBill) {
         });
         await loadUtilityBills();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Update failed';
+        toast.error(e instanceof Error ? e.message : 'Update failed');
     }
 }
 
-async function removeUtilityBill(b: LeaseUtilityBill) {
+async function doDeleteUtilBill() {
+    const b = confirmUtilDelete.value;
     const lease = utilitiesLease.value;
-    if (!lease) return;
-    if (!confirm('Remove this utility charge?')) return;
+    if (!b || !lease) return;
     try {
         await api(orgApi(`/leases/${lease.id}/utility-bills/${b.id}`), {
             method: 'DELETE',
         });
+        toast.success('Utility charge removed');
         await loadUtilityBills();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Delete failed';
+        toast.error(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+        confirmUtilDelete.value = null;
     }
 }
 
@@ -350,21 +361,26 @@ async function createLease() {
             dueDay: '1',
             prepaidMonths: '0',
         };
+        toast.success('Lease created');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Could not create lease';
+        toast.error(e instanceof Error ? e.message : 'Could not create lease');
     } finally {
         saving.value = false;
     }
 }
 
-async function removeLease(l: Lease) {
-    if (!confirm('Delete this lease? Unit will be marked vacant.')) return;
+async function doDeleteLease() {
+    const l = confirmLeaseDelete.value;
+    if (!l) return;
     try {
         await api(orgApi(`/leases/${l.id}`), { method: 'DELETE' });
+        toast.success('Lease deleted');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Delete failed';
+        toast.error(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+        confirmLeaseDelete.value = null;
     }
 }
 
@@ -419,7 +435,7 @@ watch(page, () => void load());
                         v-model="search"
                         type="search"
                         placeholder="Search renter or unit…"
-                        class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        class="min-w-50 rounded-xl border border-slate-200 px-3 py-2 text-sm"
                         @keydown.enter.prevent="applySearch"
                     />
                     <button
@@ -439,7 +455,12 @@ watch(page, () => void load());
                 </button>
             </div>
 
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+                {{ error }}
+            </p>
 
             <div
                 v-if="loading"
@@ -448,79 +469,84 @@ watch(page, () => void load());
                 Loading…
             </div>
 
-            <div
-                v-else
-                class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-                <div class="overflow-x-auto">
-                    <table
-                        class="min-w-[640px] w-full divide-y divide-slate-200 text-left text-sm"
-                    >
-                        <thead
-                            class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
-                        >
-                            <tr>
-                                <th class="px-4 py-3">Renter</th>
-                                <th class="px-4 py-3">Unit</th>
-                                <th class="px-4 py-3">Rent</th>
-                                <th class="px-4 py-3">Start</th>
-                                <th class="px-4 py-3">Due day</th>
-                                <th class="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr
-                                v-for="l in leases"
-                                :key="l.id"
-                                class="hover:bg-slate-50/80"
-                            >
-                                <td
-                                    class="px-4 py-3 font-medium text-slate-900"
-                                >
-                                    {{ l.renter.fullName }}
-                                </td>
-                                <td class="px-4 py-3 text-slate-600">
-                                    {{ l.unit.label }}
-                                    <span
-                                        class="block text-xs text-slate-400"
-                                        >{{ l.unit.property.name }}</span
-                                    >
-                                </td>
-                                <td class="px-4 py-3 tabular-nums">
-                                    {{ formatMoney(l.rentAmount, l.currency) }}
-                                </td>
-                                <td class="px-4 py-3 text-slate-600">
-                                    {{ formatDate(l.startDate) }}
-                                </td>
-                                <td class="px-4 py-3">{{ l.dueDay }}</td>
-                                <td class="px-4 py-3 text-right">
-                                    <button
-                                        v-if="kindOptionsForLease(l).length"
-                                        type="button"
-                                        class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
-                                        @click="openUtilities(l)"
-                                    >
-                                        Utilities
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="text-sm font-medium text-red-600 hover:underline"
-                                        @click="removeLease(l)"
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p
+            <template v-else>
+                <EmptyState
                     v-if="!leases.length"
-                    class="px-4 py-10 text-center text-sm text-slate-500"
+                    :icon="DocumentTextIcon"
+                    title="No leases yet"
+                    description="Create a lease to link a renter to a unit and start tracking rent payments."
+                    action-label="New lease"
+                    @action="showAdd = true"
+                />
+
+                <div
+                    v-else
+                    class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
-                    No leases yet.
-                </p>
-            </div>
+                    <div class="overflow-x-auto">
+                        <table
+                            class="min-w-160 w-full divide-y divide-slate-200 text-left text-sm"
+                        >
+                            <thead
+                                class="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            >
+                                <tr>
+                                    <th class="px-4 py-3">Renter</th>
+                                    <th class="px-4 py-3">Unit</th>
+                                    <th class="px-4 py-3">Rent</th>
+                                    <th class="px-4 py-3">Start</th>
+                                    <th class="px-4 py-3">Due day</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr
+                                    v-for="l in leases"
+                                    :key="l.id"
+                                    class="hover:bg-slate-50/80"
+                                >
+                                    <td
+                                        class="px-4 py-3 font-medium text-slate-900"
+                                    >
+                                        {{ l.renter.fullName }}
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-600">
+                                        {{ l.unit.label }}
+                                        <span
+                                            class="block text-xs text-slate-400"
+                                            >{{ l.unit.property.name }}</span
+                                        >
+                                    </td>
+                                    <td class="px-4 py-3 tabular-nums">
+                                        {{ formatMoney(l.rentAmount, l.currency) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-600">
+                                        {{ formatDate(l.startDate) }}
+                                    </td>
+                                    <td class="px-4 py-3">{{ l.dueDay }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <button
+                                            v-if="kindOptionsForLease(l).length"
+                                            type="button"
+                                            class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
+                                            @click="openUtilities(l)"
+                                        >
+                                            Utilities
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="text-sm font-medium text-red-600 hover:underline"
+                                            @click="confirmLeaseDelete = l"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </template>
 
             <div
                 v-if="!loading && totalPages > 1"
@@ -548,7 +574,7 @@ watch(page, () => void load());
             <Teleport to="body">
                 <div
                     v-if="showAdd"
-                    class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showAdd = false"
                 >
                     <div
@@ -677,7 +703,7 @@ watch(page, () => void load());
             <Teleport to="body">
                 <div
                     v-if="showUtilities && utilitiesLease"
-                    class="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showUtilities = false"
                 >
                     <div
@@ -729,7 +755,7 @@ watch(page, () => void load());
                                             Type
                                         </th>
                                         <th
-                                            class="min-w-[11rem] whitespace-nowrap px-4 py-3"
+                                            class="min-w-44 whitespace-nowrap px-4 py-3"
                                         >
                                             Meter
                                         </th>
@@ -743,7 +769,7 @@ watch(page, () => void load());
                                             Status
                                         </th>
                                         <th
-                                            class="min-w-[8.5rem] whitespace-nowrap px-4 py-3"
+                                            class="min-w-34 whitespace-nowrap px-4 py-3"
                                         >
                                             Receipt
                                         </th>
@@ -874,7 +900,7 @@ watch(page, () => void load());
                                                     'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold',
                                                     b.status === 'PAID'
                                                         ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80'
-                                                        :                                                     b.status === 'LATE'
+                                                        : b.status === 'LATE'
                                                           ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200/80'
                                                           : b.status ===
                                                               'PENDING'
@@ -993,9 +1019,7 @@ watch(page, () => void load());
                                                 <button
                                                     type="button"
                                                     class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50/80 px-2.5 py-1.5 text-xs font-semibold text-red-800 shadow-sm transition hover:bg-red-100"
-                                                    @click="
-                                                        removeUtilityBill(b)
-                                                    "
+                                                    @click="confirmUtilDelete = b"
                                                 >
                                                     <TrashIcon
                                                         class="h-3.5 w-3.5"
@@ -1167,5 +1191,25 @@ watch(page, () => void load());
                 </div>
             </Teleport>
         </template>
+
+        <ConfirmDialog
+            :open="!!confirmLeaseDelete"
+            title="Delete lease"
+            message="Delete this lease? The unit will be marked vacant."
+            confirm-label="Delete"
+            danger
+            @update:open="confirmLeaseDelete = null"
+            @confirm="doDeleteLease"
+        />
+
+        <ConfirmDialog
+            :open="!!confirmUtilDelete"
+            title="Remove utility charge"
+            message="Remove this utility charge? This cannot be undone."
+            confirm-label="Remove"
+            danger
+            @update:open="confirmUtilDelete = null"
+            @confirm="doDeleteUtilBill"
+        />
     </div>
 </template>

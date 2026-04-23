@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
     html {
         -webkit-font-smoothing: antialiased;
@@ -82,4 +84,57 @@ body {
 .tenant-action-link {
     @apply inline-flex cursor-pointer items-center justify-center rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 transition;
     @apply hover:bg-teal-50 hover:text-teal-900 active:scale-[0.99];
+}
+
+/* ─── Dark mode ─────────────────────────────────────────────────────────────── */
+
+html.dark,
+.dark body {
+    background: rgb(15 23 42);
+    color: rgb(226 232 240);
+}
+
+.dark body {
+    background:
+        radial-gradient(
+            1200px 600px at 10% -10%,
+            rgb(20 83 45 / 0.12),
+            transparent
+        ),
+        radial-gradient(
+            900px 500px at 100% 0%,
+            rgb(12 74 110 / 0.1),
+            transparent
+        ),
+        linear-gradient(
+            180deg,
+            rgb(15 23 42) 0%,
+            rgb(15 23 42) 100%
+        );
+}
+
+.dark .tenant-card {
+    background: rgb(30 41 59 / 0.92);
+    border-color: rgb(51 65 85 / 0.6);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+.dark .tenant-input {
+    background: rgb(30 41 59);
+    border-color: rgb(71 85 105 / 0.9);
+    color: rgb(226 232 240);
+}
+
+.dark .tenant-input::placeholder {
+    color: rgb(100 116 139);
+}
+
+.dark .tenant-auth-screen {
+    background:
+        radial-gradient(
+            ellipse 80% 50% at 50% -20%,
+            rgb(20 83 45 / 0.15),
+            transparent
+        ),
+        rgb(15 23 42);
 }

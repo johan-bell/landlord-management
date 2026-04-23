@@ -2,12 +2,15 @@
 import { BoltIcon, BeakerIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { api } from '../lib/api';
 import {
     prepareReceiptUpload,
     putToPresignedUrl,
 } from '../lib/receipt-upload';
 import { useAuthStore } from '../stores/auth';
+import { setTenantLocale } from '../i18n';
+import { useDarkMode } from '../composables/useDarkMode';
 import TenantMark from '../components/TenantMark.vue';
 import TenantHeaderMenu from '../components/TenantHeaderMenu.vue';
 import TenantModal from '../components/TenantModal.vue';
@@ -98,6 +101,12 @@ type LeaseRow = {
 
 const router = useRouter();
 const auth = useAuthStore();
+const { locale } = useI18n();
+const { dark, toggle: toggleDark } = useDarkMode();
+
+function changeLang(code: string) {
+    if (code === 'fr' || code === 'en') setTenantLocale(code);
+}
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -611,9 +620,13 @@ onUnmounted(() => {
                     :menu-label="headerMenuLabel"
                     :show-password="headerShowPassword"
                     :show-support="headerShowSupport"
+                    :locale="locale"
+                    :dark="dark"
                     @sign-out="logout"
                     @go-password="openPasswordModal"
                     @go-support="openSupportModal"
+                    @change-lang="changeLang"
+                    @toggle-dark="toggleDark"
                 />
                 <div
                     v-else

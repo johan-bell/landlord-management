@@ -68,7 +68,7 @@ onUnmounted(() => {
         >
             <div
                 v-if="open"
-                class="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center sm:p-6"
+                class="fixed inset-0 z-100 flex items-end justify-center p-4 sm:items-center sm:p-6"
                 role="presentation"
                 @keydown="onOverlayKeydown"
             >

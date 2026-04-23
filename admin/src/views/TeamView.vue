@@ -3,10 +3,13 @@ import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
+import { useToastStore } from '../stores/toast';
 import { ORG_ROLE_GUIDE, ORG_ROLE_LABEL } from '../lib/orgRoles';
 
 const { hasOrg, orgApi } = useOrgContext();
+const toast = useToastStore();
 
 /** Invitations and role changes (API: owner or manager; platform admins bypass). */
 const canManageTeam = useOrgElevatedAccess();
@@ -39,6 +42,9 @@ const inviteEmail = ref('');
 const inviteRole = ref<'STAFF' | 'MANAGER' | 'OWNER'>('STAFF');
 const saving = ref(false);
 
+const confirmRevokeInvite = ref<InvitationRow | null>(null);
+const confirmRemoveMember = ref<MemberRow | null>(null);
+
 async function load() {
     if (!hasOrg.value) return;
     loading.value = true;
@@ -64,28 +70,32 @@ async function sendInvite() {
     const email = inviteEmail.value.trim();
     if (!email) return;
     saving.value = true;
-    error.value = null;
     try {
         await api(orgApi('/invitations'), {
             method: 'POST',
             body: JSON.stringify({ email, role: inviteRole.value }),
         });
         inviteEmail.value = '';
+        toast.success(`Invitation sent to ${email}`);
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Invite failed';
+        toast.error(e instanceof Error ? e.message : 'Invite failed');
     } finally {
         saving.value = false;
     }
 }
 
-async function removeInvitation(id: string) {
-    if (!confirm('Revoke this invitation?')) return;
+async function doRevokeInvitation() {
+    const inv = confirmRevokeInvite.value;
+    if (!inv) return;
     try {
-        await api(orgApi(`/invitations/${id}`), { method: 'DELETE' });
+        await api(orgApi(`/invitations/${inv.id}`), { method: 'DELETE' });
+        toast.success('Invitation revoked');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Failed';
+        toast.error(e instanceof Error ? e.message : 'Failed to revoke');
+    } finally {
+        confirmRevokeInvite.value = null;
     }
 }
 
@@ -97,17 +107,21 @@ async function changeRole(m: MemberRow, role: string) {
         });
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Update failed';
+        toast.error(e instanceof Error ? e.message : 'Update failed');
     }
 }
 
-async function removeMember(m: MemberRow) {
-    if (!confirm(`Remove ${m.user.email} from this organization?`)) return;
+async function doRemoveMember() {
+    const m = confirmRemoveMember.value;
+    if (!m) return;
     try {
         await api(orgApi(`/members/${m.id}`), { method: 'DELETE' });
+        toast.success('Member removed');
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Remove failed';
+        toast.error(e instanceof Error ? e.message : 'Remove failed');
+    } finally {
+        confirmRemoveMember.value = null;
     }
 }
 
@@ -159,7 +173,12 @@ watch(canManageTeam, () => void load());
                 </template>
             </p>
 
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+                {{ error }}
+            </p>
 
             <div
                 v-if="loading"
@@ -253,7 +272,7 @@ watch(canManageTeam, () => void load());
                             <button
                                 type="button"
                                 class="shrink-0 text-sm font-medium text-red-600 hover:underline"
-                                @click="removeInvitation(inv.id)"
+                                @click="confirmRevokeInvite = inv"
                             >
                                 Revoke
                             </button>
@@ -337,7 +356,7 @@ watch(canManageTeam, () => void load());
                                             v-if="canManageTeam"
                                             type="button"
                                             class="text-sm font-medium text-red-600 hover:underline"
-                                            @click="removeMember(m)"
+                                            @click="confirmRemoveMember = m"
                                         >
                                             Remove
                                         </button>
@@ -358,5 +377,25 @@ watch(canManageTeam, () => void load());
                 </section>
             </template>
         </template>
+
+        <ConfirmDialog
+            :open="!!confirmRevokeInvite"
+            title="Revoke invitation"
+            :message="`Revoke the invitation for ${confirmRevokeInvite?.email}? The link will stop working.`"
+            confirm-label="Revoke"
+            danger
+            @update:open="confirmRevokeInvite = null"
+            @confirm="doRevokeInvitation"
+        />
+
+        <ConfirmDialog
+            :open="!!confirmRemoveMember"
+            title="Remove member"
+            :message="`Remove ${confirmRemoveMember?.user.email ?? 'this member'} from the organization?`"
+            confirm-label="Remove"
+            danger
+            @update:open="confirmRemoveMember = null"
+            @confirm="doRemoveMember"
+        />
     </div>
 </template>
