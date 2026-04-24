@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import EmptyState from '../components/EmptyState.vue';
 import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 
 type AuditRow = {
@@ -91,7 +93,7 @@ function fmtMeta(m: unknown): string {
             >
                 <div class="overflow-x-auto">
                     <table
-                        class="min-w-[800px] w-full divide-y divide-slate-200 text-left text-sm"
+                        class="min-w-200 w-full divide-y divide-slate-200 text-left text-sm"
                     >
                         <thead
                             class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -139,11 +141,12 @@ function fmtMeta(m: unknown): string {
                         </tbody>
                     </table>
                 </div>
-                <div
-                    v-if="!rows.length"
-                    class="px-4 py-10 text-center text-sm text-slate-500"
-                >
-                    No audit entries yet.
+                <div v-if="!rows.length" class="px-6 py-10">
+                    <EmptyState
+                        :icon="ClipboardDocumentListIcon"
+                        title="No audit entries yet"
+                        description="Actions on payments, team, signups, and settings will appear here."
+                    />
                 </div>
                 <div
                     v-else

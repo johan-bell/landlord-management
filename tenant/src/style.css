@@ -66,7 +66,7 @@ body {
 }
 
 .tenant-btn-primary {
-    @apply inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-900/10 transition;
+    @apply inline-flex w-full items-center justify-center rounded-xl bg-linear-to from-teal-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-900/10 transition;
     @apply hover:from-teal-500 hover:to-emerald-500 hover:shadow-lg hover:shadow-teal-900/15;
     @apply disabled:pointer-events-none disabled:opacity-45;
 }
@@ -106,17 +106,15 @@ html.dark,
             rgb(12 74 110 / 0.1),
             transparent
         ),
-        linear-gradient(
-            180deg,
-            rgb(15 23 42) 0%,
-            rgb(15 23 42) 100%
-        );
+        linear-gradient(180deg, rgb(15 23 42) 0%, rgb(15 23 42) 100%);
 }
 
 .dark .tenant-card {
     background: rgb(30 41 59 / 0.92);
     border-color: rgb(51 65 85 / 0.6);
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+    box-shadow:
+        0 20px 25px -5px rgb(0 0 0 / 0.3),
+        0 8px 10px -6px rgb(0 0 0 / 0.2);
 }
 
 .dark .tenant-input {

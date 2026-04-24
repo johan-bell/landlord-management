@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
+import { useToastStore } from '../stores/toast';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
 type SupportRow = {
@@ -20,6 +21,7 @@ type SupportRow = {
 };
 
 const { hasOrg, orgApi, selectedOrgId } = useOrgContext();
+const toast = useToastStore();
 
 const loading = ref(true);
 const creating = ref(false);
@@ -81,6 +83,7 @@ async function submitCreate() {
             body: JSON.stringify({ subject, message }),
         });
         closeCreate();
+        toast.success('Support request sent');
         await load();
     } catch (e) {
         formError.value = e instanceof Error ? e.message : 'Failed to send';

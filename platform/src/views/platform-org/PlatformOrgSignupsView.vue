@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import type { Paginated, Property, Unit } from '../../types/models';
 
 type SignupRow = {
@@ -38,6 +39,7 @@ const approveForm = ref({
     prepaidMonths: '0',
 });
 const approveSaving = ref(false);
+const confirmRejectRow = ref<SignupRow | null>(null);
 
 async function loadSignups() {
     loading.value = true;
@@ -115,8 +117,10 @@ async function submitApprove() {
     }
 }
 
-async function rejectSignup(row: SignupRow) {
-    if (!confirm(`Reject signup for ${row.user.email}?`)) return;
+async function doRejectSignup() {
+    const row = confirmRejectRow.value;
+    if (!row) return;
+    confirmRejectRow.value = null;
     actionError.value = null;
     try {
         await api(orgApi(`/tenant-signups/${row.id}/reject`), {
@@ -178,7 +182,7 @@ watch(
                     <button
                         type="button"
                         class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                        @click="rejectSignup(row)"
+                        @click="confirmRejectRow = row"
                     >
                         Reject
                     </button>
@@ -188,7 +192,7 @@ watch(
 
         <div
             v-if="showApprove"
-            class="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+            class="fixed inset-0 z-60 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
             role="dialog"
             aria-modal="true"
             @click.self="showApprove = null"
@@ -290,4 +294,14 @@ watch(
             </div>
         </div>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmRejectRow"
+        title="Reject signup?"
+        :message="confirmRejectRow ? `Reject the signup request from ${confirmRejectRow.user.email}?` : ''"
+        confirm-label="Reject"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmRejectRow = null; }"
+        @confirm="doRejectSignup"
+    />
 </template>

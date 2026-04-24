@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { platformFeatures } from '../../config/features';
 import { formatMoney } from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 
 type OrgDetail = {
     id: string;
@@ -73,6 +74,7 @@ const notesError = ref<string | null>(null);
 
 const suspendBusy = ref(false);
 const deleteBusy = ref(false);
+const confirmDelete = ref(false);
 
 function platformStepHref(stepId: string): string {
     const id = orgId.value;
@@ -186,13 +188,6 @@ async function toggleSuspend() {
 
 async function removeOrg() {
     if (!org.value) return;
-    if (
-        !confirm(
-            `Delete organization “${org.value.name}” permanently? This removes properties, units, leases, and members. This cannot be undone.`,
-        )
-    ) {
-        return;
-    }
     deleteBusy.value = true;
     error.value = null;
     try {
@@ -316,7 +311,7 @@ watch(
                             type="button"
                             class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
                             :disabled="deleteBusy"
-                            @click="removeOrg"
+                            @click="confirmDelete = true"
                         >
                             {{ deleteBusy ? '…' : 'Delete organization' }}
                         </button>
@@ -544,4 +539,15 @@ watch(
             </div>
         </template>
     </div>
+
+    <ConfirmDialog
+        v-if="org"
+        :open="confirmDelete"
+        title="Delete organization?"
+        :message="`Permanently delete &quot;${org.name}&quot;? This removes all properties, units, leases, and members. This cannot be undone.`"
+        confirm-label="Delete permanently"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmDelete = false; }"
+        @confirm="removeOrg"
+    />
 </template>

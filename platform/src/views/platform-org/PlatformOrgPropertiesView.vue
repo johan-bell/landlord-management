@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { formatMoney } from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import type { Paginated, Property, Unit } from '../../types/models';
 
 const route = useRoute();
@@ -19,6 +20,7 @@ const showAdd = ref(false);
 const newName = ref('');
 const newAddress = ref('');
 const saving = ref(false);
+const confirmDeleteProp = ref<Property | null>(null);
 
 const PAGE_SIZE = 12;
 
@@ -79,11 +81,10 @@ async function addProperty() {
     }
 }
 
-async function removeProperty(p: Property) {
-    if (
-        !confirm(`Delete “${p.name}” and all its units? This cannot be undone.`)
-    )
-        return;
+async function doRemoveProperty() {
+    const p = confirmDeleteProp.value;
+    if (!p) return;
+    confirmDeleteProp.value = null;
     try {
         await api(orgApi(`/properties/${p.id}`), { method: 'DELETE' });
         await load();
@@ -113,7 +114,7 @@ watch(page, () => void load());
                     v-model="search"
                     type="search"
                     placeholder="Search name or address…"
-                    class="min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                    class="min-w-50 rounded-xl border border-slate-200 px-3 py-2 text-sm"
                     @keydown.enter.prevent="applySearch"
                 />
                 <button
@@ -191,7 +192,7 @@ watch(page, () => void load());
                         <button
                             type="button"
                             class="text-sm font-medium text-slate-500 hover:text-red-600 hover:underline"
-                            @click="removeProperty(p)"
+                            @click="confirmDeleteProp = p"
                         >
                             Delete
                         </button>
@@ -254,7 +255,7 @@ watch(page, () => void load());
         <Teleport to="body">
             <div
                 v-if="showAdd"
-                class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                 role="dialog"
                 aria-modal="true"
                 @click.self="showAdd = false"
@@ -307,4 +308,14 @@ watch(page, () => void load());
             </div>
         </Teleport>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmDeleteProp"
+        title="Delete property?"
+        :message="confirmDeleteProp ? `Delete &quot;${confirmDeleteProp.name}&quot; and all its units? This cannot be undone.` : ''"
+        confirm-label="Delete"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmDeleteProp = null; }"
+        @confirm="doRemoveProperty"
+    />
 </template>

@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
+import { HomeModernIcon } from '@heroicons/vue/24/outline';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
+import { useToastStore } from '../stores/toast';
 import { formatMoney } from '../composables/format';
 import type { Paginated, Property, Unit } from '../types/models';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const route = useRoute();
 const { hasOrg, orgApi } = useOrgContext();
+const toast = useToastStore();
 
 const propertyId = computed(() => route.params.propertyId as string);
 
@@ -20,6 +25,9 @@ const showAdd = ref(false);
 const showEdit = ref(false);
 const editingUnit = ref<Unit | null>(null);
 const saving = ref(false);
+const formError = ref<string | null>(null);
+
+const confirmRemoveUnit = ref<Unit | null>(null);
 
 const newLabel = ref('');
 const newRent = ref('');
@@ -108,6 +116,7 @@ async function load() {
 }
 
 function openAdd() {
+    formError.value = null;
     newLabel.value = '';
     newRent.value = '';
     newCurrency.value = 'XAF';
@@ -125,19 +134,19 @@ async function addUnit() {
     if (newElec.value === 'METERED_KWH') {
         const p = Number.parseFloat(newElecPrice.value);
         if (Number.isNaN(p) || p <= 0) {
-            error.value = 'Enter a price per kWh for metered electricity.';
+            formError.value = 'Enter a price per kWh for metered electricity.';
             return;
         }
     }
     if (newWater.value === 'METERED_M3') {
         const p = Number.parseFloat(newWaterPrice.value);
         if (Number.isNaN(p) || p <= 0) {
-            error.value = 'Enter a price per m³ for metered water.';
+            formError.value = 'Enter a price per m³ for metered water.';
             return;
         }
     }
     saving.value = true;
-    error.value = null;
+    formError.value = null;
     try {
         await api(orgApi(`/properties/${propertyId.value}/units`), {
             method: 'POST',
@@ -154,15 +163,17 @@ async function addUnit() {
             }),
         });
         showAdd.value = false;
+        toast.success(`Unit "${label}" added`);
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Save failed';
+        formError.value = e instanceof Error ? e.message : 'Save failed';
     } finally {
         saving.value = false;
     }
 }
 
 function openEdit(u: Unit) {
+    formError.value = null;
     editingUnit.value = u;
     editLabel.value = u.label;
     editRent.value = String(Number.parseFloat(u.rentAmount));
@@ -182,19 +193,19 @@ async function saveEdit() {
     if (editElec.value === 'METERED_KWH') {
         const p = Number.parseFloat(editElecPrice.value);
         if (Number.isNaN(p) || p <= 0) {
-            error.value = 'Enter a price per kWh for metered electricity.';
+            formError.value = 'Enter a price per kWh for metered electricity.';
             return;
         }
     }
     if (editWater.value === 'METERED_M3') {
         const p = Number.parseFloat(editWaterPrice.value);
         if (Number.isNaN(p) || p <= 0) {
-            error.value = 'Enter a price per m³ for metered water.';
+            formError.value = 'Enter a price per m³ for metered water.';
             return;
         }
     }
     saving.value = true;
-    error.value = null;
+    formError.value = null;
     try {
         await api(
             orgApi(
@@ -217,23 +228,27 @@ async function saveEdit() {
         );
         showEdit.value = false;
         editingUnit.value = null;
+        toast.success(`Unit "${label}" saved`);
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Save failed';
+        formError.value = e instanceof Error ? e.message : 'Save failed';
     } finally {
         saving.value = false;
     }
 }
 
-async function removeUnit(u: Unit) {
-    if (!confirm(`Remove unit “${u.label}”?`)) return;
+async function doRemoveUnit() {
+    const u = confirmRemoveUnit.value;
+    if (!u) return;
+    confirmRemoveUnit.value = null;
     try {
         await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), {
             method: 'DELETE',
         });
+        toast.success(`Unit "${u.label}" removed`);
         await load();
     } catch (e) {
-        error.value = e instanceof Error ? e.message : 'Delete failed';
+        toast.error(e instanceof Error ? e.message : 'Delete failed');
     }
 }
 
@@ -269,7 +284,12 @@ watch([hasOrg, propertyId], () => {
                 </p>
             </div>
 
-            <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+                {{ error }}
+            </p>
 
             <div
                 v-if="loading"
@@ -289,7 +309,17 @@ watch([hasOrg, propertyId], () => {
                     </button>
                 </div>
 
+                <EmptyState
+                    v-if="!units.length"
+                    :icon="HomeModernIcon"
+                    title="No units yet"
+                    description="Add apartments or rooms to track rent and utility billing for each one."
+                    action-label="Add unit"
+                    @action="openAdd"
+                />
+
                 <div
+                    v-else
                     class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                     <table
@@ -328,7 +358,7 @@ watch([hasOrg, propertyId], () => {
                                     {{ formatMoney(u.rentAmount, u.currency) }}
                                 </td>
                                 <td
-                                    class="hidden max-w-[10rem] truncate px-4 py-3 text-xs text-slate-600 lg:table-cell"
+                                    class="hidden max-w-40 truncate px-4 py-3 text-xs text-slate-600 lg:table-cell"
                                 >
                                     {{ elecSummary(u) }}
                                 </td>
@@ -364,7 +394,7 @@ watch([hasOrg, propertyId], () => {
                                     <button
                                         type="button"
                                         class="text-sm font-medium text-red-600 hover:underline"
-                                        @click="removeUnit(u)"
+                                        @click="confirmRemoveUnit = u"
                                     >
                                         Remove
                                     </button>
@@ -372,19 +402,13 @@ watch([hasOrg, propertyId], () => {
                             </tr>
                         </tbody>
                     </table>
-                    <p
-                        v-if="!units.length"
-                        class="px-4 py-10 text-center text-sm text-slate-500"
-                    >
-                        No units yet. Add apartments or rooms here.
-                    </p>
                 </div>
             </template>
 
             <Teleport to="body">
                 <div
                     v-if="showAdd"
-                    class="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showAdd = false"
                 >
                     <div
@@ -498,6 +522,13 @@ watch([hasOrg, propertyId], () => {
                             </label>
                         </div>
 
+                        <p
+                            v-if="formError"
+                            class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                        >
+                            {{ formError }}
+                        </p>
+
                         <div class="mt-6 flex justify-end gap-2">
                             <button
                                 type="button"
@@ -524,7 +555,7 @@ watch([hasOrg, propertyId], () => {
             <Teleport to="body">
                 <div
                     v-if="showEdit && editingUnit"
-                    class="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showEdit = false"
                 >
                     <div
@@ -633,6 +664,13 @@ watch([hasOrg, propertyId], () => {
                             </label>
                         </div>
 
+                        <p
+                            v-if="formError"
+                            class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                        >
+                            {{ formError }}
+                        </p>
+
                         <div class="mt-6 flex justify-end gap-2">
                             <button
                                 type="button"
@@ -655,6 +693,20 @@ watch([hasOrg, propertyId], () => {
                     </div>
                 </div>
             </Teleport>
+
+            <ConfirmDialog
+                :open="!!confirmRemoveUnit"
+                title="Remove unit?"
+                :message="
+                    confirmRemoveUnit
+                        ? `Remove unit &quot;${confirmRemoveUnit.label}&quot;? This cannot be undone.`
+                        : ''
+                "
+                confirm-label="Remove"
+                :danger="true"
+                @update:open="(v) => { if (!v) confirmRemoveUnit = null; }"
+                @confirm="doRemoveUnit"
+            />
         </template>
     </div>
 </template>

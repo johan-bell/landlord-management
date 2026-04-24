@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import type { Paginated, Renter } from '../../types/models';
 
 const route = useRoute();
@@ -24,6 +25,7 @@ const form = ref({
     initialPasswordConfirm: '',
 });
 const saving = ref(false);
+const confirmRemoveRenter = ref<Renter | null>(null);
 
 const PAGE_SIZE = 20;
 
@@ -119,8 +121,10 @@ async function save() {
     }
 }
 
-async function remove(r: Renter) {
-    if (!confirm(`Remove ${r.fullName} from this organization?`)) return;
+async function doRemoveRenter() {
+    const r = confirmRemoveRenter.value;
+    if (!r) return;
+    confirmRemoveRenter.value = null;
     try {
         await api(orgApi(`/renters/${r.id}`), { method: 'DELETE' });
         await load();
@@ -240,7 +244,7 @@ watch(page, () => void load());
                             <button
                                 type="button"
                                 class="text-sm font-medium text-red-600 hover:underline"
-                                @click="remove(r)"
+                                @click="confirmRemoveRenter = r"
                             >
                                 Remove
                             </button>
@@ -282,7 +286,7 @@ watch(page, () => void load());
         <Teleport to="body">
             <div
                 v-if="showAdd"
-                class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                 @click.self="showAdd = false"
             >
                 <div
@@ -357,4 +361,14 @@ watch(page, () => void load());
             </div>
         </Teleport>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmRemoveRenter"
+        title="Remove renter?"
+        :message="confirmRemoveRenter ? `Remove ${confirmRemoveRenter.fullName} from this organization?` : ''"
+        confirm-label="Remove"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmRemoveRenter = null; }"
+        @confirm="doRemoveRenter"
+    />
 </template>

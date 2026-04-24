@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { formatMoney } from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import type { Paginated, Property, Unit } from '../../types/models';
 
 const route = useRoute();
@@ -20,6 +21,7 @@ const newLabel = ref('');
 const newRent = ref('');
 const newCurrency = ref('XAF');
 const saving = ref(false);
+const confirmRemoveUnit = ref<Unit | null>(null);
 
 async function load() {
     if (!propertyId.value) return;
@@ -66,8 +68,10 @@ async function addUnit() {
     }
 }
 
-async function removeUnit(u: Unit) {
-    if (!confirm(`Remove unit “${u.label}”?`)) return;
+async function doRemoveUnit() {
+    const u = confirmRemoveUnit.value;
+    if (!u) return;
+    confirmRemoveUnit.value = null;
     try {
         await api(orgApi(`/properties/${propertyId.value}/units/${u.id}`), {
             method: 'DELETE',
@@ -173,7 +177,7 @@ watch(
                                 <button
                                     type="button"
                                     class="text-sm font-medium text-red-600 hover:underline"
-                                    @click="removeUnit(u)"
+                                    @click="confirmRemoveUnit = u"
                                 >
                                     Remove
                                 </button>
@@ -193,7 +197,7 @@ watch(
         <Teleport to="body">
             <div
                 v-if="showAdd"
-                class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                 @click.self="showAdd = false"
             >
                 <div
@@ -251,4 +255,14 @@ watch(
             </div>
         </Teleport>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmRemoveUnit"
+        title="Remove unit?"
+        :message="confirmRemoveUnit ? `Remove unit &quot;${confirmRemoveUnit.label}&quot;? This cannot be undone.` : ''"
+        confirm-label="Remove"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmRemoveUnit = null; }"
+        @confirm="doRemoveUnit"
+    />
 </template>

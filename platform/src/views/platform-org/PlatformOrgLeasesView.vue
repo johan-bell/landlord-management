@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { formatDate, formatMoney } from '../../composables/format';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import type {
     Lease,
     Paginated,
@@ -42,6 +43,7 @@ const form = ref({
     prepaidMonths: '0',
 });
 const saving = ref(false);
+const confirmDeleteLease = ref<Lease | null>(null);
 
 async function loadUnitsAndRenters() {
     const propsRes = await api<Paginated<Property>>(
@@ -140,8 +142,10 @@ async function createLease() {
     }
 }
 
-async function removeLease(l: Lease) {
-    if (!confirm('Delete this lease? Unit will be marked vacant.')) return;
+async function doRemoveLease() {
+    const l = confirmDeleteLease.value;
+    if (!l) return;
+    confirmDeleteLease.value = null;
     try {
         await api(orgApi(`/leases/${l.id}`), { method: 'DELETE' });
         await load();
@@ -276,7 +280,7 @@ watch(page, () => void load());
                                 <button
                                     type="button"
                                     class="text-sm font-medium text-red-600 hover:underline"
-                                    @click="removeLease(l)"
+                                    @click="confirmDeleteLease = l"
                                 >
                                     Delete
                                 </button>
@@ -319,7 +323,7 @@ watch(page, () => void load());
         <Teleport to="body">
             <div
                 v-if="showAdd"
-                class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                 @click.self="showAdd = false"
             >
                 <div
@@ -428,4 +432,14 @@ watch(page, () => void load());
             </div>
         </Teleport>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmDeleteLease"
+        title="Delete lease?"
+        message="Delete this lease? The unit will be marked vacant. This cannot be undone."
+        confirm-label="Delete"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmDeleteLease = null; }"
+        @confirm="doRemoveLease"
+    />
 </template>

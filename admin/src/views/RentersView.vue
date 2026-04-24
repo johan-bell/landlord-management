@@ -408,7 +408,7 @@ watch(page, () => void load());
             <Teleport to="body">
                 <div
                     v-if="historyRenter"
-                    class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                     @click.self="closeHistory"
                 >
                     <div
@@ -606,7 +606,7 @@ watch(page, () => void load());
             <Teleport to="body">
                 <div
                     v-if="showAdd"
-                    class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+                    class="fixed inset-0 z-100 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
                     @click.self="showAdd = false"
                 >
                     <div

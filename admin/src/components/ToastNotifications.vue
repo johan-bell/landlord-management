@@ -39,7 +39,7 @@ function iconColorFor(kind: Toast['kind']) {
         <div
             aria-live="polite"
             aria-atomic="false"
-            class="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-end gap-2 p-4 sm:bottom-4 sm:right-4 sm:left-auto sm:max-w-sm"
+            class="pointer-events-none fixed inset-x-0 bottom-0 z-100 flex flex-col items-end gap-2 p-4 sm:bottom-4 sm:right-4 sm:left-auto sm:max-w-sm"
         >
             <TransitionGroup
                 enter-active-class="transition duration-200 ease-out"

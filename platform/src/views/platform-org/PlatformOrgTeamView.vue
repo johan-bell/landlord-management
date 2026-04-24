@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../../lib/api';
 import { usePlatformOrgContext } from '../../composables/usePlatformOrgContext';
+import ConfirmDialog from '../../components/ConfirmDialog.vue';
 
 type MemberRow = {
     id: string;
@@ -28,6 +29,8 @@ const error = ref<string | null>(null);
 const inviteEmail = ref('');
 const inviteRole = ref<'STAFF' | 'MANAGER' | 'OWNER'>('STAFF');
 const inviteSaving = ref(false);
+const confirmRevokeInvite = ref<InvitationRow | null>(null);
+const confirmRemoveMember = ref<MemberRow | null>(null);
 
 const adminInviteBase = computed(() => {
     const raw = import.meta.env.VITE_ADMIN_PUBLIC_URL as string | undefined;
@@ -82,10 +85,12 @@ async function sendInvite() {
     }
 }
 
-async function removeInvitation(id: string) {
-    if (!confirm('Revoke this invitation?')) return;
+async function doRevokeInvite() {
+    const inv = confirmRevokeInvite.value;
+    if (!inv) return;
+    confirmRevokeInvite.value = null;
     try {
-        await api(orgApi(`/invitations/${id}`), { method: 'DELETE' });
+        await api(orgApi(`/invitations/${inv.id}`), { method: 'DELETE' });
         await load();
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed';
@@ -104,8 +109,10 @@ async function changeRole(m: MemberRow, role: string) {
     }
 }
 
-async function removeMember(m: MemberRow) {
-    if (!confirm(`Remove ${m.user.email} from this organization?`)) return;
+async function doRemoveMember() {
+    const m = confirmRemoveMember.value;
+    if (!m) return;
+    confirmRemoveMember.value = null;
     try {
         await api(orgApi(`/members/${m.id}`), { method: 'DELETE' });
         await load();
@@ -215,7 +222,7 @@ watch(
                                 <button
                                     type="button"
                                     class="text-xs font-semibold text-red-600 hover:text-red-800"
-                                    @click="removeMember(m)"
+                                    @click="confirmRemoveMember = m"
                                 >
                                     Remove
                                 </button>
@@ -255,7 +262,7 @@ watch(
                         <button
                             type="button"
                             class="shrink-0 text-sm font-semibold text-red-600 hover:text-red-800"
-                            @click="removeInvitation(inv.id)"
+                            @click="confirmRevokeInvite = inv"
                         >
                             Revoke
                         </button>
@@ -264,4 +271,23 @@ watch(
             </div>
         </template>
     </div>
+
+    <ConfirmDialog
+        :open="!!confirmRevokeInvite"
+        title="Revoke invitation?"
+        :message="confirmRevokeInvite ? `Revoke the invitation sent to ${confirmRevokeInvite.email}?` : ''"
+        confirm-label="Revoke"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmRevokeInvite = null; }"
+        @confirm="doRevokeInvite"
+    />
+    <ConfirmDialog
+        :open="!!confirmRemoveMember"
+        title="Remove member?"
+        :message="confirmRemoveMember ? `Remove ${confirmRemoveMember.user.email} from this organization?` : ''"
+        confirm-label="Remove"
+        :danger="true"
+        @update:open="(v) => { if (!v) confirmRemoveMember = null; }"
+        @confirm="doRemoveMember"
+    />
 </template>
