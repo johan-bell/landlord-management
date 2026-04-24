@@ -1,0 +1,87 @@
+# Backend: Nest API + Prisma. Runs when API-related paths change.
+# Manual: Actions → CI (API) → Run workflow.
+#
+# Branch protection: if you require this check on every PR, either include `api/**`
+# changes in the PR or run workflow_dispatch; path-filtered workflows do not run
+# when only web paths change (by design).
+name: CI (API)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'api/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/api.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'api/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/api.yml'
+
+concurrency:
+  group: ci-api-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/landlord
+  JWT_SECRET: ci-jwt-secret-must-be-at-least-16-chars
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: landlord
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - run: npx prisma migrate deploy
+
+      - run: npm run lint
+
+      - run: npm run format:check
+
+      - run: npm run build
+
+      - run: npm test
+
+      - run: npm run test:e2e
+
+  docker-api:
+    runs-on: ubuntu-latest
+    needs: [api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t landlord-api:ci ./api

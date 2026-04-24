@@ -1,0 +1,67 @@
+# Frontends (admin, tenant, platform) + combined nginx image. Runs when SPA or web image paths change.
+# Manual: Actions → CI (Web) → Run workflow.
+name: CI (Web)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'admin/**'
+      - 'tenant/**'
+      - 'platform/**'
+      - 'Dockerfile'
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/web.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'admin/**'
+      - 'tenant/**'
+      - 'platform/**'
+      - 'Dockerfile'
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/web.yml'
+
+concurrency:
+  group: ci-web-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [admin, tenant, platform]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - run: |
+          npm ci
+          npm run lint
+          npm run format:check
+          npm run build
+
+  docker-web:
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build combined web image (tenant /, admin /admin/, platform /platform/)
+        run: docker build -t landlord-web:ci .
