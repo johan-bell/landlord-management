@@ -16,7 +16,6 @@ const registrationMode = ref<RegMode>('org');
 const inviteToken = ref('');
 const renterId = ref('');
 const organizationId = ref('');
-const organizationSlug = ref('');
 const fullName = ref('');
 const phone = ref('');
 const email = ref('');
@@ -55,22 +54,18 @@ async function loadInvitePreview() {
 
 async function loadOrgPreview() {
     const id = organizationId.value.trim();
-    const slug = organizationSlug.value.trim();
-    if (!id && !slug) {
+    if (!id) {
         orgPreview.value = null;
         orgPreviewError.value = null;
         return;
     }
     orgPreviewError.value = null;
     try {
-        const qs = id
-            ? `id=${encodeURIComponent(id)}`
-            : `slug=${encodeURIComponent(slug)}`;
         orgPreview.value = await api<{
             id: string;
             name: string;
             slug: string | null;
-        }>(`/tenant/organizations/preview?${qs}`);
+        }>(`/tenant/organizations/preview?id=${encodeURIComponent(id)}`);
     } catch (e) {
         orgPreview.value = null;
         orgPreviewError.value =
@@ -87,7 +82,7 @@ const canSubmit = computed(() => {
         return renterId.value.trim().length >= 10;
     }
     return Boolean(
-        (organizationId.value.trim() || organizationSlug.value.trim()) &&
+        organizationId.value.trim() &&
         fullName.value.trim().length >= 2,
     );
 });
@@ -102,7 +97,7 @@ onMounted(() => {
 });
 
 watch(inviteToken, () => void loadInvitePreview());
-watch([organizationId, organizationSlug], () => void loadOrgPreview());
+watch(organizationId, () => void loadOrgPreview());
 
 async function submit() {
     loading.value = true;
@@ -117,10 +112,7 @@ async function submit() {
         } else if (registrationMode.value === 'claim') {
             body.renterId = renterId.value.trim();
         } else {
-            const id = organizationId.value.trim();
-            const slug = organizationSlug.value.trim();
-            if (id) body.organizationId = id;
-            if (slug) body.organizationSlug = slug;
+            body.organizationId = organizationId.value.trim();
             body.fullName = fullName.value.trim();
             const ph = phone.value.trim();
             if (ph) body.phone = ph;
@@ -151,7 +143,7 @@ async function submit() {
 
 <template>
     <div class="tenant-auth-screen min-h-screen px-4 pb-16 pt-10 sm:px-6">
-        <div class="mx-auto w-full max-w-[480px]">
+        <div class="mx-auto w-full max-w-120">
             <TenantMark size="lg" class="mb-6" />
 
             <div class="tenant-card p-6 sm:p-8">
@@ -219,10 +211,9 @@ async function submit() {
                     class="mb-5 rounded-2xl border border-teal-100/80 bg-teal-50/50 px-4 py-3 text-sm leading-relaxed text-slate-700"
                 >
                     Enter the
-                    <strong class="text-slate-900">organization ID</strong> or
-                    <strong class="text-slate-900">slug</strong> from your
-                    landlord. After you register, they assign your unit and
-                    approve access.
+                    <strong class="text-slate-900">organization ID</strong>
+                    from your landlord. After you register, they assign your
+                    unit and approve access.
                 </p>
                 <p
                     v-else-if="registrationMode === 'claim'"
@@ -294,19 +285,6 @@ async function submit() {
                                 autocomplete="off"
                                 class="tenant-input mt-2 font-mono text-sm"
                                 placeholder="e.g. seed_org_douala"
-                            />
-                        </label>
-                        <p class="text-center text-xs text-slate-400">— or —</p>
-                        <label class="block">
-                            <span class="text-sm font-medium text-slate-700"
-                                >Organization slug</span
-                            >
-                            <input
-                                v-model="organizationSlug"
-                                type="text"
-                                autocomplete="off"
-                                class="tenant-input mt-2 text-sm"
-                                placeholder="e.g. douala-rentals-demo"
                             />
                         </label>
                         <label class="block">
