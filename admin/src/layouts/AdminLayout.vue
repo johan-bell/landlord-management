@@ -362,10 +362,10 @@ onMounted(() => {
             </header>
 
             <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-                <RouterView v-slot="{ Component }">
+                <RouterView v-slot="{ Component: RoutedComponent }">
                     <Transition name="fade" mode="out-in">
                         <component
-                            :is="Component"
+                            :is="RoutedComponent"
                             :key="selectedOrgId ?? '__no_org__'"
                         />
                     </Transition>
