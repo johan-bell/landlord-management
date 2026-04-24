@@ -88,6 +88,9 @@ export class PropertiesService {
 
     async remove(orgId: string, propertyId: string) {
         await this.findOne(orgId, propertyId);
-        return this.prisma.property.delete({ where: { id: propertyId } });
+        return this.prisma.property.update({
+            where: { id: propertyId },
+            data: { deletedAt: new Date() },
+        });
     }
 }

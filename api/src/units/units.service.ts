@@ -106,7 +106,10 @@ export class UnitsService {
 
     async remove(orgId: string, propertyId: string, unitId: string) {
         await this.findOne(orgId, propertyId, unitId);
-        return this.prisma.unit.delete({ where: { id: unitId } });
+        return this.prisma.unit.update({
+            where: { id: unitId },
+            data: { deletedAt: new Date() },
+        });
     }
 
     private utilitiesForCreate(dto: CreateUnitDto) {

@@ -27,8 +27,8 @@ export class ProofsService {
     private async resolveRenterId(user: RequestUser): Promise<string> {
         let renterId = user.renterId;
         if (!renterId) {
-            const r = await this.prisma.renter.findUnique({
-                where: { userId: user.userId },
+            const r = await this.prisma.renter.findFirst({
+                where: { userId: user.userId, deletedAt: null },
             });
             renterId = r?.id;
         }

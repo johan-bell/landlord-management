@@ -273,8 +273,8 @@ export class TenantAuthService {
         password: string,
         rid: string,
     ) {
-        const renter = await this.prisma.renter.findUnique({
-            where: { id: rid },
+        const renter = await this.prisma.renter.findFirst({
+            where: { id: rid, deletedAt: null },
         });
         if (!renter) {
             throw new NotFoundException('Renter not found');

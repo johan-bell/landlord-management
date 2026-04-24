@@ -4,6 +4,17 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 
+const SOFT_DELETE_MODELS = new Set(['Property', 'Unit', 'Renter']);
+
+const FILTER_ACTIONS = new Set([
+    'findFirst',
+    'findFirstOrThrow',
+    'findMany',
+    'count',
+    'aggregate',
+    'groupBy',
+]);
+
 @Injectable()
 export class PrismaService
     extends PrismaClient
@@ -22,8 +33,44 @@ export class PrismaService
         const adapter = new PrismaPg(pool);
         super({ adapter });
         this.pool = pool;
+
+        // Prisma v7 removed $use. Use $extends to auto-inject deletedAt:null
+        // on read queries for soft-delete models. Delete→soft-delete is handled
+        // at service level. findUnique is excluded (not composable with extra where).
+        const extended = this.$extends({
+            query: {
+                $allModels: {
+                    async $allOperations({ model, operation, args, query }: any) {
+                        if (
+                            SOFT_DELETE_MODELS.has(model as string) &&
+                            FILTER_ACTIONS.has(operation as string)
+                        ) {
+                            const a = args as Record<string, unknown>;
+                            a.where = {
+                                deletedAt: null,
+                                ...(a.where as object ?? {}),
+                            };
+                        }
+                        return query(args);
+                    },
+                },
+            },
+        }) as any;
+
+        // Attach NestJS lifecycle methods to the extended client because the
+        // constructor return replaces `this` as the DI-injected instance.
+        extended.onModuleInit = async () => {
+            await this.$connect();
+        };
+        extended.onModuleDestroy = async () => {
+            await this.$disconnect();
+            await pool.end();
+        };
+
+        return extended as unknown as this;
     }
 
+    // Satisfy the interface — replaced at runtime by the extended-client closures above.
     async onModuleInit() {
         await this.$connect();
     }

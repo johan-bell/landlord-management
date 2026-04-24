@@ -5,6 +5,7 @@ import { config as loadEnv } from 'dotenv';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -61,7 +62,10 @@ function corsOriginOption(): false | string[] {
 }
 
 async function bootstrap() {
-    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+        bufferLogs: true,
+    });
+    app.useLogger(app.get(PinoLogger));
     app.use(helmet());
     app.use((req: Request, res: Response, next: NextFunction) => {
         const headerId = req.headers['x-request-id'];

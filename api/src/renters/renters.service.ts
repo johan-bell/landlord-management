@@ -190,6 +190,9 @@ export class RentersService {
 
     async remove(orgId: string, renterId: string) {
         await this.findOne(orgId, renterId);
-        return this.prisma.renter.delete({ where: { id: renterId } });
+        return this.prisma.renter.update({
+            where: { id: renterId },
+            data: { deletedAt: new Date() },
+        });
     }
 }

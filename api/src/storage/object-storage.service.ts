@@ -112,6 +112,13 @@ export class ObjectStorageService implements OnModuleInit {
         }
     }
 
+    async ping(): Promise<void> {
+        if (!this.client || !this.bucket) {
+            throw new Error('MinIO not configured');
+        }
+        await this.client.bucketExists(this.bucket);
+    }
+
     buildReceiptObjectKey(orgId: string, contentType: string): string {
         const ext =
             contentType === 'image/png'

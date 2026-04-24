@@ -9,8 +9,8 @@ export class TenantPortalService {
     async getMe(user: RequestUser) {
         const renterId = user.renterId;
         if (!renterId) {
-            const linked = await this.prisma.renter.findUnique({
-                where: { userId: user.userId },
+            const linked = await this.prisma.renter.findFirst({
+                where: { userId: user.userId, deletedAt: null },
                 include: { organization: true },
             });
             if (linked) {
@@ -29,8 +29,8 @@ export class TenantPortalService {
                 };
             }
         } else {
-            const renter = await this.prisma.renter.findUnique({
-                where: { id: renterId },
+            const renter = await this.prisma.renter.findFirst({
+                where: { id: renterId, deletedAt: null },
                 include: {
                     organization: true,
                 },
@@ -97,8 +97,8 @@ export class TenantPortalService {
     async getLeases(user: RequestUser) {
         let renterId = user.renterId;
         if (!renterId) {
-            const r = await this.prisma.renter.findUnique({
-                where: { userId: user.userId },
+            const r = await this.prisma.renter.findFirst({
+                where: { userId: user.userId, deletedAt: null },
             });
             renterId = r?.id;
         }

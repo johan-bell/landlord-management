@@ -193,17 +193,19 @@ model OrganizationInvitation {
 }
 
 model Property {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
   name           String
   address        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   units        Unit[]
 
   @@index([organizationId])
+  @@index([deletedAt])
 }
 
 model Unit {
@@ -221,13 +223,15 @@ model Unit {
   waterBilling    WaterBilling @default(NONE)
   waterPricePerM3 Decimal?     @db.Decimal(12, 2)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   leases   Lease[]
 
   @@index([propertyId])
+  @@index([deletedAt])
 }
 
 model SupportRequest {
@@ -271,24 +275,26 @@ model TenantSignupRequest {
 
 /// Person renting a unit (domain term: tenant)
 model Renter {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
   fullName       String
   phone          String?
   email          String?
   idDocument     String?
   notes          String?
-  userId         String?  @unique
+  userId         String?   @unique
   inviteToken          String?   @unique
   inviteTokenExpiresAt DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   leases       Lease[]
 
   @@index([organizationId])
+  @@index([deletedAt])
 }
 
 model Lease {
