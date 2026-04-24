@@ -76,43 +76,15 @@ export class TenantAuthService {
         };
     }
 
-    async previewInvite(token: string) {
-        const renter = await this.prisma.renter.findFirst({
-            where: {
-                inviteToken: token,
-                inviteTokenExpiresAt: { gt: new Date() },
-            },
-        });
-        if (!renter) {
-            throw new NotFoundException('Invalid or expired invite');
-        }
-        const email = renter.email;
-        const emailHint = email
-            ? email.replace(
-                  /(^.).*(@.+$)/,
-                  (_m, a, domain) => `${a}***${domain}`,
-              )
-            : null;
-        return {
-            renterId: renter.id,
-            fullName: renter.fullName,
-            emailHint,
-        };
-    }
-
-    /** Public: confirm organization exists for self-signup (id or slug). */
-    async previewOrganization(id?: string, slug?: string) {
+    /** Public: confirm organization exists before self-signup. */
+    async previewOrganization(id?: string) {
         const i = id?.trim();
-        const s = slug?.trim();
-        if (!i && !s) {
-            throw new BadRequestException('Provide id or slug query parameter');
+        if (!i) {
+            throw new BadRequestException('Provide id query parameter');
         }
         const org = await this.prisma.organization.findFirst({
-            where: {
-                ...(i ? { id: i } : { slug: s }),
-                suspendedAt: null,
-            },
-            select: { id: true, name: true, slug: true },
+            where: { id: i, suspendedAt: null },
+            select: { id: true, name: true },
         });
         if (!org) {
             throw new NotFoundException('Organization not found');
@@ -122,60 +94,11 @@ export class TenantAuthService {
 
     async register(dto: TenantRegisterDto) {
         const email = dto.email.toLowerCase().trim();
-        const token = dto.inviteToken?.trim();
-        const rid = dto.renterId?.trim();
-        const orgId = dto.organizationId?.trim();
-        const orgSlug = dto.organizationSlug?.trim();
-
-        const orgRequest = Boolean(orgId || orgSlug);
-        const claimInvite = Boolean(token);
-        const claimRenterId = Boolean(rid);
-
-        const modes = [orgRequest, claimInvite, claimRenterId].filter(
-            Boolean,
-        ).length;
-        if (modes !== 1) {
-            throw new BadRequestException(
-                'Use exactly one of: organization id/slug (self-signup), inviteToken, or renterId',
-            );
-        }
-
-        if (orgRequest) {
-            return this.registerByOrganization(
-                email,
-                dto.password,
-                orgId,
-                orgSlug,
-                dto,
-            );
-        }
-        if (claimInvite) {
-            return this.registerByInvite(email, dto.password, token!);
-        }
-        return this.registerByRenterId(email, dto.password, rid!);
-    }
-
-    private async registerByOrganization(
-        email: string,
-        password: string,
-        organizationId: string | undefined,
-        organizationSlug: string | undefined,
-        dto: TenantRegisterDto,
-    ) {
-        const fullName = dto.fullName?.trim();
-        if (!fullName) {
-            throw new BadRequestException(
-                'fullName is required for organization signup',
-            );
-        }
+        const orgId = dto.organizationId.trim();
+        const fullName = dto.fullName.trim();
 
         const org = await this.prisma.organization.findFirst({
-            where: {
-                ...(organizationId
-                    ? { id: organizationId }
-                    : { slug: organizationSlug }),
-                suspendedAt: null,
-            },
+            where: { id: orgId, suspendedAt: null },
         });
         if (!org) {
             throw new NotFoundException('Organization not found or suspended');
@@ -188,7 +111,7 @@ export class TenantAuthService {
             throw new ConflictException('Email already in use');
         }
 
-        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
         const user = await this.prisma.$transaction(async (tx) => {
             const u = await tx.user.create({
@@ -210,111 +133,6 @@ export class TenantAuthService {
         });
 
         return this.issueSession(user.id, null, 'pending');
-    }
-
-    private async registerByInvite(
-        email: string,
-        password: string,
-        token: string,
-    ) {
-        const renter = await this.prisma.renter.findFirst({
-            where: {
-                inviteToken: token,
-                inviteTokenExpiresAt: { gt: new Date() },
-            },
-        });
-        if (!renter) {
-            throw new NotFoundException('Invalid or expired invite');
-        }
-        if (!renter.email || renter.email.toLowerCase() !== email) {
-            throw new UnauthorizedException(
-                'Email does not match this renter profile',
-            );
-        }
-        if (renter.userId) {
-            throw new ConflictException(
-                'This renter profile already has an account',
-            );
-        }
-
-        const existingUser = await this.prisma.user.findUnique({
-            where: { email },
-        });
-        if (existingUser) {
-            throw new ConflictException('Email already in use');
-        }
-
-        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
-        const user = await this.prisma.$transaction(async (tx) => {
-            const u = await tx.user.create({
-                data: {
-                    email,
-                    passwordHash,
-                    name: renter.fullName,
-                },
-            });
-            await tx.renter.update({
-                where: { id: renter.id },
-                data: {
-                    userId: u.id,
-                    inviteToken: null,
-                    inviteTokenExpiresAt: null,
-                },
-            });
-            return u;
-        });
-
-        return this.issueSession(user.id, renter.id, 'active');
-    }
-
-    private async registerByRenterId(
-        email: string,
-        password: string,
-        rid: string,
-    ) {
-        const renter = await this.prisma.renter.findFirst({
-            where: { id: rid, deletedAt: null },
-        });
-        if (!renter) {
-            throw new NotFoundException('Renter not found');
-        }
-        if (!renter.email || renter.email.toLowerCase() !== email) {
-            throw new UnauthorizedException(
-                'Email does not match this renter profile',
-            );
-        }
-        if (renter.userId) {
-            throw new ConflictException(
-                'This renter profile already has an account',
-            );
-        }
-
-        const existingUser = await this.prisma.user.findUnique({
-            where: { email },
-        });
-        if (existingUser) {
-            throw new ConflictException('Email already in use');
-        }
-
-        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
-        const user = await this.prisma.$transaction(async (tx) => {
-            const u = await tx.user.create({
-                data: {
-                    email,
-                    passwordHash,
-                    name: renter.fullName,
-                },
-            });
-            await tx.renter.update({
-                where: { id: renter.id },
-                data: { userId: u.id },
-            });
-            return u;
-        });
-
-        return this.issueSession(user.id, renter.id, 'active');
     }
 
     async changePassword(
