@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import type { Server } from 'http';
 import request from 'supertest';
-import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
-    let app: INestApplication<App>;
+    let app: INestApplication;
 
     beforeEach(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -17,7 +17,7 @@ describe('AppController (e2e)', () => {
     });
 
     it('/health/ready (GET) returns health with database probe', () => {
-        return request(app.getHttpServer())
+        return request(app.getHttpServer() as Server)
             .get('/health/ready')
             .expect(200)
             .expect((res) => {
@@ -25,15 +25,15 @@ describe('AppController (e2e)', () => {
                     ok: boolean;
                     service: string;
                     database: string;
+                    storage: string;
+                    email: string;
                     time: string;
                 };
-                expect(body).toEqual(
-                    expect.objectContaining({
-                        ok: true,
-                        service: 'landlord-management-api',
-                        database: 'ok',
-                    }),
-                );
+                expect(body.ok).toBe(true);
+                expect(body.service).toBe('landlord-management-api');
+                expect(body.database).toBe('ok');
+                expect(['configured', 'disabled']).toContain(body.storage);
+                expect(['configured', 'disabled']).toContain(body.email);
                 expect(typeof body.time).toBe('string');
             });
     });
