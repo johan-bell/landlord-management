@@ -41,7 +41,9 @@ async function submit() {
         <div
             class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
         >
-            <h1 class="text-xl font-semibold text-slate-900">Choose new password</h1>
+            <h1 class="text-xl font-semibold text-slate-900">
+                Choose new password
+            </h1>
             <form class="mt-6 space-y-4" @submit.prevent="submit">
                 <label class="block">
                     <span class="text-sm font-medium text-slate-700"

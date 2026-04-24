@@ -175,12 +175,12 @@ onMounted(() => {
             v-if="fleet && !loading"
             class="mb-6 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-slate-200 shadow-sm"
         >
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+            >
                 Fleet health
             </p>
-            <div
-                class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            >
+            <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <p class="text-2xl font-bold tabular-nums text-white">
                         {{ fleet.operations.openSupportRequests }}
@@ -203,7 +203,9 @@ onMounted(() => {
                     <p class="text-2xl font-bold tabular-nums text-amber-300">
                         {{ fleet.operations.activeOrgsWithoutProperties }}
                     </p>
-                    <p class="text-xs text-slate-400">Active orgs · no properties</p>
+                    <p class="text-xs text-slate-400">
+                        Active orgs · no properties
+                    </p>
                 </div>
                 <div>
                     <p class="text-2xl font-bold tabular-nums text-rose-300">
@@ -312,7 +314,9 @@ onMounted(() => {
                         <tr>
                             <th class="px-4 py-3">Name</th>
                             <th class="hidden px-4 py-3 sm:table-cell">Open</th>
-                            <th class="hidden px-4 py-3 md:table-cell">Support</th>
+                            <th class="hidden px-4 py-3 md:table-cell">
+                                Support
+                            </th>
                             <th class="px-4 py-3">Status</th>
                             <th class="hidden px-4 py-3 md:table-cell">
                                 Subscription
@@ -331,7 +335,9 @@ onMounted(() => {
                             class="hover:bg-slate-50/50"
                         >
                             <td class="px-4 py-3 font-medium text-slate-900">
-                                <span class="inline-flex flex-wrap items-center gap-2">
+                                <span
+                                    class="inline-flex flex-wrap items-center gap-2"
+                                >
                                     {{ org.name }}
                                     <span
                                         v-if="

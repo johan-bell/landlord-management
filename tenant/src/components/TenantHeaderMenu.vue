@@ -124,7 +124,10 @@ onUnmounted(() => {
                     role="group"
                     aria-label="Language"
                 >
-                    <span class="mr-1 text-xs text-slate-500 dark:text-slate-400">Lang</span>
+                    <span
+                        class="mr-1 text-xs text-slate-500 dark:text-slate-400"
+                        >Lang</span
+                    >
                     <button
                         type="button"
                         class="rounded-lg px-2.5 py-1 text-xs font-semibold transition"
@@ -154,7 +157,11 @@ onUnmounted(() => {
                     <button
                         type="button"
                         class="ml-auto rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
-                        :aria-label="props.dark ? 'Switch to light mode' : 'Switch to dark mode'"
+                        :aria-label="
+                            props.dark
+                                ? 'Switch to light mode'
+                                : 'Switch to dark mode'
+                        "
                         @click="onToggleDark"
                     >
                         <MoonIcon
@@ -162,11 +169,7 @@ onUnmounted(() => {
                             class="h-4 w-4"
                             aria-hidden="true"
                         />
-                        <SunIcon
-                            v-else
-                            class="h-4 w-4"
-                            aria-hidden="true"
-                        />
+                        <SunIcon v-else class="h-4 w-4" aria-hidden="true" />
                     </button>
                 </div>
 

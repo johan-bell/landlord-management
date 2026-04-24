@@ -275,19 +275,35 @@ watch(
     <ConfirmDialog
         :open="!!confirmRevokeInvite"
         title="Revoke invitation?"
-        :message="confirmRevokeInvite ? `Revoke the invitation sent to ${confirmRevokeInvite.email}?` : ''"
+        :message="
+            confirmRevokeInvite
+                ? `Revoke the invitation sent to ${confirmRevokeInvite.email}?`
+                : ''
+        "
         confirm-label="Revoke"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmRevokeInvite = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmRevokeInvite = null;
+            }
+        "
         @confirm="doRevokeInvite"
     />
     <ConfirmDialog
         :open="!!confirmRemoveMember"
         title="Remove member?"
-        :message="confirmRemoveMember ? `Remove ${confirmRemoveMember.user.email} from this organization?` : ''"
+        :message="
+            confirmRemoveMember
+                ? `Remove ${confirmRemoveMember.user.email} from this organization?`
+                : ''
+        "
         confirm-label="Remove"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmRemoveMember = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmRemoveMember = null;
+            }
+        "
         @confirm="doRemoveMember"
     />
 </template>

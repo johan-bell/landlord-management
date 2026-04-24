@@ -19,9 +19,12 @@ function iconFor(kind: Toast['kind']) {
 }
 
 function colorFor(kind: Toast['kind']) {
-    if (kind === 'success') return 'border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-900/30 dark:text-teal-100';
-    if (kind === 'error') return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-900/30 dark:text-red-100';
-    if (kind === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100';
+    if (kind === 'success')
+        return 'border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-900/30 dark:text-teal-100';
+    if (kind === 'error')
+        return 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-900/30 dark:text-red-100';
+    if (kind === 'warning')
+        return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100';
     return 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-100';
 }
 

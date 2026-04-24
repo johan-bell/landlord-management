@@ -39,7 +39,9 @@ async function submit() {
             </p>
             <form class="mt-6 space-y-4" @submit.prevent="submit">
                 <label class="block">
-                    <span class="text-sm font-medium text-slate-700">Email</span>
+                    <span class="text-sm font-medium text-slate-700"
+                        >Email</span
+                    >
                     <input
                         v-model="email"
                         type="email"

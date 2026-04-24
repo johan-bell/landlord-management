@@ -9,12 +9,10 @@ export const ORG_ROLE_LABEL: Record<OrgMembershipRole, string> = {
 
 /** One-line explanation under the role in the profile menu. */
 export const ORG_ROLE_HINT: Record<OrgMembershipRole, string> = {
-    OWNER:
-        'Full control. Only owners can assign/remove owners, delete the org, or invite as Owner.',
+    OWNER: 'Full control. Only owners can assign/remove owners, delete the org, or invite as Owner.',
     MANAGER:
         'Portfolio + approvals + billing; cannot manage owners or delete the org.',
-    STAFF:
-        'Day-to-day portfolio work; no team admin, approvals, billing, or org settings.',
+    STAFF: 'Day-to-day portfolio work; no team admin, approvals, billing, or org settings.',
 };
 
 /** Longer copy for the Team page. */

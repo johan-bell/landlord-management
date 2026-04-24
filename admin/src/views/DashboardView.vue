@@ -98,7 +98,9 @@ async function loadAnalytics() {
     }
     analyticsLoading.value = true;
     try {
-        analytics.value = await api<OrgAnalytics>(`/organizations/${id}/analytics`);
+        analytics.value = await api<OrgAnalytics>(
+            `/organizations/${id}/analytics`,
+        );
     } catch {
         analytics.value = null;
     } finally {
@@ -235,9 +237,7 @@ const statCards = computed(() => {
     <div class="space-y-8">
         <div
             :class="
-                currentOrg
-                    ? 'grid gap-6 md:grid-cols-2 md:items-stretch'
-                    : ''
+                currentOrg ? 'grid gap-6 md:grid-cols-2 md:items-stretch' : ''
             "
         >
             <section
@@ -279,7 +279,10 @@ const statCards = computed(() => {
                         {{ submitting ? 'Creating…' : 'Create' }}
                     </button>
                 </form>
-                <p v-if="error" class="mt-auto px-6 pb-4 text-sm text-red-600 sm:px-8">
+                <p
+                    v-if="error"
+                    class="mt-auto px-6 pb-4 text-sm text-red-600 sm:px-8"
+                >
                     {{ error }}
                 </p>
             </section>
@@ -295,8 +298,8 @@ const statCards = computed(() => {
                 </p>
                 <p class="mt-1 text-sm text-slate-600">
                     Share the <strong>organization ID</strong> or
-                    <strong>slug</strong> with renters so they can request access
-                    in the tenant app.
+                    <strong>slug</strong> with renters so they can request
+                    access in the tenant app.
                 </p>
                 <dl class="mt-3 flex-1 space-y-2 text-sm">
                     <div class="flex flex-wrap items-center gap-2">
@@ -363,15 +366,15 @@ const statCards = computed(() => {
                             Getting started
                         </h2>
                         <p class="mt-1 text-xs text-indigo-900/80">
-                            {{ onboarding.completionPercent }}% complete · finish
-                            these steps to run a clean demo or go live.
+                            {{ onboarding.completionPercent }}% complete ·
+                            finish these steps to run a clean demo or go live.
                         </p>
                         <p
                             v-if="onboarding.pendingTenantSignups > 0"
                             class="mt-2 text-xs font-medium text-amber-800"
                         >
-                            {{ onboarding.pendingTenantSignups }} tenant signup(s)
-                            waiting — visit Renters to approve.
+                            {{ onboarding.pendingTenantSignups }} tenant
+                            signup(s) waiting — visit Renters to approve.
                         </p>
                     </div>
                     <span
@@ -419,7 +422,9 @@ const statCards = computed(() => {
                 class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
             >
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-900">Exports</h2>
+                    <h2 class="text-sm font-semibold text-slate-900">
+                        Exports
+                    </h2>
                     <p class="text-xs text-slate-500">
                         Download a UTF-8 rent roll for spreadsheets or audits.
                     </p>
@@ -536,18 +541,26 @@ const statCards = computed(() => {
                     class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm"
                 >
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
                             Vacancy rate
                         </p>
-                        <p class="mt-1 text-2xl font-bold text-white tabular-nums">
+                        <p
+                            class="mt-1 text-2xl font-bold text-white tabular-nums"
+                        >
                             {{ Math.round(analytics.vacancyRate * 100) }}%
                         </p>
                     </div>
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
                             Collection (30d)
                         </p>
-                        <p class="mt-1 text-2xl font-bold text-white tabular-nums">
+                        <p
+                            class="mt-1 text-2xl font-bold text-white tabular-nums"
+                        >
                             {{
                                 analytics.collectionRateLast30Days == null
                                     ? '—'
@@ -556,15 +569,21 @@ const statCards = computed(() => {
                         </p>
                     </div>
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
                             Overdue charges
                         </p>
-                        <p class="mt-1 text-2xl font-bold text-amber-300 tabular-nums">
+                        <p
+                            class="mt-1 text-2xl font-bold text-amber-300 tabular-nums"
+                        >
                             {{ analytics.overduePaymentCount }}
                         </p>
                     </div>
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
                             Rent roll 30d (paid / due)
                         </p>
                         <p
@@ -587,10 +606,14 @@ const statCards = computed(() => {
                     </div>
                 </div>
                 <div class="mt-6">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p
+                        class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                    >
                         Arrears aging (open charges)
                     </p>
-                    <ul class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                    <ul
+                        class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm"
+                    >
                         <li
                             v-for="b in [
                                 { k: '0_30', label: '0–30 days' },
@@ -604,8 +627,8 @@ const statCards = computed(() => {
                             <span class="text-slate-500">{{ b.label }}</span>
                             <span class="mt-1 block font-medium text-white">
                                 {{
-                                    analytics.arrearsAgingDays[b.k]?.paymentCount ??
-                                    0
+                                    analytics.arrearsAgingDays[b.k]
+                                        ?.paymentCount ?? 0
                                 }}
                                 charges ·
                                 {{

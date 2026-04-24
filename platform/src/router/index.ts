@@ -114,11 +114,7 @@ router.beforeEach((to) => {
     if (needsAuth && !auth.accessToken) {
         return { name: 'login', query: { redirect: to.fullPath } };
     }
-    if (
-        to.meta.public &&
-        auth.accessToken &&
-        to.name !== 'reset-password'
-    ) {
+    if (to.meta.public && auth.accessToken && to.name !== 'reset-password') {
         return { path: '/' };
     }
     return true;

@@ -116,7 +116,8 @@ onUnmounted(() => {
                     >
                         <span class="text-slate-500">Role in</span>
                         <span class="font-medium text-slate-800">
-                            {{ ' ' }}{{ orgName }}</span>
+                            {{ ' ' }}{{ orgName }}</span
+                        >
                         <span class="text-slate-400"> · </span>
                         <span class="font-semibold text-slate-900">{{
                             orgRoleLabel

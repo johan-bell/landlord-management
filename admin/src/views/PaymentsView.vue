@@ -179,7 +179,11 @@ async function bulkMarkPaid() {
         try {
             await api(orgApi(`/leases/${row.leaseId}/payments/${row.id}`), {
                 method: 'PATCH',
-                body: JSON.stringify({ status: 'PAID', paidAt, method: 'CASH' }),
+                body: JSON.stringify({
+                    status: 'PAID',
+                    paidAt,
+                    method: 'CASH',
+                }),
             });
             succeeded++;
         } catch {
@@ -218,29 +222,43 @@ watch(renterFilter, () => scheduleSearchReload());
         <SelectOrgPrompt v-if="!hasOrg" />
 
         <template v-else>
-            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <p class="text-sm text-slate-600">
                     Rent charges across all leases.
                     <template v-if="canMarkPaid">
                         Use
-                        <strong class="font-medium text-slate-800">Mark paid</strong>
-                        for cash collected in person, or select multiple rows to bulk-pay.
+                        <strong class="font-medium text-slate-800"
+                            >Mark paid</strong
+                        >
+                        for cash collected in person, or select multiple rows to
+                        bulk-pay.
                     </template>
                     <template v-else>
                         Only
-                        <strong class="font-medium text-slate-800">owners and managers</strong>
+                        <strong class="font-medium text-slate-800"
+                            >owners and managers</strong
+                        >
                         can record payments without receipt verification.
                     </template>
                 </p>
             </div>
 
-            <p v-if="error" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p
+                v-if="error"
+                class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
                 {{ error }}
             </p>
 
             <div class="mb-4 flex flex-wrap items-center gap-3">
-                <label class="flex min-w-50 flex-1 items-center gap-2 text-sm text-slate-600">
-                    <span class="shrink-0 font-medium text-slate-700">Search</span>
+                <label
+                    class="flex min-w-50 flex-1 items-center gap-2 text-sm text-slate-600"
+                >
+                    <span class="shrink-0 font-medium text-slate-700"
+                        >Search</span
+                    >
                     <input
                         v-model="renterFilter"
                         type="search"
@@ -261,7 +279,9 @@ watch(renterFilter, () => scheduleSearchReload());
                         <option value="CANCELLED">Cancelled</option>
                     </select>
                 </label>
-                <span v-if="pageInfo" class="text-xs text-slate-500">{{ pageInfo }}</span>
+                <span v-if="pageInfo" class="text-xs text-slate-500">{{
+                    pageInfo
+                }}</span>
             </div>
 
             <Transition
@@ -313,14 +333,21 @@ watch(renterFilter, () => scheduleSearchReload());
                         <table
                             class="min-w-180 w-full divide-y divide-slate-200 text-left text-sm"
                         >
-                            <thead class="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <thead
+                                class="sticky top-0 z-10 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            >
                                 <tr>
-                                    <th v-if="canMarkPaid" class="px-4 py-3 w-10">
+                                    <th
+                                        v-if="canMarkPaid"
+                                        class="px-4 py-3 w-10"
+                                    >
                                         <input
                                             type="checkbox"
                                             class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                                             :checked="allSelected"
-                                            :disabled="markableRows.length === 0"
+                                            :disabled="
+                                                markableRows.length === 0
+                                            "
                                             @change="toggleAll"
                                         />
                                     </th>
@@ -331,7 +358,9 @@ watch(renterFilter, () => scheduleSearchReload());
                                     <th class="px-4 py-3">Status</th>
                                     <th class="px-4 py-3">Receipt</th>
                                     <th class="px-4 py-3">Paid at</th>
-                                    <th class="px-4 py-3 text-right">Actions</th>
+                                    <th class="px-4 py-3 text-right">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -339,11 +368,19 @@ watch(renterFilter, () => scheduleSearchReload());
                                     v-for="row in filteredRows"
                                     :key="row.id"
                                     class="hover:bg-slate-50/80"
-                                    :class="selectedIds.has(row.id) ? 'bg-emerald-50/40' : ''"
+                                    :class="
+                                        selectedIds.has(row.id)
+                                            ? 'bg-emerald-50/40'
+                                            : ''
+                                    "
                                 >
                                     <td v-if="canMarkPaid" class="px-4 py-3">
                                         <input
-                                            v-if="row.status !== 'PAID' && row.proofVerification !== 'PENDING_VERIFICATION'"
+                                            v-if="
+                                                row.status !== 'PAID' &&
+                                                row.proofVerification !==
+                                                    'PENDING_VERIFICATION'
+                                            "
                                             type="checkbox"
                                             class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                                             :checked="selectedIds.has(row.id)"
@@ -353,13 +390,25 @@ watch(renterFilter, () => scheduleSearchReload());
                                     <td class="px-4 py-3 text-slate-700">
                                         {{ formatDate(row.dueDate) }}
                                     </td>
-                                    <td class="px-4 py-3 font-medium tabular-nums text-slate-900">
-                                        {{ formatMoney(row.amount, row.currency) }}
+                                    <td
+                                        class="px-4 py-3 font-medium tabular-nums text-slate-900"
+                                    >
+                                        {{
+                                            formatMoney(
+                                                row.amount,
+                                                row.currency,
+                                            )
+                                        }}
                                     </td>
-                                    <td class="px-4 py-3">{{ row.renterName }}</td>
+                                    <td class="px-4 py-3">
+                                        {{ row.renterName }}
+                                    </td>
                                     <td class="px-4 py-3 text-slate-600">
                                         {{ row.unitLabel }}
-                                        <span class="block text-xs text-slate-400">{{ row.propertyName }}</span>
+                                        <span
+                                            class="block text-xs text-slate-400"
+                                            >{{ row.propertyName }}</span
+                                        >
                                     </td>
                                     <td class="px-4 py-3">
                                         <span
@@ -369,19 +418,33 @@ watch(renterFilter, () => scheduleSearchReload());
                                             {{ statusLabel(row.status) }}
                                         </span>
                                     </td>
-                                    <td class="max-w-40 px-4 py-3 text-xs text-slate-600">
+                                    <td
+                                        class="max-w-40 px-4 py-3 text-xs text-slate-600"
+                                    >
                                         {{ proofLabel(row) }}
                                         <span
-                                            v-if="row.proofVerification === 'REJECTED' && row.proofRejectionNote"
+                                            v-if="
+                                                row.proofVerification ===
+                                                    'REJECTED' &&
+                                                row.proofRejectionNote
+                                            "
                                             class="mt-0.5 block text-slate-500"
-                                        >{{ row.proofRejectionNote }}</span>
+                                            >{{ row.proofRejectionNote }}</span
+                                        >
                                     </td>
-                                    <td class="px-4 py-3 text-xs text-slate-500">
+                                    <td
+                                        class="px-4 py-3 text-xs text-slate-500"
+                                    >
                                         {{ formatDateTime(row.paidAt) }}
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <button
-                                            v-if="canMarkPaid && row.status !== 'PAID' && row.proofVerification !== 'PENDING_VERIFICATION'"
+                                            v-if="
+                                                canMarkPaid &&
+                                                row.status !== 'PAID' &&
+                                                row.proofVerification !==
+                                                    'PENDING_VERIFICATION'
+                                            "
                                             type="button"
                                             class="text-sm font-semibold text-emerald-600 hover:underline"
                                             @click="markPaid(row)"
@@ -389,10 +452,18 @@ watch(renterFilter, () => scheduleSearchReload());
                                             Mark paid
                                         </button>
                                         <span
-                                            v-else-if="row.proofVerification === 'PENDING_VERIFICATION'"
+                                            v-else-if="
+                                                row.proofVerification ===
+                                                'PENDING_VERIFICATION'
+                                            "
                                             class="text-xs text-amber-800"
-                                        >Use Receipts</span>
-                                        <span v-else class="text-xs text-slate-400">—</span>
+                                            >Use Receipts</span
+                                        >
+                                        <span
+                                            v-else
+                                            class="text-xs text-slate-400"
+                                            >—</span
+                                        >
                                     </td>
                                 </tr>
                             </tbody>
@@ -416,7 +487,10 @@ watch(renterFilter, () => scheduleSearchReload());
                                 type="button"
                                 class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-700 disabled:opacity-40"
                                 :disabled="page <= 1"
-                                @click="page--; void load();"
+                                @click="
+                                    page--;
+                                    void load();
+                                "
                             >
                                 Previous
                             </button>
@@ -424,7 +498,10 @@ watch(renterFilter, () => scheduleSearchReload());
                                 type="button"
                                 class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-700 disabled:opacity-40"
                                 :disabled="page >= totalPages"
-                                @click="page++; void load();"
+                                @click="
+                                    page++;
+                                    void load();
+                                "
                             >
                                 Next
                             </button>

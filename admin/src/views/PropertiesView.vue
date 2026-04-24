@@ -208,7 +208,9 @@ watch(page, () => {
             <div
                 class="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
             >
-                <div class="flex w-full min-w-0 flex-1 flex-wrap items-center gap-2 sm:max-w-xl">
+                <div
+                    class="flex w-full min-w-0 flex-1 flex-wrap items-center gap-2 sm:max-w-xl"
+                >
                     <input
                         v-model="search"
                         type="search"
@@ -240,11 +242,7 @@ watch(page, () => {
                 {{ error }}
             </p>
 
-            <div
-                v-if="loading"
-                class="space-y-4"
-                aria-busy="true"
-            >
+            <div v-if="loading" class="space-y-4" aria-busy="true">
                 <div
                     v-for="n in 4"
                     :key="n"
@@ -330,7 +328,11 @@ watch(page, () => {
                                     aria-hidden="true"
                                 />
                                 {{ p.units?.length ?? 0 }}
-                                {{ (p.units?.length ?? 0) === 1 ? 'unit' : 'units' }}
+                                {{
+                                    (p.units?.length ?? 0) === 1
+                                        ? 'unit'
+                                        : 'units'
+                                }}
                             </span>
                         </div>
 
@@ -423,7 +425,9 @@ watch(page, () => {
                 >
                     Previous
                 </button>
-                <span class="tabular-nums">Page {{ page }} / {{ totalPages }}</span>
+                <span class="tabular-nums"
+                    >Page {{ page }} / {{ totalPages }}</span
+                >
                 <button
                     type="button"
                     class="rounded-xl border border-slate-200 bg-white px-4 py-2 font-medium shadow-sm hover:bg-slate-50 disabled:opacity-40"
@@ -470,7 +474,10 @@ watch(page, () => {
                         </label>
                         <label class="mt-4 block">
                             <span class="text-sm font-medium text-slate-700"
-                                >Address <span class="font-normal text-slate-500">(optional)</span></span
+                                >Address
+                                <span class="font-normal text-slate-500"
+                                    >(optional)</span
+                                ></span
                             >
                             <input
                                 v-model="newAddress"
@@ -545,10 +552,13 @@ watch(page, () => {
                                 placeholder="Leave empty to clear"
                             />
                             <span class="mt-1 block text-xs text-slate-500"
-                                >Clear the field to remove the stored address.</span
+                                >Clear the field to remove the stored
+                                address.</span
                             >
                         </label>
-                        <div class="mt-6 flex flex-wrap items-center justify-end gap-2">
+                        <div
+                            class="mt-6 flex flex-wrap items-center justify-end gap-2"
+                        >
                             <button
                                 type="button"
                                 class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
@@ -567,16 +577,17 @@ watch(page, () => {
                             </button>
                         </div>
 
-                        <div
-                            class="mt-8 border-t border-slate-100 pt-6"
-                        >
-                            <p class="text-xs font-semibold uppercase tracking-wide text-red-600/90">
+                        <div class="mt-8 border-t border-slate-100 pt-6">
+                            <p
+                                class="text-xs font-semibold uppercase tracking-wide text-red-600/90"
+                            >
                                 Danger zone
                             </p>
                             <p class="mt-1 text-sm text-slate-600">
-                                Deleting removes this property and all its units.
-                                Leases tied to those units may block deletion —
-                                resolve them first if the API reports an error.
+                                Deleting removes this property and all its
+                                units. Leases tied to those units may block
+                                deletion — resolve them first if the API reports
+                                an error.
                             </p>
                             <button
                                 type="button"

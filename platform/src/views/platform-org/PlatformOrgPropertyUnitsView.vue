@@ -259,10 +259,18 @@ watch(
     <ConfirmDialog
         :open="!!confirmRemoveUnit"
         title="Remove unit?"
-        :message="confirmRemoveUnit ? `Remove unit &quot;${confirmRemoveUnit.label}&quot;? This cannot be undone.` : ''"
+        :message="
+            confirmRemoveUnit
+                ? `Remove unit &quot;${confirmRemoveUnit.label}&quot;? This cannot be undone.`
+                : ''
+        "
         confirm-label="Remove"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmRemoveUnit = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmRemoveUnit = null;
+            }
+        "
         @confirm="doRemoveUnit"
     />
 </template>

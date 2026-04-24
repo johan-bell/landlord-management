@@ -41,7 +41,10 @@ const editNote = ref('');
 const statusOptions = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 const orgFilterForRequest = computed(() => {
-    if (props.scopedOrganizationId != null && props.scopedOrganizationId !== '') {
+    if (
+        props.scopedOrganizationId != null &&
+        props.scopedOrganizationId !== ''
+    ) {
         return props.scopedOrganizationId;
     }
     return fleetOrgFilter.value.trim();

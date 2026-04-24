@@ -312,10 +312,18 @@ watch(page, () => void load());
     <ConfirmDialog
         :open="!!confirmDeleteProp"
         title="Delete property?"
-        :message="confirmDeleteProp ? `Delete &quot;${confirmDeleteProp.name}&quot; and all its units? This cannot be undone.` : ''"
+        :message="
+            confirmDeleteProp
+                ? `Delete &quot;${confirmDeleteProp.name}&quot; and all its units? This cannot be undone.`
+                : ''
+        "
         confirm-label="Delete"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmDeleteProp = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmDeleteProp = null;
+            }
+        "
         @confirm="doRemoveProperty"
     />
 </template>

@@ -41,7 +41,9 @@ async function submit() {
         <div
             class="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
         >
-            <h1 class="text-xl font-semibold text-slate-900">Choose new password</h1>
+            <h1 class="text-xl font-semibold text-slate-900">
+                Choose new password
+            </h1>
             <p class="mt-1 text-sm text-slate-500">
                 Use at least 8 characters. You can sign in afterward with your
                 email and this password.

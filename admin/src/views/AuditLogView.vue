@@ -41,9 +41,7 @@ async function load() {
             total: number;
             page: number;
             limit: number;
-        }>(
-            `${orgApi('/audit-logs')}?page=${page.value}&limit=${limit.value}`,
-        );
+        }>(`${orgApi('/audit-logs')}?page=${page.value}&limit=${limit.value}`);
         rows.value = res.items;
         total.value = res.total;
     } catch (e) {
@@ -112,10 +110,14 @@ function fmtMeta(m: unknown): string {
                                 :key="r.id"
                                 class="hover:bg-slate-50/80"
                             >
-                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600">
+                                <td
+                                    class="whitespace-nowrap px-4 py-3 text-xs text-slate-600"
+                                >
                                     {{ new Date(r.createdAt).toLocaleString() }}
                                 </td>
-                                <td class="px-4 py-3 font-medium text-slate-900">
+                                <td
+                                    class="px-4 py-3 font-medium text-slate-900"
+                                >
                                     {{ r.action }}
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">

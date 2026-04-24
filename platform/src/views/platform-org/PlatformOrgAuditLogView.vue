@@ -46,9 +46,7 @@ async function load() {
             total: number;
             page: number;
             limit: number;
-        }>(
-            `${orgApi('/audit-logs')}?page=${requestPage}&limit=${limit.value}`,
-        );
+        }>(`${orgApi('/audit-logs')}?page=${requestPage}&limit=${limit.value}`);
         rows.value = res.items;
         total.value = res.total;
     } catch (e) {

@@ -302,9 +302,15 @@ watch(page, () => void load());
                         >
                             <tr>
                                 <th class="px-4 py-3">Name</th>
-                                <th class="hidden px-4 py-3 sm:table-cell">Phone</th>
-                                <th class="hidden px-4 py-3 md:table-cell">Email</th>
-                                <th class="hidden px-4 py-3 lg:table-cell">Portal</th>
+                                <th class="hidden px-4 py-3 sm:table-cell">
+                                    Phone
+                                </th>
+                                <th class="hidden px-4 py-3 md:table-cell">
+                                    Email
+                                </th>
+                                <th class="hidden px-4 py-3 lg:table-cell">
+                                    Portal
+                                </th>
                                 <th class="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -314,7 +320,9 @@ watch(page, () => void load());
                                 :key="r.id"
                                 class="hover:bg-slate-50/80"
                             >
-                                <td class="px-4 py-3 font-medium text-slate-900">
+                                <td
+                                    class="px-4 py-3 font-medium text-slate-900"
+                                >
                                     {{ r.fullName }}
                                 </td>
                                 <td
@@ -334,7 +342,9 @@ watch(page, () => void load());
                                     >
                                         Active
                                     </span>
-                                    <span v-else class="text-xs text-slate-400">—</span>
+                                    <span v-else class="text-xs text-slate-400"
+                                        >—</span
+                                    >
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <button
@@ -401,7 +411,11 @@ watch(page, () => void load());
                 :message="`Remove ${confirmRemoveRenter?.fullName ?? 'this renter'} from the organization? This does not delete their lease history.`"
                 confirm-label="Remove"
                 danger
-                @update:open="(v) => { if (!v) confirmRemoveRenter = null; }"
+                @update:open="
+                    (v) => {
+                        if (!v) confirmRemoveRenter = null;
+                    }
+                "
                 @confirm="confirmRemove"
             />
 
@@ -418,14 +432,21 @@ watch(page, () => void load());
                         <div
                             class="shrink-0 border-b border-slate-100 px-5 py-4 sm:px-6"
                         >
-                            <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div
+                                class="flex flex-wrap items-start justify-between gap-3"
+                            >
                                 <div>
-                                    <h3 class="text-lg font-semibold text-slate-900">
+                                    <h3
+                                        class="text-lg font-semibold text-slate-900"
+                                    >
                                         Payment history
                                     </h3>
                                     <p class="mt-0.5 text-sm text-slate-600">
                                         {{ historyRenter.fullName }}
-                                        <span v-if="historyRenter.email" class="text-slate-500">
+                                        <span
+                                            v-if="historyRenter.email"
+                                            class="text-slate-500"
+                                        >
                                             · {{ historyRenter.email }}
                                         </span>
                                     </p>
@@ -437,42 +458,68 @@ watch(page, () => void load());
                                 >
                                     <span
                                         class="inline-flex rounded-full px-3 py-0.5 text-xs font-semibold capitalize ring-1"
-                                        :class="reliabilityColors(renterReliability.grade).badge"
+                                        :class="
+                                            reliabilityColors(
+                                                renterReliability.grade,
+                                            ).badge
+                                        "
                                     >
                                         {{ renterReliability.grade }} payer
                                     </span>
                                     <div class="flex items-center gap-2">
-                                        <div class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+                                        <div
+                                            class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"
+                                        >
                                             <div
                                                 class="h-full rounded-full transition-all"
-                                                :class="reliabilityColors(renterReliability.grade).bar"
-                                                :style="{ width: `${Math.round(renterReliability.rate * 100)}%` }"
+                                                :class="
+                                                    reliabilityColors(
+                                                        renterReliability.grade,
+                                                    ).bar
+                                                "
+                                                :style="{
+                                                    width: `${Math.round(renterReliability.rate * 100)}%`,
+                                                }"
                                             />
                                         </div>
-                                        <span class="text-xs text-slate-500 tabular-nums">
-                                            {{ Math.round(renterReliability.rate * 100) }}% on time
-                                            ({{ renterReliability.paid }}/{{ renterReliability.total }})
+                                        <span
+                                            class="text-xs text-slate-500 tabular-nums"
+                                        >
+                                            {{
+                                                Math.round(
+                                                    renterReliability.rate *
+                                                        100,
+                                                )
+                                            }}% on time ({{
+                                                renterReliability.paid
+                                            }}/{{ renterReliability.total }})
                                         </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+                        <div
+                            class="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6"
+                        >
                             <div
                                 v-if="historyLoading"
                                 class="py-12 text-center text-sm text-slate-500"
                             >
                                 Loading…
                             </div>
-                            <p v-else-if="historyError" class="text-sm text-red-600">
+                            <p
+                                v-else-if="historyError"
+                                class="text-sm text-red-600"
+                            >
                                 {{ historyError }}
                             </p>
                             <div
                                 v-else-if="!historyLeases.length"
                                 class="py-8 text-center text-sm text-slate-500"
                             >
-                                No leases yet — add a lease to see rent and utility charges.
+                                No leases yet — add a lease to see rent and
+                                utility charges.
                             </div>
                             <div v-else class="space-y-8">
                                 <section
@@ -480,13 +527,27 @@ watch(page, () => void load());
                                     :key="lease.id"
                                     class="rounded-xl border border-slate-200 bg-slate-50/50 p-4"
                                 >
-                                    <p class="text-sm font-semibold text-slate-900">
-                                        {{ lease.unit.property.name }} · {{ lease.unit.label }}
+                                    <p
+                                        class="text-sm font-semibold text-slate-900"
+                                    >
+                                        {{ lease.unit.property.name }} ·
+                                        {{ lease.unit.label }}
                                     </p>
                                     <p class="mt-1 text-xs text-slate-500">
-                                        Lease {{ formatDate(lease.startDate) }} —
-                                        {{ lease.endDate ? formatDate(lease.endDate) : 'Ongoing' }}
-                                        · Rent {{ formatMoney(lease.rentAmount, lease.currency) }}/mo
+                                        Lease
+                                        {{ formatDate(lease.startDate) }} —
+                                        {{
+                                            lease.endDate
+                                                ? formatDate(lease.endDate)
+                                                : 'Ongoing'
+                                        }}
+                                        · Rent
+                                        {{
+                                            formatMoney(
+                                                lease.rentAmount,
+                                                lease.currency,
+                                            )
+                                        }}/mo
                                     </p>
 
                                     <h4
@@ -500,40 +561,94 @@ watch(page, () => void load());
                                         <table
                                             class="min-w-full divide-y divide-slate-100 text-left text-xs"
                                         >
-                                            <thead class="bg-slate-50 text-slate-500">
+                                            <thead
+                                                class="bg-slate-50 text-slate-500"
+                                            >
                                                 <tr>
-                                                    <th class="px-3 py-2 font-medium">Due</th>
-                                                    <th class="px-3 py-2 font-medium">Amount</th>
-                                                    <th class="px-3 py-2 font-medium">Status</th>
-                                                    <th class="px-3 py-2 font-medium">Paid at</th>
+                                                    <th
+                                                        class="px-3 py-2 font-medium"
+                                                    >
+                                                        Due
+                                                    </th>
+                                                    <th
+                                                        class="px-3 py-2 font-medium"
+                                                    >
+                                                        Amount
+                                                    </th>
+                                                    <th
+                                                        class="px-3 py-2 font-medium"
+                                                    >
+                                                        Status
+                                                    </th>
+                                                    <th
+                                                        class="px-3 py-2 font-medium"
+                                                    >
+                                                        Paid at
+                                                    </th>
                                                 </tr>
                                             </thead>
-                                            <tbody class="divide-y divide-slate-100">
+                                            <tbody
+                                                class="divide-y divide-slate-100"
+                                            >
                                                 <tr
-                                                    v-for="p in lease.payments ?? []"
+                                                    v-for="p in lease.payments ??
+                                                    []"
                                                     :key="p.id"
                                                 >
-                                                    <td class="px-3 py-2 text-slate-700">
-                                                        {{ formatDate(p.dueDate) }}
+                                                    <td
+                                                        class="px-3 py-2 text-slate-700"
+                                                    >
+                                                        {{
+                                                            formatDate(
+                                                                p.dueDate,
+                                                            )
+                                                        }}
                                                     </td>
-                                                    <td class="px-3 py-2 font-medium tabular-nums text-slate-900">
-                                                        {{ formatMoney(p.amount, p.currency) }}
+                                                    <td
+                                                        class="px-3 py-2 font-medium tabular-nums text-slate-900"
+                                                    >
+                                                        {{
+                                                            formatMoney(
+                                                                p.amount,
+                                                                p.currency,
+                                                            )
+                                                        }}
                                                     </td>
                                                     <td class="px-3 py-2">
                                                         <span
                                                             class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
-                                                            :class="payStatusClass(p.status)"
-                                                        >{{ p.status }}</span>
+                                                            :class="
+                                                                payStatusClass(
+                                                                    p.status,
+                                                                )
+                                                            "
+                                                            >{{
+                                                                p.status
+                                                            }}</span
+                                                        >
                                                     </td>
-                                                    <td class="px-3 py-2 text-slate-500">
-                                                        {{ p.paidAt ? formatDateTime(p.paidAt) : '—' }}
+                                                    <td
+                                                        class="px-3 py-2 text-slate-500"
+                                                    >
+                                                        {{
+                                                            p.paidAt
+                                                                ? formatDateTime(
+                                                                      p.paidAt,
+                                                                  )
+                                                                : '—'
+                                                        }}
                                                     </td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </div>
 
-                                    <template v-if="(lease.utilityBills ?? []).length > 0">
+                                    <template
+                                        v-if="
+                                            (lease.utilityBills ?? []).length >
+                                            0
+                                        "
+                                    >
                                         <h4
                                             class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500"
                                         >
@@ -545,41 +660,107 @@ watch(page, () => void load());
                                             <table
                                                 class="min-w-full divide-y divide-slate-100 text-left text-xs"
                                             >
-                                                <thead class="bg-slate-50 text-slate-500">
+                                                <thead
+                                                    class="bg-slate-50 text-slate-500"
+                                                >
                                                     <tr>
-                                                        <th class="px-3 py-2 font-medium">Period</th>
-                                                        <th class="px-3 py-2 font-medium">Kind</th>
-                                                        <th class="px-3 py-2 font-medium">Due</th>
-                                                        <th class="px-3 py-2 font-medium">Amount</th>
-                                                        <th class="px-3 py-2 font-medium">Status</th>
-                                                        <th class="px-3 py-2 font-medium">Paid at</th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Period
+                                                        </th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Kind
+                                                        </th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Due
+                                                        </th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Amount
+                                                        </th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Status
+                                                        </th>
+                                                        <th
+                                                            class="px-3 py-2 font-medium"
+                                                        >
+                                                            Paid at
+                                                        </th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="divide-y divide-slate-100">
+                                                <tbody
+                                                    class="divide-y divide-slate-100"
+                                                >
                                                     <tr
-                                                        v-for="b in lease.utilityBills ?? []"
+                                                        v-for="b in lease.utilityBills ??
+                                                        []"
                                                         :key="b.id"
                                                     >
-                                                        <td class="px-3 py-2 text-slate-700">
-                                                            {{ utilityPeriod(b.year, b.month) }}
+                                                        <td
+                                                            class="px-3 py-2 text-slate-700"
+                                                        >
+                                                            {{
+                                                                utilityPeriod(
+                                                                    b.year,
+                                                                    b.month,
+                                                                )
+                                                            }}
                                                         </td>
-                                                        <td class="px-3 py-2 text-slate-600">
+                                                        <td
+                                                            class="px-3 py-2 text-slate-600"
+                                                        >
                                                             {{ b.kind }}
                                                         </td>
-                                                        <td class="px-3 py-2 text-slate-700">
-                                                            {{ formatDate(b.dueDate) }}
+                                                        <td
+                                                            class="px-3 py-2 text-slate-700"
+                                                        >
+                                                            {{
+                                                                formatDate(
+                                                                    b.dueDate,
+                                                                )
+                                                            }}
                                                         </td>
-                                                        <td class="px-3 py-2 font-medium tabular-nums text-slate-900">
-                                                            {{ formatMoney(b.amount, b.currency) }}
+                                                        <td
+                                                            class="px-3 py-2 font-medium tabular-nums text-slate-900"
+                                                        >
+                                                            {{
+                                                                formatMoney(
+                                                                    b.amount,
+                                                                    b.currency,
+                                                                )
+                                                            }}
                                                         </td>
                                                         <td class="px-3 py-2">
                                                             <span
                                                                 class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
-                                                                :class="payStatusClass(b.status)"
-                                                            >{{ b.status }}</span>
+                                                                :class="
+                                                                    payStatusClass(
+                                                                        b.status,
+                                                                    )
+                                                                "
+                                                                >{{
+                                                                    b.status
+                                                                }}</span
+                                                            >
                                                         </td>
-                                                        <td class="px-3 py-2 text-slate-500">
-                                                            {{ b.paidAt ? formatDateTime(b.paidAt) : '—' }}
+                                                        <td
+                                                            class="px-3 py-2 text-slate-500"
+                                                        >
+                                                            {{
+                                                                b.paidAt
+                                                                    ? formatDateTime(
+                                                                          b.paidAt,
+                                                                      )
+                                                                    : '—'
+                                                            }}
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -590,7 +771,9 @@ watch(page, () => void load());
                             </div>
                         </div>
 
-                        <div class="shrink-0 border-t border-slate-100 px-5 py-3 sm:px-6">
+                        <div
+                            class="shrink-0 border-t border-slate-100 px-5 py-3 sm:px-6"
+                        >
                             <button
                                 type="button"
                                 class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -622,7 +805,9 @@ watch(page, () => void load());
                             />
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium">Phone (optional)</span>
+                            <span class="text-sm font-medium"
+                                >Phone (optional)</span
+                            >
                             <input
                                 v-model="form.phone"
                                 class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
@@ -641,7 +826,9 @@ watch(page, () => void load());
                             </span>
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium">Initial portal password</span>
+                            <span class="text-sm font-medium"
+                                >Initial portal password</span
+                            >
                             <input
                                 v-model="form.initialPassword"
                                 type="password"
@@ -652,7 +839,9 @@ watch(page, () => void load());
                             />
                         </label>
                         <label class="mt-3 block">
-                            <span class="text-sm font-medium">Confirm password</span>
+                            <span class="text-sm font-medium"
+                                >Confirm password</span
+                            >
                             <input
                                 v-model="form.initialPasswordConfirm"
                                 type="password"

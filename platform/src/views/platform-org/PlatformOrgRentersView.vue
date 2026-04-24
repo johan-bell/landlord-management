@@ -365,10 +365,18 @@ watch(page, () => void load());
     <ConfirmDialog
         :open="!!confirmRemoveRenter"
         title="Remove renter?"
-        :message="confirmRemoveRenter ? `Remove ${confirmRemoveRenter.fullName} from this organization?` : ''"
+        :message="
+            confirmRemoveRenter
+                ? `Remove ${confirmRemoveRenter.fullName} from this organization?`
+                : ''
+        "
         confirm-label="Remove"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmRemoveRenter = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmRemoveRenter = null;
+            }
+        "
         @confirm="doRemoveRenter"
     />
 </template>

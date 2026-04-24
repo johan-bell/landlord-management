@@ -135,9 +135,10 @@ async function loadUtilityBills() {
 }
 
 /** `type="number"` v-model may be string or number — never call `.trim()` blindly. */
-function utilNumericFieldOk(
-    raw: string | number | null | undefined,
-): { ok: boolean; n: number } {
+function utilNumericFieldOk(raw: string | number | null | undefined): {
+    ok: boolean;
+    n: number;
+} {
     if (raw === null || raw === undefined) {
         return { ok: false, n: NaN };
     }
@@ -179,7 +180,9 @@ async function saveUtilityBill() {
                 ? {
                       ...base,
                       currentMeterIndex: curMeter.n,
-                      ...(prevMeter.ok ? { previousMeterIndex: prevMeter.n } : {}),
+                      ...(prevMeter.ok
+                          ? { previousMeterIndex: prevMeter.n }
+                          : {}),
                   }
                 : {
                       ...base,
@@ -195,7 +198,9 @@ async function saveUtilityBill() {
         toast.success('Utility charge saved');
         await loadUtilityBills();
     } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not save utility bill');
+        toast.error(
+            e instanceof Error ? e.message : 'Could not save utility bill',
+        );
     } finally {
         utilSaving.value = false;
     }
@@ -496,7 +501,9 @@ watch(page, () => void load());
                                     <th class="px-4 py-3">Rent</th>
                                     <th class="px-4 py-3">Start</th>
                                     <th class="px-4 py-3">Due day</th>
-                                    <th class="px-4 py-3 text-right">Actions</th>
+                                    <th class="px-4 py-3 text-right">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -518,7 +525,12 @@ watch(page, () => void load());
                                         >
                                     </td>
                                     <td class="px-4 py-3 tabular-nums">
-                                        {{ formatMoney(l.rentAmount, l.currency) }}
+                                        {{
+                                            formatMoney(
+                                                l.rentAmount,
+                                                l.currency,
+                                            )
+                                        }}
                                     </td>
                                     <td class="px-4 py-3 text-slate-600">
                                         {{ formatDate(l.startDate) }}
@@ -719,10 +731,11 @@ watch(page, () => void load());
                             {{ utilitiesLease.unit.label }}
                         </p>
                         <p class="mt-2 text-xs leading-relaxed text-slate-500">
-                            For metered units, enter the new index; the amount is
-                            (current − previous) × your per‑m³ or per‑kWh rate.
-                            Tenants upload a payment receipt; you verify it under
-                            Receipts before it shows paid in their portal.
+                            For metered units, enter the new index; the amount
+                            is (current − previous) × your per‑m³ or per‑kWh
+                            rate. Tenants upload a payment receipt; you verify
+                            it under Receipts before it shows paid in their
+                            portal.
                         </p>
 
                         <div
@@ -1019,7 +1032,9 @@ watch(page, () => void load());
                                                 <button
                                                     type="button"
                                                     class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50/80 px-2.5 py-1.5 text-xs font-semibold text-red-800 shadow-sm transition hover:bg-red-100"
-                                                    @click="confirmUtilDelete = b"
+                                                    @click="
+                                                        confirmUtilDelete = b
+                                                    "
                                                 >
                                                     <TrashIcon
                                                         class="h-3.5 w-3.5"
@@ -1079,7 +1094,9 @@ watch(page, () => void load());
                                     </select>
                                 </label>
                                 <label
-                                    v-if="utilForm.utilityBillingMode === 'meter'"
+                                    v-if="
+                                        utilForm.utilityBillingMode === 'meter'
+                                    "
                                     class="block text-sm"
                                 >
                                     <span class="text-slate-600"
@@ -1095,7 +1112,9 @@ watch(page, () => void load());
                                     />
                                 </label>
                                 <label
-                                    v-if="utilForm.utilityBillingMode === 'meter'"
+                                    v-if="
+                                        utilForm.utilityBillingMode === 'meter'
+                                    "
                                     class="block text-sm"
                                 >
                                     <span class="text-slate-600"

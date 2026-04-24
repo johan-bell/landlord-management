@@ -19,9 +19,11 @@ function iconFor(kind: Toast['kind']) {
 }
 
 function colorFor(kind: Toast['kind']) {
-    if (kind === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+    if (kind === 'success')
+        return 'border-emerald-200 bg-emerald-50 text-emerald-900';
     if (kind === 'error') return 'border-red-200 bg-red-50 text-red-900';
-    if (kind === 'warning') return 'border-amber-200 bg-amber-50 text-amber-900';
+    if (kind === 'warning')
+        return 'border-amber-200 bg-amber-50 text-amber-900';
     return 'border-blue-200 bg-blue-50 text-blue-900';
 }
 

@@ -143,7 +143,9 @@ watch(canManageTeam, () => void load());
             <div
                 class="mb-6 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 text-sm text-slate-700"
             >
-                <p class="font-semibold text-slate-900">Roles in this console</p>
+                <p class="font-semibold text-slate-900">
+                    Roles in this console
+                </p>
                 <p class="mt-1 text-xs text-slate-500">
                     Everyone below belongs to this organization. The
                     <strong>role</strong> sets team administration, approvals,
@@ -257,8 +259,12 @@ watch(canManageTeam, () => void load());
                                     {{ inv.email }}
                                 </p>
                                 <p class="text-xs text-slate-500">
-                                    {{ ORG_ROLE_LABEL[inv.role as keyof typeof ORG_ROLE_LABEL] ?? inv.role }} ·
-                                    expires
+                                    {{
+                                        ORG_ROLE_LABEL[
+                                            inv.role as keyof typeof ORG_ROLE_LABEL
+                                        ] ?? inv.role
+                                    }}
+                                    · expires
                                     {{
                                         new Date(inv.expiresAt).toLocaleString()
                                     }}

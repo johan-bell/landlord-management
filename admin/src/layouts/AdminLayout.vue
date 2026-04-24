@@ -83,9 +83,7 @@ const profileInitials = computed(() => {
     if (name) {
         const parts = name.split(/\s+/);
         if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-        return (
-            parts[0][0] + parts[parts.length - 1][0]
-        ).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
     const email = auth.user?.email ?? '';
     const local = email.split('@')[0] || email;
@@ -130,7 +128,11 @@ const nav = computed(() => {
 
     if (isElevated) {
         items.push({ to: '/team', label: t('nav.team'), icon: 'team' });
-        items.push({ to: '/audit-log', label: t('nav.auditLog'), icon: 'audit' });
+        items.push({
+            to: '/audit-log',
+            label: t('nav.auditLog'),
+            icon: 'audit',
+        });
     }
 
     items.push({ to: '/support', label: t('nav.support'), icon: 'support' });
@@ -319,7 +321,9 @@ onMounted(() => {
                 <div
                     class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3"
                 >
-                    <label class="block min-w-0 flex-1 sm:max-w-xs sm:flex-none">
+                    <label
+                        class="block min-w-0 flex-1 sm:max-w-xs sm:flex-none"
+                    >
                         <span class="sr-only">Organization</span>
                         <select
                             :value="selectedOrgId ?? ''"
@@ -339,11 +343,7 @@ onMounted(() => {
                                         : 'Select organization'
                                 }}
                             </option>
-                            <option
-                                v-for="o in orgs"
-                                :key="o.id"
-                                :value="o.id"
-                            >
+                            <option v-for="o in orgs" :key="o.id" :value="o.id">
                                 {{ o.name }}
                             </option>
                         </select>

@@ -439,7 +439,11 @@ watch(page, () => void load());
         message="Delete this lease? The unit will be marked vacant. This cannot be undone."
         confirm-label="Delete"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmDeleteLease = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmDeleteLease = null;
+            }
+        "
         @confirm="doRemoveLease"
     />
 </template>

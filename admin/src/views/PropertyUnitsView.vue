@@ -704,7 +704,11 @@ watch([hasOrg, propertyId], () => {
                 "
                 confirm-label="Remove"
                 :danger="true"
-                @update:open="(v) => { if (!v) confirmRemoveUnit = null; }"
+                @update:open="
+                    (v) => {
+                        if (!v) confirmRemoveUnit = null;
+                    }
+                "
                 @confirm="doRemoveUnit"
             />
         </template>

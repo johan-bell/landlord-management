@@ -74,14 +74,18 @@ function navClass(kind: 'orgs' | 'support') {
                         <RouterLink :class="navClass('orgs')" to="/">{{
                             t('nav.organizations')
                         }}</RouterLink>
-                        <RouterLink :class="navClass('support')" to="/support">{{
-                            t('nav.support')
-                        }}</RouterLink>
+                        <RouterLink
+                            :class="navClass('support')"
+                            to="/support"
+                            >{{ t('nav.support') }}</RouterLink
+                        >
                     </nav>
                 </div>
 
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <label class="hidden text-xs text-slate-500 sm:flex sm:items-center sm:gap-1">
+                    <label
+                        class="hidden text-xs text-slate-500 sm:flex sm:items-center sm:gap-1"
+                    >
                         <span class="sr-only">Language</span>
                         <select
                             class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800"

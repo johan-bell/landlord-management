@@ -74,7 +74,9 @@ async function approveRent(p: PendingPayment) {
     busyId.value = p.id;
     error.value = null;
     try {
-        await api(orgApi(`/proofs/payments/${p.id}/approve`), { method: 'POST' });
+        await api(orgApi(`/proofs/payments/${p.id}/approve`), {
+            method: 'POST',
+        });
         toast.success('Receipt approved');
         await load();
     } catch (e) {
@@ -193,7 +195,10 @@ watch(hasOrg, () => void load());
                             payments.length
                         }})
                     </h2>
-                    <div v-if="!payments.length" class="px-4 py-8 text-center text-sm text-slate-500">
+                    <div
+                        v-if="!payments.length"
+                        class="px-4 py-8 text-center text-sm text-slate-500"
+                    >
                         None right now.
                     </div>
                     <ul v-else class="divide-y divide-slate-100">
@@ -204,7 +209,8 @@ watch(hasOrg, () => void load());
                         >
                             <div class="min-w-0 text-sm">
                                 <p class="font-medium text-slate-900">
-                                    {{ formatMoney(p.amount, p.currency) }} · due
+                                    {{ formatMoney(p.amount, p.currency) }} ·
+                                    due
                                     {{ formatDate(p.dueDate) }}
                                 </p>
                                 <p class="text-slate-600">
@@ -355,13 +361,18 @@ watch(hasOrg, () => void load());
                         >
                             Reject receipt
                         </h3>
-                        <p class="mt-1.5 text-sm leading-relaxed text-slate-600">
+                        <p
+                            class="mt-1.5 text-sm leading-relaxed text-slate-600"
+                        >
                             Optionally explain why to the tenant. This note will
                             appear in their portal.
                         </p>
                         <label class="mt-4 block">
                             <span class="text-sm font-medium text-slate-700"
-                                >Note <span class="font-normal text-slate-500">(optional)</span></span
+                                >Note
+                                <span class="font-normal text-slate-500"
+                                    >(optional)</span
+                                ></span
                             >
                             <textarea
                                 v-model="rejectModal.note"

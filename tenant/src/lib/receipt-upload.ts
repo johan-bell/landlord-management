@@ -47,8 +47,7 @@ function compressImageToJpeg(file: File, maxEdge: number): Promise<File> {
                         resolve(file);
                         return;
                     }
-                    const base =
-                        file.name.replace(/\.[^.]+$/, '') || 'receipt';
+                    const base = file.name.replace(/\.[^.]+$/, '') || 'receipt';
                     resolve(
                         new File([blob], `${base}-upload.jpg`, {
                             type: 'image/jpeg',

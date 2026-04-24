@@ -424,22 +424,22 @@ watch(
                 <p class="mt-1 text-xs text-slate-500">
                     Rent collection and occupancy snapshot for this org.
                 </p>
-                <div
-                    class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                >
-                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div
+                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                    >
                         <p class="text-xs text-slate-500">Vacancy rate</p>
                         <p class="text-lg font-semibold text-slate-900">
-                            {{
-                                Math.round(analytics.vacancyRate * 1000) / 10
-                            }}%
+                            {{ Math.round(analytics.vacancyRate * 1000) / 10 }}%
                         </p>
                         <p class="text-xs text-slate-500">
                             {{ analytics.vacantUnitCount }} /
                             {{ analytics.unitCount }} units vacant
                         </p>
                     </div>
-                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div
+                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                    >
                         <p class="text-xs text-slate-500">Collection (30d)</p>
                         <p class="text-lg font-semibold text-slate-900">
                             {{
@@ -449,14 +449,20 @@ watch(
                             }}
                         </p>
                     </div>
-                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div
+                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                    >
                         <p class="text-xs text-slate-500">Overdue charges</p>
                         <p class="text-lg font-semibold text-slate-900">
                             {{ analytics.overduePaymentCount }}
                         </p>
                     </div>
-                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                        <p class="text-xs text-slate-500">Rent roll 30d (paid)</p>
+                    <div
+                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                    >
+                        <p class="text-xs text-slate-500">
+                            Rent roll 30d (paid)
+                        </p>
                         <p class="text-lg font-semibold text-slate-900">
                             {{
                                 formatMoney(
@@ -547,7 +553,11 @@ watch(
         :message="`Permanently delete &quot;${org.name}&quot;? This removes all properties, units, leases, and members. This cannot be undone.`"
         confirm-label="Delete permanently"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmDelete = false; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmDelete = false;
+            }
+        "
         @confirm="removeOrg"
     />
 </template>

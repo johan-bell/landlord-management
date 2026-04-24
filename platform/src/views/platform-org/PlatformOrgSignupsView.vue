@@ -298,10 +298,18 @@ watch(
     <ConfirmDialog
         :open="!!confirmRejectRow"
         title="Reject signup?"
-        :message="confirmRejectRow ? `Reject the signup request from ${confirmRejectRow.user.email}?` : ''"
+        :message="
+            confirmRejectRow
+                ? `Reject the signup request from ${confirmRejectRow.user.email}?`
+                : ''
+        "
         confirm-label="Reject"
         :danger="true"
-        @update:open="(v) => { if (!v) confirmRejectRow = null; }"
+        @update:open="
+            (v) => {
+                if (!v) confirmRejectRow = null;
+            }
+        "
         @confirm="doRejectSignup"
     />
 </template>

@@ -118,7 +118,9 @@ watch([hasOrg, selectedOrgId], () => void load());
         <SelectOrgPrompt v-if="!hasOrg" />
 
         <template v-else>
-            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div
+                class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            >
                 <div>
                     <h2 class="text-xl font-semibold text-slate-900">
                         Support requests
@@ -283,8 +285,8 @@ watch([hasOrg, selectedOrgId], () => void load());
                 </div>
                 <p class="mt-2 text-xs leading-relaxed text-slate-500">
                     This opens a ticket for the SaaS operator (billing,
-                    technical issues, suspension appeals). For everyday
-                    property matters, coordinate with your renters directly.
+                    technical issues, suspension appeals). For everyday property
+                    matters, coordinate with your renters directly.
                 </p>
                 <form class="mt-4 space-y-3" @submit.prevent="submitCreate">
                     <label class="block text-sm">

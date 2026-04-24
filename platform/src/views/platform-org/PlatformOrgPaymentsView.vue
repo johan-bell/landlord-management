@@ -52,9 +52,7 @@ async function load() {
             total: number;
             page: number;
             limit: number;
-        }>(
-            `${orgApi('/payments')}?page=${requestPage}&limit=${limit.value}`,
-        );
+        }>(`${orgApi('/payments')}?page=${requestPage}&limit=${limit.value}`);
         items.value = res.items;
         total.value = res.total;
     } catch (e) {
@@ -67,17 +65,14 @@ async function load() {
 
 async function markPaid(row: PaymentRow) {
     try {
-        await api(
-            orgApi(`/leases/${row.lease.id}/payments/${row.id}`),
-            {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status: 'PAID',
-                    paidAt: new Date().toISOString(),
-                    method: 'CASH',
-                }),
-            },
-        );
+        await api(orgApi(`/leases/${row.lease.id}/payments/${row.id}`), {
+            method: 'PATCH',
+            body: JSON.stringify({
+                status: 'PAID',
+                paidAt: new Date().toISOString(),
+                method: 'CASH',
+            }),
+        });
         await load();
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Update failed';
@@ -146,9 +141,12 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">
                                     {{ row.lease.unit.label }}
-                                    <span class="block text-xs text-slate-400">{{
-                                        row.lease.unit.property.name
-                                    }}</span>
+                                    <span
+                                        class="block text-xs text-slate-400"
+                                        >{{
+                                            row.lease.unit.property.name
+                                        }}</span
+                                    >
                                 </td>
                                 <td class="px-4 py-3">
                                     <span

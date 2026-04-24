@@ -4,10 +4,7 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { api } from '../lib/api';
-import {
-    prepareReceiptUpload,
-    putToPresignedUrl,
-} from '../lib/receipt-upload';
+import { prepareReceiptUpload, putToPresignedUrl } from '../lib/receipt-upload';
 import { useAuthStore } from '../stores/auth';
 import { setTenantLocale } from '../i18n';
 import { useDarkMode } from '../composables/useDarkMode';
@@ -191,7 +188,8 @@ function utilityPeriodLabel(year: number, month: number) {
 function rentProofLabel(p: LeaseRow['payments'][0]) {
     if (p.status === 'PAID') return 'Paid';
     const v = p.proofVerification ?? 'NONE';
-    if (v === 'PENDING_VERIFICATION') return 'Receipt sent — waiting for landlord';
+    if (v === 'PENDING_VERIFICATION')
+        return 'Receipt sent — waiting for landlord';
     if (v === 'REJECTED') return 'Receipt rejected — upload again';
     return 'Unpaid';
 }
@@ -199,15 +197,13 @@ function rentProofLabel(p: LeaseRow['payments'][0]) {
 function utilityProofLabel(ub: NonNullable<LeaseRow['utilityBills']>[0]) {
     if (ub.status === 'PAID') return 'Paid';
     const v = ub.proofVerification ?? 'NONE';
-    if (v === 'PENDING_VERIFICATION') return 'Receipt sent — waiting for landlord';
+    if (v === 'PENDING_VERIFICATION')
+        return 'Receipt sent — waiting for landlord';
     if (v === 'REJECTED') return 'Receipt rejected — upload again';
     return 'Unpaid';
 }
 
-function canUploadProof(
-    status: string,
-    proofVerification: string | undefined,
-) {
+function canUploadProof(status: string, proofVerification: string | undefined) {
     if (status === 'PAID') return false;
     const v = proofVerification ?? 'NONE';
     return v === 'NONE' || v === 'REJECTED';
@@ -315,8 +311,7 @@ const whatsDueNext = computed(() => {
         }
     }
     items.sort(
-        (a, b) =>
-            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
     return {
         next: items[0] ?? null,
@@ -349,20 +344,18 @@ function nextDueTitle(item: NextDueItem) {
 
 function rentPaymentsNewestFirst(lease: LeaseRow) {
     return [...lease.payments].sort(
-        (a, b) =>
-            new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+        (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
     );
 }
 
-function utilityBillsByKind(
-    lease: LeaseRow,
-    kind: 'ELECTRICITY' | 'WATER',
-) {
+function utilityBillsByKind(lease: LeaseRow, kind: 'ELECTRICITY' | 'WATER') {
     return (lease.utilityBills ?? [])
         .filter((b) => b.kind === kind)
         .sort(
             (a, b) =>
-                b.year - a.year || b.month - a.month || b.id.localeCompare(a.id),
+                b.year - a.year ||
+                b.month - a.month ||
+                b.id.localeCompare(a.id),
         );
 }
 
@@ -435,7 +428,14 @@ async function onUtilityProofPick(
     const key = `util:${billId}`;
     uploadBusyKey.value = key;
     try {
-        await submitProofFile(file, orgId, leaseId, 'UTILITY', undefined, billId);
+        await submitProofFile(
+            file,
+            orgId,
+            leaseId,
+            'UTILITY',
+            undefined,
+            billId,
+        );
         await refreshMe();
     } catch (e) {
         uploadErr.value =
@@ -806,7 +806,9 @@ onUnmounted(() => {
                     class="tenant-card mt-6 border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-teal-50/50 p-5 sm:p-6"
                     aria-live="polite"
                 >
-                    <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3"
+                    >
                         <div>
                             <p
                                 class="text-xs font-semibold uppercase tracking-widest text-emerald-700"
@@ -833,9 +835,7 @@ onUnmounted(() => {
                                 </p>
                                 <p class="mt-0.5 text-sm text-slate-500">
                                     Due
-                                    {{
-                                        formatDate(whatsDueNext.next.dueDate)
-                                    }}
+                                    {{ formatDate(whatsDueNext.next.dueDate) }}
                                     <span
                                         v-if="whatsDueNext.upcomingCount > 1"
                                         class="text-slate-400"
@@ -917,11 +917,15 @@ onUnmounted(() => {
                     <p
                         class="mt-2 max-w-prose text-sm leading-relaxed text-slate-600"
                     >
-                        Active and past leases linked to your account.                         Each row lists scheduled rent.
-                        <strong class="font-semibold text-slate-800">Paid</strong>
+                        Active and past leases linked to your account. Each row
+                        lists scheduled rent.
+                        <strong class="font-semibold text-slate-800"
+                            >Paid</strong
+                        >
                         means the landlord confirmed payment (including prepaid
-                        months at lease start). Otherwise upload a receipt photo;
-                        it becomes paid in your view only after they verify it.
+                        months at lease start). Otherwise upload a receipt
+                        photo; it becomes paid in your view only after they
+                        verify it.
                     </p>
                     <p
                         v-if="uploadErr"
@@ -1183,7 +1187,9 @@ onUnmounted(() => {
                                                         "
                                                         class="mt-1.5 text-[11px] text-red-700"
                                                     >
-                                                        {{ ub.proofRejectionNote }}
+                                                        {{
+                                                            ub.proofRejectionNote
+                                                        }}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1216,9 +1222,7 @@ onUnmounted(() => {
                                                                   : 'bg-amber-100 text-amber-900'
                                                     "
                                                 >
-                                                    {{
-                                                        utilityProofLabel(ub)
-                                                    }}
+                                                    {{ utilityProofLabel(ub) }}
                                                 </span>
                                                 <label
                                                     v-if="
@@ -1288,7 +1292,9 @@ onUnmounted(() => {
                                     aria-label="Payment history type"
                                 >
                                     <button
-                                        v-for="tab in historyTabsForLease(lease)"
+                                        v-for="tab in historyTabsForLease(
+                                            lease,
+                                        )"
                                         :key="tab"
                                         type="button"
                                         role="tab"
@@ -1308,12 +1314,17 @@ onUnmounted(() => {
                                 </div>
 
                                 <div
-                                    v-show="currentHistoryTab(lease) === 'lease'"
+                                    v-show="
+                                        currentHistoryTab(lease) === 'lease'
+                                    "
                                     class="mt-3"
                                     role="tabpanel"
                                 >
                                     <ul
-                                        v-if="rentPaymentsNewestFirst(lease).length"
+                                        v-if="
+                                            rentPaymentsNewestFirst(lease)
+                                                .length
+                                        "
                                         class="space-y-2"
                                     >
                                         <li
@@ -1497,7 +1508,9 @@ onUnmounted(() => {
                                                         "
                                                         class="mt-1 text-[11px] text-red-700"
                                                     >
-                                                        {{ ub.proofRejectionNote }}
+                                                        {{
+                                                            ub.proofRejectionNote
+                                                        }}
                                                     </p>
                                                 </div>
                                                 <div
@@ -1515,8 +1528,7 @@ onUnmounted(() => {
                                                     <span
                                                         class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                                                         :class="
-                                                            ub.status ===
-                                                            'PAID'
+                                                            ub.status === 'PAID'
                                                                 ? 'bg-emerald-100 text-emerald-900'
                                                                 : ub.proofVerification ===
                                                                     'PENDING_VERIFICATION'
@@ -1562,7 +1574,8 @@ onUnmounted(() => {
                                                             @change="
                                                                 onUtilityProofPick(
                                                                     $event,
-                                                                    me.organization
+                                                                    me
+                                                                        .organization
                                                                         .id,
                                                                     lease.id,
                                                                     ub.id,
@@ -1591,10 +1604,8 @@ onUnmounted(() => {
                                 >
                                     <ul
                                         v-if="
-                                            utilityBillsByKind(
-                                                lease,
-                                                'WATER',
-                                            ).length
+                                            utilityBillsByKind(lease, 'WATER')
+                                                .length
                                         "
                                         class="space-y-2"
                                     >
@@ -1668,7 +1679,9 @@ onUnmounted(() => {
                                                         "
                                                         class="mt-1 text-[11px] text-red-700"
                                                     >
-                                                        {{ ub.proofRejectionNote }}
+                                                        {{
+                                                            ub.proofRejectionNote
+                                                        }}
                                                     </p>
                                                 </div>
                                                 <div
@@ -1686,8 +1699,7 @@ onUnmounted(() => {
                                                     <span
                                                         class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                                                         :class="
-                                                            ub.status ===
-                                                            'PAID'
+                                                            ub.status === 'PAID'
                                                                 ? 'bg-emerald-100 text-emerald-900'
                                                                 : ub.proofVerification ===
                                                                     'PENDING_VERIFICATION'
@@ -1733,7 +1745,8 @@ onUnmounted(() => {
                                                             @change="
                                                                 onUtilityProofPick(
                                                                     $event,
-                                                                    me.organization
+                                                                    me
+                                                                        .organization
                                                                         .id,
                                                                     lease.id,
                                                                     ub.id,
@@ -1858,9 +1871,7 @@ onUnmounted(() => {
                                 "
                                 class="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/90 px-3 py-2 text-xs leading-relaxed text-emerald-950"
                             >
-                                <p
-                                    class="font-semibold text-emerald-900"
-                                >
+                                <p class="font-semibold text-emerald-900">
                                     Platform reply
                                 </p>
                                 <p class="mt-1 whitespace-pre-wrap">
