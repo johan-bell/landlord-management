@@ -173,66 +173,51 @@ onMounted(() => {
 
         <div
             v-if="fleet && !loading"
-            class="mb-6 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-slate-200 shadow-sm"
+            class="mb-6 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-5 text-slate-200 shadow-sm"
         >
-            <p
-                class="text-xs font-semibold uppercase tracking-wide text-slate-400"
-            >
-                Fleet health
-            </p>
-            <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-white">
+            <div class="flex items-center justify-between gap-2">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Fleet health</p>
+                <p class="text-[10px] text-slate-500">Snapshot {{ formatDate(fleet.generatedAt) }}</p>
+            </div>
+            <div class="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums" :class="fleet.operations.openSupportRequests > 0 ? 'text-amber-300' : 'text-white'">
                         {{ fleet.operations.openSupportRequests }}
                     </p>
-                    <p class="text-xs text-slate-400">Open support tickets</p>
-                    <RouterLink
-                        to="/support"
-                        class="mt-1 inline-block text-xs font-semibold text-indigo-300 hover:text-indigo-200"
-                    >
-                        Queue →
-                    </RouterLink>
+                    <p class="mt-0.5 text-xs text-slate-400">Open tickets</p>
+                    <RouterLink to="/support" class="mt-1 inline-block text-xs font-semibold text-indigo-300 hover:text-indigo-200">Queue →</RouterLink>
                 </div>
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-white">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums" :class="fleet.operations.pendingTenantSignups > 0 ? 'text-amber-300' : 'text-white'">
                         {{ fleet.operations.pendingTenantSignups }}
                     </p>
-                    <p class="text-xs text-slate-400">Pending tenant signups</p>
+                    <p class="mt-0.5 text-xs text-slate-400">Pending signups</p>
                 </div>
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-amber-300">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums" :class="fleet.operations.activeOrgsWithoutProperties > 0 ? 'text-amber-300' : 'text-emerald-400'">
                         {{ fleet.operations.activeOrgsWithoutProperties }}
                     </p>
-                    <p class="text-xs text-slate-400">
-                        Active orgs · no properties
-                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">Orgs, no properties</p>
                 </div>
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-rose-300">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums" :class="fleet.operations.subscriptionsPastDue > 0 ? 'text-rose-400' : 'text-emerald-400'">
                         {{ fleet.operations.subscriptionsPastDue }}
                     </p>
-                    <p class="text-xs text-slate-400">Subscriptions past due</p>
+                    <p class="mt-0.5 text-xs text-slate-400">Subs past due</p>
                 </div>
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-white">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums text-white">
                         {{ fleet.revenueSignals.activeLeaseAgreements }}
                     </p>
-                    <p class="text-xs text-slate-400">
-                        Active lease agreements (fleet)
-                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">Active leases</p>
                 </div>
-                <div>
-                    <p class="text-2xl font-bold tabular-nums text-emerald-300">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                    <p class="text-xl font-bold tabular-nums text-emerald-300">
                         {{ fleet.revenueSignals.activeOrgsWithStripeCustomer }}
                     </p>
-                    <p class="text-xs text-slate-400">
-                        Active orgs with Stripe customer
-                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400">Stripe customers</p>
                 </div>
             </div>
-            <p class="mt-3 text-[10px] text-slate-500">
-                Snapshot {{ formatDate(fleet.generatedAt) }}
-            </p>
         </div>
 
         <div v-if="!loading" class="mb-6 grid gap-3 sm:grid-cols-3">
@@ -385,10 +370,17 @@ onMounted(() => {
                                     }}
                                 </span>
                             </td>
-                            <td
-                                class="hidden px-4 py-3 text-slate-600 md:table-cell"
-                            >
-                                {{ org.subscriptionStatus }}
+                            <td class="hidden px-4 py-3 md:table-cell">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+                                    :class="
+                                        org.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+                                        : org.subscriptionStatus === 'past_due' ? 'bg-red-50 text-red-800 ring-red-200'
+                                        : org.subscriptionStatus === 'trialing' ? 'bg-blue-50 text-blue-800 ring-blue-200'
+                                        : org.subscriptionStatus === 'canceled' ? 'bg-slate-100 text-slate-600 ring-slate-200'
+                                        : 'bg-slate-100 text-slate-600 ring-slate-200'
+                                    "
+                                >{{ org.subscriptionStatus || 'none' }}</span>
                             </td>
                             <td
                                 class="hidden px-4 py-3 text-xs text-slate-600 lg:table-cell"

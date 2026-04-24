@@ -18,7 +18,7 @@ withDefaults(
         "
     >
         <div
-            class="flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 font-bold text-white shadow-md shadow-teal-900/20 ring-2 ring-white/20"
+            class="flex shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-teal-500 to-emerald-600 font-bold text-white shadow-md shadow-teal-900/20 ring-2 ring-white/20"
             :class="size === 'lg' ? 'h-14 w-14 text-xl' : 'h-10 w-10 text-sm'"
         >
             LM

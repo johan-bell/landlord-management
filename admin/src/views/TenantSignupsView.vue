@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import { useOrgElevatedAccess } from '../composables/useOrgElevatedAccess';
 import { useOrgContext } from '../composables/useOrgContext';
@@ -28,6 +28,20 @@ const toast = useToastStore();
 const rows = ref<SignupRow[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const filterStatus = ref<string>('PENDING');
+
+const filteredRows = computed(() => {
+    if (!filterStatus.value) return rows.value;
+    return rows.value.filter((r) => r.status === filterStatus.value);
+});
+
+const countByStatus = computed(() => {
+    const counts: Record<string, number> = {};
+    for (const r of rows.value) {
+        counts[r.status] = (counts[r.status] ?? 0) + 1;
+    }
+    return counts;
+});
 
 const unitOptions = ref<{ id: string; label: string; propertyName: string }[]>(
     [],
@@ -159,9 +173,9 @@ watch([hasOrg, selectedOrgId], () => void load());
         <SelectOrgPrompt v-if="!hasOrg" />
 
         <template v-else>
-            <div class="mb-6">
+            <div class="mb-4">
                 <h2 class="text-xl font-semibold text-slate-900">
-                    Pending tenant signups
+                    Tenant signups
                 </h2>
                 <p class="mt-1 text-sm text-slate-600">
                     People who requested access with your organization ID.
@@ -176,6 +190,32 @@ watch([hasOrg, selectedOrgId], () => void load());
                         can approve or reject; you can review the list below.
                     </template>
                 </p>
+            </div>
+
+            <!-- Status filter tabs -->
+            <div class="mb-4 flex flex-wrap gap-2">
+                <button
+                    v-for="tab in [
+                        { value: 'PENDING', label: 'Pending' },
+                        { value: 'APPROVED', label: 'Approved' },
+                        { value: 'REJECTED', label: 'Rejected' },
+                        { value: '', label: 'All' },
+                    ]"
+                    :key="tab.value || 'all'"
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition"
+                    :class="filterStatus === tab.value
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                    @click="filterStatus = tab.value"
+                >
+                    {{ tab.label }}
+                    <span
+                        v-if="tab.value && (countByStatus[tab.value] ?? 0) > 0"
+                        class="rounded-full px-1.5 py-0.5 text-xs font-semibold"
+                        :class="filterStatus === tab.value ? 'bg-white/20 text-white' : 'bg-slate-300 text-slate-700'"
+                    >{{ countByStatus[tab.value] }}</span>
+                </button>
             </div>
 
             <p
@@ -212,7 +252,7 @@ watch([hasOrg, selectedOrgId], () => void load());
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr
-                            v-for="r in rows"
+                            v-for="r in filteredRows"
                             :key="r.id"
                             class="hover:bg-slate-50/80"
                         >
@@ -254,12 +294,17 @@ watch([hasOrg, selectedOrgId], () => void load());
                         </tr>
                     </tbody>
                 </table>
-                <p
-                    v-if="!rows.length"
-                    class="px-4 py-10 text-center text-sm text-slate-500"
+                <div
+                    v-if="!filteredRows.length"
+                    class="px-4 py-10 text-center"
                 >
-                    No pending signups.
-                </p>
+                    <p class="text-sm font-medium text-slate-700">
+                        {{ filterStatus === 'PENDING' ? 'No pending signups' : filterStatus ? `No ${filterStatus.toLowerCase()} signups` : 'No signups yet' }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ filterStatus === 'PENDING' ? 'New requests will appear here when tenants sign up.' : 'Try a different status tab.' }}
+                    </p>
+                </div>
             </div>
 
             <Teleport to="body">

@@ -10,6 +10,16 @@ import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 import EmptyState from '../components/EmptyState.vue';
 import { useToastStore } from '../stores/toast';
 
+type SummaryStats = {
+    totalDue: number;
+    totalPaid: number;
+    overdueCount: number;
+    pendingCount: number;
+    currency: string;
+};
+
+const summaryStats = ref<SummaryStats | null>(null);
+
 const toast = useToastStore();
 const { hasOrg, orgApi } = useOrgContext();
 const canMarkPaid = useOrgElevatedAccess();
@@ -121,12 +131,26 @@ async function load() {
         }>(`${orgApi('/payments')}?${params.toString()}`);
         rawItems.value = res.items;
         total.value = res.total;
+        computeSummary(res.items);
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed to load';
         rawItems.value = [];
     } finally {
         loading.value = false;
     }
+}
+
+function computeSummary(items: PaymentWithLease[]) {
+    if (!items.length) { summaryStats.value = null; return; }
+    const currency = items[0]?.currency ?? 'XAF';
+    let totalDue = 0, totalPaid = 0, overdueCount = 0, pendingCount = 0;
+    for (const p of items) {
+        totalDue += Number(p.amount);
+        if (p.status === 'PAID') totalPaid += Number(p.amount);
+        if (p.status === 'LATE') overdueCount++;
+        if (p.status === 'PENDING') pendingCount++;
+    }
+    summaryStats.value = { totalDue, totalPaid, overdueCount, pendingCount, currency };
 }
 
 function proofLabel(p: Payment) {
@@ -243,6 +267,37 @@ watch(renterFilter, () => scheduleSearchReload());
                         can record payments without receipt verification.
                     </template>
                 </p>
+            </div>
+
+            <!-- Summary stats bar -->
+            <div
+                v-if="summaryStats"
+                class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
+            >
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total due</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                        {{ formatMoney(summaryStats.totalDue, summaryStats.currency) }}
+                    </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Collected</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums text-emerald-700">
+                        {{ formatMoney(summaryStats.totalPaid, summaryStats.currency) }}
+                    </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Overdue</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums" :class="summaryStats.overdueCount > 0 ? 'text-red-700' : 'text-slate-400'">
+                        {{ summaryStats.overdueCount }}
+                    </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Pending</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums" :class="summaryStats.pendingCount > 0 ? 'text-amber-700' : 'text-slate-400'">
+                        {{ summaryStats.pendingCount }}
+                    </p>
+                </div>
             </div>
 
             <p

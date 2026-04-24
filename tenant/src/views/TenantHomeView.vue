@@ -109,6 +109,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const me = ref<MeResponse | null>(null);
 const leases = ref<LeaseRow[]>([]);
+const activeTab = ref<'overview' | 'leases' | 'support'>('overview');
 
 const pwdCurrent = ref('');
 const pwdNew = ref('');
@@ -657,7 +658,7 @@ onUnmounted(() => {
 
             <template v-else-if="me?.status === 'pending'">
                 <div
-                    class="tenant-card border-amber-200/90 bg-gradient-to-br from-amber-50/95 to-orange-50/40 p-6"
+                    class="tenant-card border-amber-200/90 bg-linear-to-br from-amber-50/95 to-orange-50/40 p-6"
                     role="status"
                 >
                     <div class="flex gap-3">
@@ -688,7 +689,7 @@ onUnmounted(() => {
                 <section class="tenant-card mt-6 p-6 sm:p-8">
                     <div class="flex gap-4">
                         <div
-                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
+                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
                             :aria-label="me.fullName || 'Account'"
                         >
                             {{ initials(me.fullName) }}
@@ -757,7 +758,7 @@ onUnmounted(() => {
                 <section class="tenant-card p-6 sm:p-8">
                     <div class="flex gap-4">
                         <div
-                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
+                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg shadow-teal-900/20"
                             :aria-label="me.renter.fullName"
                         >
                             {{ initials(me.renter.fullName) }}
@@ -801,9 +802,33 @@ onUnmounted(() => {
                     </div>
                 </section>
 
+                <!-- Tab navigation -->
+                <nav class="mt-6 flex gap-1 rounded-2xl border border-slate-200/80 bg-slate-100/60 p-1" aria-label="Sections">
+                    <button
+                        v-for="tab in [
+                            { id: 'overview', label: 'Overview' },
+                            { id: 'leases', label: 'Leases' },
+                            { id: 'support', label: 'Support' },
+                        ]"
+                        :key="tab.id"
+                        type="button"
+                        class="flex-1 rounded-xl px-3 py-2 text-sm font-medium transition"
+                        :class="activeTab === tab.id
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900'"
+                        @click="activeTab = tab.id as typeof activeTab.value"
+                    >
+                        {{ tab.label }}
+                        <span
+                            v-if="tab.id === 'support' && supportTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length > 0"
+                            class="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-bold text-white"
+                        >{{ supportTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length }}</span>
+                    </button>
+                </nav>
+
                 <section
-                    v-if="whatsDueNext.next || pendingProofCount > 0"
-                    class="tenant-card mt-6 border border-emerald-200/90 bg-gradient-to-br from-emerald-50/95 to-teal-50/50 p-5 sm:p-6"
+                    v-if="(whatsDueNext.next || pendingProofCount > 0) && activeTab === 'overview'"
+                    class="tenant-card mt-6 border border-emerald-200/90 bg-linear-to-br from-emerald-50/95 to-teal-50/50 p-5 sm:p-6"
                     aria-live="polite"
                 >
                     <div
@@ -866,13 +891,14 @@ onUnmounted(() => {
                                 awaiting verification.
                             </p>
                         </div>
-                        <a
+                        <button
                             v-if="whatsDueNext.next"
-                            :href="`#lease-${whatsDueNext.next.leaseId}`"
+                            type="button"
                             class="inline-flex shrink-0 items-center justify-center rounded-xl border border-emerald-300/80 bg-white/90 px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+                            @click="activeTab = 'leases'"
                         >
-                            Jump to lease
-                        </a>
+                            View leases
+                        </button>
                     </div>
                     <ul
                         v-if="whatsDueNext.timeline.length > 1"
@@ -908,7 +934,7 @@ onUnmounted(() => {
                     </ul>
                 </section>
 
-                <section class="mt-10">
+                <section v-show="activeTab === 'leases'" class="mt-6">
                     <h2
                         class="text-lg font-semibold tracking-tight text-slate-900"
                     >
@@ -1067,7 +1093,7 @@ onUnmounted(() => {
                                         'METERED_KWH' ||
                                     lease.unit.waterBilling === 'METERED_M3'
                                 "
-                                class="mt-4 rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/95 via-teal-50/40 to-white p-4 text-xs sm:p-5"
+                                class="mt-4 rounded-2xl border border-emerald-200/80 bg-linear-to-br from-emerald-50/95 via-teal-50/40 to-white p-4 text-xs sm:p-5"
                             >
                                 <p class="text-sm font-semibold text-slate-900">
                                     Monthly utility charges
@@ -1788,10 +1814,11 @@ onUnmounted(() => {
                     !loading &&
                     !error &&
                     me &&
-                    (me.status === 'active' || me.status === 'pending')
+                    ((me.status === 'active' && activeTab === 'support') ||
+                        me.status === 'pending')
                 "
                 id="tenant-support-section"
-                class="tenant-card mt-10 p-6 sm:p-8"
+                class="tenant-card mt-6 p-6 sm:p-8"
             >
                 <h2 class="text-base font-semibold text-slate-900">
                     Support requests

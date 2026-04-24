@@ -51,7 +51,7 @@ function navClass(kind: 'orgs' | 'support') {
                         class="flex shrink-0 items-center gap-2.5"
                     >
                         <div
-                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-md shadow-indigo-500/20"
+                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-md shadow-indigo-500/20"
                         >
                             LM
                         </div>

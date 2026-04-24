@@ -227,20 +227,20 @@ watch(
         </p>
 
         <template v-else-if="org">
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <span
-                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1"
+                    :class="org.suspendedAt ? 'bg-red-50 text-red-800 ring-red-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200'"
+                >{{ org.suspendedAt ? 'Suspended' : 'Active' }}</span>
+                <span
+                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1"
                     :class="
-                        org.suspendedAt
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                        org.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+                        : org.subscriptionStatus === 'past_due' ? 'bg-red-50 text-red-800 ring-red-200'
+                        : org.subscriptionStatus === 'trialing' ? 'bg-blue-50 text-blue-800 ring-blue-200'
+                        : 'bg-slate-100 text-slate-600 ring-slate-200'
                     "
-                >
-                    {{ org.suspendedAt ? 'Suspended' : 'Active' }}
-                </span>
-                <span class="text-xs text-slate-500"
-                    >Subscription {{ org.subscriptionStatus }}</span
-                >
+                >{{ org.subscriptionStatus || 'no subscription' }}</span>
             </div>
 
             <div class="mt-8 grid gap-4 lg:grid-cols-2">
@@ -418,68 +418,63 @@ watch(
                 v-if="platformFeatures.analyticsCard && analytics"
                 class="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             >
-                <h2 class="text-sm font-semibold text-slate-900">
-                    Portfolio signals (30d)
-                </h2>
-                <p class="mt-1 text-xs text-slate-500">
-                    Rent collection and occupancy snapshot for this org.
-                </p>
+                <h2 class="text-sm font-semibold text-slate-900">Portfolio signals (30d)</h2>
+                <p class="mt-1 text-xs text-slate-500">Rent collection and occupancy snapshot for this org.</p>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div
-                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                    >
+                    <!-- Vacancy rate -->
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
                         <p class="text-xs text-slate-500">Vacancy rate</p>
-                        <p class="text-lg font-semibold text-slate-900">
-                            {{ Math.round(analytics.vacancyRate * 1000) / 10 }}%
-                        </p>
-                        <p class="text-xs text-slate-500">
-                            {{ analytics.vacantUnitCount }} /
-                            {{ analytics.unitCount }} units vacant
-                        </p>
+                        <p
+                            class="mt-0.5 text-lg font-bold tabular-nums"
+                            :class="analytics.vacancyRate <= 0.15 ? 'text-emerald-700' : analytics.vacancyRate <= 0.3 ? 'text-amber-700' : 'text-red-700'"
+                        >{{ Math.round(analytics.vacancyRate * 100) }}%</p>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                                class="h-full rounded-full transition-all"
+                                :class="analytics.vacancyRate <= 0.15 ? 'bg-emerald-500' : analytics.vacancyRate <= 0.3 ? 'bg-amber-400' : 'bg-red-500'"
+                                :style="{ width: `${Math.round(analytics.vacancyRate * 100)}%` }"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">{{ analytics.vacantUnitCount }} / {{ analytics.unitCount }} units vacant</p>
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                    >
+                    <!-- Collection rate -->
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
                         <p class="text-xs text-slate-500">Collection (30d)</p>
-                        <p class="text-lg font-semibold text-slate-900">
-                            {{
-                                analytics.collectionRateLast30Days == null
-                                    ? '—'
-                                    : `${Math.round(analytics.collectionRateLast30Days * 1000) / 10}%`
-                            }}
-                        </p>
+                        <p
+                            class="mt-0.5 text-lg font-bold tabular-nums"
+                            :class="analytics.collectionRateLast30Days == null ? 'text-slate-400' : analytics.collectionRateLast30Days >= 0.8 ? 'text-emerald-700' : analytics.collectionRateLast30Days >= 0.5 ? 'text-amber-700' : 'text-red-700'"
+                        >{{ analytics.collectionRateLast30Days == null ? '—' : `${Math.round(analytics.collectionRateLast30Days * 100)}%` }}</p>
+                        <div v-if="analytics.collectionRateLast30Days != null" class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                                class="h-full rounded-full transition-all"
+                                :class="analytics.collectionRateLast30Days >= 0.8 ? 'bg-emerald-500' : analytics.collectionRateLast30Days >= 0.5 ? 'bg-amber-400' : 'bg-red-500'"
+                                :style="{ width: `${Math.round(analytics.collectionRateLast30Days * 100)}%` }"
+                            />
+                        </div>
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                    >
+                    <!-- Overdue -->
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
                         <p class="text-xs text-slate-500">Overdue charges</p>
-                        <p class="text-lg font-semibold text-slate-900">
-                            {{ analytics.overduePaymentCount }}
-                        </p>
+                        <p
+                            class="mt-0.5 text-lg font-bold tabular-nums"
+                            :class="analytics.overduePaymentCount === 0 ? 'text-emerald-700' : analytics.overduePaymentCount < 5 ? 'text-amber-700' : 'text-red-700'"
+                        >{{ analytics.overduePaymentCount }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ analytics.overduePaymentCount === 0 ? 'All current' : 'payments past due' }}</p>
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                    >
-                        <p class="text-xs text-slate-500">
-                            Rent roll 30d (paid)
+                    <!-- Rent roll -->
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-500">Rent roll 30d</p>
+                        <p class="mt-0.5 text-base font-bold tabular-nums text-slate-900 leading-snug">
+                            {{ formatMoney(analytics.rentRollLast30Days.totalPaid, 'XAF') }}
+                            <span class="text-xs font-normal text-slate-400"> / {{ formatMoney(analytics.rentRollLast30Days.totalDue, 'XAF') }}</span>
                         </p>
-                        <p class="text-lg font-semibold text-slate-900">
-                            {{
-                                formatMoney(
-                                    analytics.rentRollLast30Days.totalPaid,
-                                    'XAF',
-                                )
-                            }}
-                        </p>
-                        <p class="text-xs text-slate-500">
-                            Due
-                            {{
-                                formatMoney(
-                                    analytics.rentRollLast30Days.totalDue,
-                                    'XAF',
-                                )
-                            }}
-                        </p>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                                class="h-full rounded-full bg-emerald-500 transition-all"
+                                :style="{ width: analytics.rentRollLast30Days.totalDue ? `${Math.min(Math.round((analytics.rentRollLast30Days.totalPaid / analytics.rentRollLast30Days.totalDue) * 100), 100)}%` : '0%' }"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">collected</p>
                     </div>
                 </div>
             </div>

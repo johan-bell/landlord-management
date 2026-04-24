@@ -245,7 +245,7 @@ async function submit() {
 
                 <div
                     v-if="preview && registrationMode === 'invite'"
-                    class="mb-4 rounded-2xl border border-teal-200/60 bg-gradient-to-br from-teal-50 to-emerald-50/80 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
+                    class="mb-4 rounded-2xl border border-teal-200/60 bg-linear-to-br from-teal-50 to-emerald-50/80 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
                 >
                     <p class="font-medium text-slate-900">
                         {{ preview.fullName }}
@@ -266,7 +266,7 @@ async function submit() {
 
                 <div
                     v-if="orgPreview && registrationMode === 'org'"
-                    class="mb-4 rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-teal-50/60 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
+                    class="mb-4 rounded-2xl border border-emerald-200/60 bg-linear-to-br from-emerald-50 to-teal-50/60 px-4 py-3 text-left text-sm text-slate-700 shadow-sm"
                 >
                     <p class="font-medium text-slate-900">
                         {{ orgPreview.name }}

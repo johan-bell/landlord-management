@@ -28,6 +28,17 @@ const limit = ref(25);
 const total = ref(0);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const statusFilter = ref('');
+const search = ref('');
+
+const filteredItems = computed(() => {
+    const q = search.value.trim().toLowerCase();
+    return items.value.filter((r) => {
+        if (statusFilter.value && r.status !== statusFilter.value) return false;
+        if (q && !`${r.lease.renter.fullName} ${r.lease.unit.label} ${r.lease.unit.property.name}`.toLowerCase().includes(q)) return false;
+        return true;
+    });
+});
 
 const totalPages = computed(() =>
     total.value === 0 ? 0 : Math.ceil(total.value / limit.value),
@@ -90,10 +101,30 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
 
 <template>
     <div>
-        <p class="mb-6 text-sm text-slate-600">
-            Rent charges across leases. Mark a row as paid to record collection.
-            Data loads per page from the server.
-        </p>
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+            <label class="flex min-w-40 flex-1 items-center gap-2 text-sm">
+                <span class="shrink-0 font-medium text-slate-700">Search</span>
+                <input
+                    v-model="search"
+                    type="search"
+                    placeholder="Renter, unit or property…"
+                    class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                />
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+                <span class="font-medium text-slate-700">Status</span>
+                <select
+                    v-model="statusFilter"
+                    class="rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm"
+                >
+                    <option value="">All</option>
+                    <option value="PENDING">Due</option>
+                    <option value="PAID">Paid</option>
+                    <option value="LATE">Late</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </label>
+        </div>
 
         <PlatformDataPane
             :loading="loading"
@@ -107,7 +138,7 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
             >
                 <div class="overflow-x-auto">
                     <table
-                        class="min-w-[720px] w-full divide-y divide-slate-200 text-left text-sm"
+                        class="min-w-180 w-full divide-y divide-slate-200 text-left text-sm"
                     >
                         <thead
                             class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -124,7 +155,7 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr
-                                v-for="row in items"
+                                v-for="row in filteredItems"
                                 :key="row.id"
                                 class="hover:bg-slate-50/80"
                             >
@@ -177,13 +208,19 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
                     </table>
                 </div>
                 <div
+                    v-if="items.length && !filteredItems.length"
+                    class="px-4 py-8 text-center text-sm text-slate-500"
+                >
+                    No rows match your filter.
+                </div>
+                <div
                     v-if="items.length"
                     class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-sm"
                 >
-                    <span class="text-slate-500"
-                        >Page {{ page }} of {{ totalPages || 1 }} ·
-                        {{ total }} payments</span
-                    >
+                    <span class="text-slate-500">
+                        Page {{ page }} of {{ totalPages || 1 }} · {{ total }} payments
+                        <template v-if="filteredItems.length !== items.length"> · {{ filteredItems.length }} shown</template>
+                    </span>
                     <div class="flex gap-2">
                         <button
                             type="button"

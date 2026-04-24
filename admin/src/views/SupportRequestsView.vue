@@ -30,6 +30,7 @@ const formError = ref<string | null>(null);
 const rows = ref<SupportRow[]>([]);
 
 const filterStatus = ref('');
+const filterSearch = ref('');
 const statusOptions = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 const createOpen = ref(false);
@@ -39,8 +40,25 @@ const newMessage = ref('');
 const detail = ref<SupportRow | null>(null);
 
 function filteredRows() {
-    if (!filterStatus.value) return rows.value;
-    return rows.value.filter((r) => r.status === filterStatus.value);
+    const q = filterSearch.value.trim().toLowerCase();
+    return rows.value.filter((r) => {
+        if (filterStatus.value && r.status !== filterStatus.value) return false;
+        if (q && !`${r.subject} ${r.message}`.toLowerCase().includes(q)) return false;
+        return true;
+    });
+}
+
+function statusLabel(s: string) {
+    if (s === 'IN_PROGRESS') return 'In progress';
+    return s.charAt(0) + s.slice(1).toLowerCase();
+}
+
+function statusClass(s: string) {
+    if (s === 'OPEN') return 'bg-blue-50 text-blue-800 ring-blue-200';
+    if (s === 'IN_PROGRESS') return 'bg-amber-50 text-amber-800 ring-amber-200';
+    if (s === 'RESOLVED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+    if (s === 'CLOSED') return 'bg-slate-100 text-slate-600 ring-slate-200';
+    return 'bg-slate-100 text-slate-700 ring-slate-200';
 }
 
 async function load() {
@@ -149,18 +167,27 @@ watch([hasOrg, selectedOrgId], () => void load());
             </p>
 
             <div class="mb-4 flex flex-wrap items-center gap-3">
+                <label class="flex min-w-48 flex-1 items-center gap-2 text-sm">
+                    <span class="shrink-0 font-medium text-slate-700">Search</span>
+                    <input
+                        v-model="filterSearch"
+                        type="search"
+                        placeholder="Subject or message…"
+                        class="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-900"
+                    />
+                </label>
                 <label class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-600">Status</span>
+                    <span class="font-medium text-slate-700">Status</span>
                     <select
                         v-model="filterStatus"
-                        class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
+                        class="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800"
                     >
                         <option
                             v-for="s in statusOptions"
                             :key="s || 'all'"
                             :value="s"
                         >
-                            {{ s || 'All' }}
+                            {{ s ? statusLabel(s) : 'All' }}
                         </option>
                     </select>
                 </label>
@@ -219,19 +246,10 @@ watch([hasOrg, selectedOrgId], () => void load());
                                 </td>
                                 <td class="px-4 py-3">
                                     <span
-                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="
-                                            row.status === 'OPEN'
-                                                ? 'bg-blue-100 text-blue-900'
-                                                : row.status === 'IN_PROGRESS'
-                                                  ? 'bg-amber-100 text-amber-900'
-                                                  : row.status === 'RESOLVED' ||
-                                                      row.status === 'CLOSED'
-                                                    ? 'bg-slate-200 text-slate-800'
-                                                    : 'bg-slate-100 text-slate-700'
-                                        "
+                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+                                        :class="statusClass(row.status)"
                                     >
-                                        {{ row.status }}
+                                        {{ statusLabel(row.status) }}
                                     </span>
                                 </td>
                                 <td
@@ -252,12 +270,17 @@ watch([hasOrg, selectedOrgId], () => void load());
                         </tbody>
                     </table>
                 </div>
-                <p
+                <div
                     v-if="!loading && !filteredRows().length"
-                    class="px-4 py-8 text-center text-sm text-slate-500"
+                    class="px-4 py-10 text-center"
                 >
-                    No support requests for this organization yet.
-                </p>
+                    <p class="text-sm font-medium text-slate-700">
+                        {{ filterSearch || filterStatus ? 'No tickets match your filters' : 'No support requests yet' }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ filterSearch || filterStatus ? 'Try clearing the search or status filter.' : 'Tickets from renters and your team to the platform will appear here.' }}
+                    </p>
+                </div>
             </div>
         </template>
 

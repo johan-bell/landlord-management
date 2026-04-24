@@ -201,6 +201,40 @@ watch(
     },
 );
 
+const rentRollPct = computed(() => {
+    if (!analytics.value) return 0;
+    const { totalDue, totalPaid } = analytics.value.rentRollLast30Days;
+    if (!totalDue) return 0;
+    return Math.min(Math.round((totalPaid / totalDue) * 100), 100);
+});
+
+const arrearsMax = computed(() => {
+    if (!analytics.value) return 1;
+    const buckets = ['0_30', '31_60', '61_90', '91_plus'];
+    return (
+        Math.max(
+            ...buckets.map(
+                (k) => analytics.value!.arrearsAgingDays[k]?.paymentCount ?? 0,
+            ),
+        ) || 1
+    );
+});
+
+const collectionColor = computed(() => {
+    const r = analytics.value?.collectionRateLast30Days;
+    if (r == null) return 'text-slate-400';
+    if (r >= 0.8) return 'text-emerald-400';
+    if (r >= 0.5) return 'text-amber-300';
+    return 'text-red-400';
+});
+
+const vacancyColor = computed(() => {
+    const v = analytics.value?.vacancyRate ?? 0;
+    if (v <= 0.15) return 'text-emerald-400';
+    if (v <= 0.3) return 'text-amber-300';
+    return 'text-red-400';
+});
+
 const statCards = computed(() => {
     if (!summary.value) return [];
     const s = summary.value;
@@ -244,7 +278,7 @@ const statCards = computed(() => {
                 class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
             >
                 <div
-                    class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:px-8"
+                    class="border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-6 py-5 sm:px-8"
                 >
                     <h2 class="text-base font-semibold text-slate-900">
                         Create organization
@@ -273,7 +307,7 @@ const statCards = computed(() => {
                     </label>
                     <button
                         type="submit"
-                        class="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition hover:from-emerald-500 hover:to-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="inline-flex shrink-0 items-center justify-center rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition hover:from-emerald-500 hover:to-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
                         :disabled="submitting || !newOrgName.trim()"
                     >
                         {{ submitting ? 'Creating…' : 'Create' }}
@@ -358,7 +392,7 @@ const statCards = computed(() => {
         <section v-else>
             <div
                 v-if="onboarding && onboarding.completionPercent < 100"
-                class="mb-6 rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/90 to-white p-5 shadow-sm"
+                class="mb-6 rounded-2xl border border-indigo-200/80 bg-linear-to-br from-indigo-50/90 to-white p-5 shadow-sm"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -469,7 +503,7 @@ const statCards = computed(() => {
                 >
                     <div
                         :class="[
-                            'absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-[0.12] blur-2xl transition group-hover:opacity-20 bg-gradient-to-br',
+                            'absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-[0.12] blur-2xl transition group-hover:opacity-20 bg-linear-to-br',
                             card.tone,
                         ]"
                     />
@@ -497,7 +531,7 @@ const statCards = computed(() => {
                         class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"
                     >
                         <div
-                            class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
+                            class="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-500 transition-all"
                             :style="{
                                 width: `${summary.unitCount ? Math.round((summary.occupiedUnitCount / summary.unitCount) * 100) : 0}%`,
                             }"
@@ -537,110 +571,99 @@ const statCards = computed(() => {
                 >
             </div>
             <template v-if="analytics">
-                <div
-                    class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm"
-                >
+                <!-- KPI cards -->
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                    <!-- Vacancy rate -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p
-                            class="text-xs uppercase tracking-wide text-slate-500"
-                        >
-                            Vacancy rate
-                        </p>
-                        <p
-                            class="mt-1 text-2xl font-bold text-white tabular-nums"
-                        >
+                        <p class="text-xs uppercase tracking-wide text-slate-500">Vacancy rate</p>
+                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="vacancyColor">
                             {{ Math.round(analytics.vacancyRate * 100) }}%
                         </p>
-                    </div>
-                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p
-                            class="text-xs uppercase tracking-wide text-slate-500"
-                        >
-                            Collection (30d)
-                        </p>
-                        <p
-                            class="mt-1 text-2xl font-bold text-white tabular-nums"
-                        >
-                            {{
-                                analytics.collectionRateLast30Days == null
-                                    ? '—'
-                                    : `${Math.round(analytics.collectionRateLast30Days * 100)}%`
-                            }}
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                                class="h-full rounded-full transition-all"
+                                :class="analytics.vacancyRate <= 0.15 ? 'bg-emerald-500' : analytics.vacancyRate <= 0.3 ? 'bg-amber-400' : 'bg-red-500'"
+                                :style="{ width: `${Math.round(analytics.vacancyRate * 100)}%` }"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-slate-600">
+                            {{ analytics.vacancyRate <= 0.15 ? 'Healthy occupancy' : analytics.vacancyRate <= 0.3 ? 'Moderate vacancy' : 'High vacancy' }}
                         </p>
                     </div>
+                    <!-- Collection rate -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p
-                            class="text-xs uppercase tracking-wide text-slate-500"
-                        >
-                            Overdue charges
+                        <p class="text-xs uppercase tracking-wide text-slate-500">Collection (30d)</p>
+                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="collectionColor">
+                            {{ analytics.collectionRateLast30Days == null ? '—' : `${Math.round(analytics.collectionRateLast30Days * 100)}%` }}
                         </p>
-                        <p
-                            class="mt-1 text-2xl font-bold text-amber-300 tabular-nums"
-                        >
+                        <div v-if="analytics.collectionRateLast30Days != null" class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                                class="h-full rounded-full transition-all"
+                                :class="analytics.collectionRateLast30Days >= 0.8 ? 'bg-emerald-500' : analytics.collectionRateLast30Days >= 0.5 ? 'bg-amber-400' : 'bg-red-500'"
+                                :style="{ width: `${Math.round(analytics.collectionRateLast30Days * 100)}%` }"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-slate-600">
+                            {{ analytics.collectionRateLast30Days == null ? 'No charges yet' : analytics.collectionRateLast30Days >= 0.8 ? 'On track' : analytics.collectionRateLast30Days >= 0.5 ? 'Needs attention' : 'Critical' }}
+                        </p>
+                    </div>
+                    <!-- Overdue charges -->
+                    <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
+                        <p class="text-xs uppercase tracking-wide text-slate-500">Overdue charges</p>
+                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="analytics.overduePaymentCount === 0 ? 'text-emerald-400' : analytics.overduePaymentCount < 5 ? 'text-amber-300' : 'text-red-400'">
                             {{ analytics.overduePaymentCount }}
                         </p>
+                        <p class="mt-1 text-xs text-slate-600">
+                            {{ analytics.overduePaymentCount === 0 ? 'All current' : analytics.overduePaymentCount === 1 ? '1 payment past due' : `${analytics.overduePaymentCount} payments past due` }}
+                        </p>
                     </div>
+                    <!-- Rent roll -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p
-                            class="text-xs uppercase tracking-wide text-slate-500"
-                        >
-                            Rent roll 30d (paid / due)
+                        <p class="text-xs uppercase tracking-wide text-slate-500">Rent roll (30d)</p>
+                        <p class="mt-1 text-base font-semibold text-white tabular-nums leading-snug">
+                            {{ formatMoney(analytics.rentRollLast30Days.totalPaid, 'XAF') }}
+                            <span class="text-slate-500 text-sm font-normal"> / {{ formatMoney(analytics.rentRollLast30Days.totalDue, 'XAF') }}</span>
                         </p>
-                        <p
-                            class="mt-1 text-lg font-semibold text-white tabular-nums"
-                        >
-                            {{
-                                formatMoney(
-                                    analytics.rentRollLast30Days.totalPaid,
-                                    'XAF',
-                                )
-                            }}
-                            <span class="text-slate-500">/</span>
-                            {{
-                                formatMoney(
-                                    analytics.rentRollLast30Days.totalDue,
-                                    'XAF',
-                                )
-                            }}
-                        </p>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                                class="h-full rounded-full bg-emerald-500 transition-all"
+                                :style="{ width: `${rentRollPct}%` }"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-slate-600">{{ rentRollPct }}% collected</p>
                     </div>
                 </div>
+
+                <!-- Arrears aging bar chart -->
                 <div class="mt-6">
-                    <p
-                        class="text-xs font-semibold uppercase tracking-wide text-slate-500"
-                    >
-                        Arrears aging (open charges)
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Arrears aging — open charges by overdue period
                     </p>
-                    <ul
-                        class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm"
-                    >
-                        <li
+                    <div class="mt-3 space-y-2">
+                        <div
                             v-for="b in [
-                                { k: '0_30', label: '0–30 days' },
-                                { k: '31_60', label: '31–60 days' },
-                                { k: '61_90', label: '61–90 days' },
-                                { k: '91_plus', label: '91+ days' },
+                                { k: '0_30', label: '0–30 days', color: 'bg-amber-400' },
+                                { k: '31_60', label: '31–60 days', color: 'bg-orange-500' },
+                                { k: '61_90', label: '61–90 days', color: 'bg-red-500' },
+                                { k: '91_plus', label: '91+ days', color: 'bg-red-700' },
                             ]"
                             :key="b.k"
-                            class="rounded-lg bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                            class="flex items-center gap-3 text-sm"
                         >
-                            <span class="text-slate-500">{{ b.label }}</span>
-                            <span class="mt-1 block font-medium text-white">
-                                {{
-                                    analytics.arrearsAgingDays[b.k]
-                                        ?.paymentCount ?? 0
-                                }}
-                                charges ·
-                                {{
-                                    formatMoney(
-                                        analytics.arrearsAgingDays[b.k]
-                                            ?.totalAmount ?? 0,
-                                        'XAF',
-                                    )
-                                }}
+                            <span class="w-22 shrink-0 text-xs text-slate-500">{{ b.label }}</span>
+                            <div class="h-5 flex-1 overflow-hidden rounded bg-white/5">
+                                <div
+                                    class="flex h-full items-center rounded transition-all"
+                                    :class="b.color"
+                                    :style="{ width: `${arrearsMax > 0 ? Math.round(((analytics.arrearsAgingDays[b.k]?.paymentCount ?? 0) / arrearsMax) * 100) : 0}%`, minWidth: analytics.arrearsAgingDays[b.k]?.paymentCount ? '2px' : '0' }"
+                                />
+                            </div>
+                            <span class="w-32 shrink-0 text-right text-xs text-slate-400 tabular-nums">
+                                {{ analytics.arrearsAgingDays[b.k]?.paymentCount ?? 0 }} ·
+                                {{ formatMoney(analytics.arrearsAgingDays[b.k]?.totalAmount ?? 0, 'XAF') }}
                             </span>
-                        </li>
-                    </ul>
+                        </div>
+                    </div>
                 </div>
             </template>
             <p v-else class="mt-2 text-sm text-slate-500">

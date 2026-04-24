@@ -47,7 +47,7 @@ async function submit() {
         >
             <div class="mb-6 text-center">
                 <div
-                    class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-lg font-bold text-white"
+                    class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-teal-600 text-lg font-bold text-white"
                 >
                     LM
                 </div>

@@ -153,7 +153,7 @@ watch(hasOrg, () => void load());
         <SelectOrgPrompt v-if="!hasOrg" />
 
         <template v-else>
-            <p class="mb-6 text-sm text-slate-600">
+            <p class="mb-4 text-sm text-slate-600">
                 Rent and metered utility payments stay
                 <strong class="font-semibold text-slate-800">pending</strong> on
                 the tenant portal until someone with the right role opens the
@@ -169,6 +169,19 @@ watch(hasOrg, () => void load());
                     can approve, reject, or mark charges paid without a receipt.
                 </template>
             </p>
+
+            <div
+                v-if="!loading && (payments.length + utilityBills.length) > 0"
+                class="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+            >
+                <span class="text-lg">🔔</span>
+                <p class="text-sm font-medium text-amber-900">
+                    {{ payments.length + utilityBills.length }} receipt{{ payments.length + utilityBills.length > 1 ? 's' : '' }} need your review
+                    <span class="font-normal text-amber-800">
+                        — {{ payments.length }} rent, {{ utilityBills.length }} utility
+                    </span>
+                </p>
+            </div>
 
             <p
                 v-if="error"
@@ -189,17 +202,21 @@ watch(hasOrg, () => void load());
                     class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                     <h2
-                        class="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                        class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
                     >
-                        Rent receipts awaiting verification ({{
-                            payments.length
-                        }})
+                        Rent receipts awaiting verification
+                        <span
+                            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1"
+                            :class="payments.length > 0 ? 'bg-amber-100 text-amber-800 ring-amber-200' : 'bg-slate-100 text-slate-600 ring-slate-200'"
+                        >{{ payments.length }}</span>
                     </h2>
                     <div
                         v-if="!payments.length"
-                        class="px-4 py-8 text-center text-sm text-slate-500"
+                        class="flex flex-col items-center gap-2 px-4 py-10 text-center"
                     >
-                        None right now.
+                        <span class="text-2xl">✓</span>
+                        <p class="text-sm font-medium text-slate-700">All clear</p>
+                        <p class="text-xs text-slate-500">No rent receipts pending review right now.</p>
                     </div>
                     <ul v-else class="divide-y divide-slate-100">
                         <li
@@ -259,17 +276,21 @@ watch(hasOrg, () => void load());
                     class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                     <h2
-                        class="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
+                        class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
                     >
-                        Utility receipts awaiting verification ({{
-                            utilityBills.length
-                        }})
+                        Utility receipts awaiting verification
+                        <span
+                            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1"
+                            :class="utilityBills.length > 0 ? 'bg-amber-100 text-amber-800 ring-amber-200' : 'bg-slate-100 text-slate-600 ring-slate-200'"
+                        >{{ utilityBills.length }}</span>
                     </h2>
                     <div
                         v-if="!utilityBills.length"
-                        class="px-4 py-8 text-center text-sm text-slate-500"
+                        class="flex flex-col items-center gap-2 px-4 py-10 text-center"
                     >
-                        None right now.
+                        <span class="text-2xl">✓</span>
+                        <p class="text-sm font-medium text-slate-700">All clear</p>
+                        <p class="text-xs text-slate-500">No utility receipts pending review right now.</p>
                     </div>
                     <ul v-else class="divide-y divide-slate-100">
                         <li

@@ -69,7 +69,7 @@ onUnmounted(() => {
             @click.stop="toggle"
         >
             <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-bold text-white shadow-sm shadow-emerald-900/20"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 text-xs font-bold text-white shadow-sm shadow-emerald-900/20"
                 aria-hidden="true"
             >
                 {{ initials }}
