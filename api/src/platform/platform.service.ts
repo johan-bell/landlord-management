@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { stripPlatformInternalNotes } from '../common/strip-platform-internal-notes';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -14,12 +15,11 @@ export class PlatformService {
                 },
             },
         });
-        return rows.map((row) => {
-            const { platformInternalNotes: _n, ...org } = row as typeof row & {
-                platformInternalNotes?: string | null;
-            };
-            return org;
-        });
+        return rows.map((row) =>
+            stripPlatformInternalNotes(
+                row as typeof row & Record<string, unknown>,
+            ),
+        );
     }
 
     async setSuspended(orgId: string, suspended: boolean) {

@@ -14,7 +14,10 @@ function loadTemplate(name: string): Handlebars.TemplateDelegate {
 
 const baseTemplate = loadTemplate('base');
 
-function renderEmail(templateName: string, data: Record<string, unknown>): string {
+function renderEmail(
+    templateName: string,
+    data: Record<string, unknown>,
+): string {
     const bodyTemplate = loadTemplate(templateName);
     const body = bodyTemplate(data);
     return baseTemplate({ ...data, body });
@@ -86,7 +89,10 @@ export class EmailService {
                 to,
                 subject,
                 html,
-                text: html.replace(/<[^>]+>/g, '').replace(/\s{2,}/g, ' ').trim(),
+                text: html
+                    .replace(/<[^>]+>/g, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim(),
             });
         } catch (err) {
             this.logger.warn(
@@ -121,10 +127,15 @@ export class EmailService {
     }): Promise<void> {
         const to = params.to?.trim();
         if (!to) return;
-        await this.send(to, 'Reset your landlord admin password', 'password-reset-staff', {
-            organizationName: 'Landlord Admin',
-            resetUrl: params.resetUrl,
-        });
+        await this.send(
+            to,
+            'Reset your landlord admin password',
+            'password-reset-staff',
+            {
+                organizationName: 'Landlord Admin',
+                resetUrl: params.resetUrl,
+            },
+        );
     }
 
     async sendPasswordResetTenant(params: {
@@ -133,10 +144,15 @@ export class EmailService {
     }): Promise<void> {
         const to = params.to?.trim();
         if (!to) return;
-        await this.send(to, 'Reset your tenant portal password', 'password-reset-tenant', {
-            organizationName: 'Tenant Portal',
-            resetUrl: params.resetUrl,
-        });
+        await this.send(
+            to,
+            'Reset your tenant portal password',
+            'password-reset-tenant',
+            {
+                organizationName: 'Tenant Portal',
+                resetUrl: params.resetUrl,
+            },
+        );
     }
 
     async sendInvitationAcceptedToInviter(params: {

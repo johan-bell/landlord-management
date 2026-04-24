@@ -38,7 +38,10 @@ import { UnitsModule } from './units/units.module';
             pinoHttp: {
                 transport:
                     process.env.NODE_ENV !== 'production'
-                        ? { target: 'pino-pretty', options: { singleLine: true } }
+                        ? {
+                              target: 'pino-pretty',
+                              options: { singleLine: true },
+                          }
                         : undefined,
                 autoLogging: false,
             },

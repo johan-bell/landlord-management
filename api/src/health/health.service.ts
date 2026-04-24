@@ -21,7 +21,8 @@ export class HealthService extends HealthIndicator {
             return this.getStatus('smtp', true);
         } catch (err) {
             return this.getStatus('smtp', false, {
-                message: err instanceof Error ? err.message : 'SMTP verify failed',
+                message:
+                    err instanceof Error ? err.message : 'SMTP verify failed',
             });
         }
     }
@@ -35,7 +36,8 @@ export class HealthService extends HealthIndicator {
             return this.getStatus('minio', true);
         } catch (err) {
             return this.getStatus('minio', false, {
-                message: err instanceof Error ? err.message : 'MinIO ping failed',
+                message:
+                    err instanceof Error ? err.message : 'MinIO ping failed',
             });
         }
     }

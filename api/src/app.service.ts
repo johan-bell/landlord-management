@@ -20,7 +20,9 @@ export class AppService {
         }
 
         const storage = this.storage.isConfigured() ? 'configured' : 'disabled';
-        const emailStatus = this.email.isConfigured() ? 'configured' : 'disabled';
+        const emailStatus = this.email.isConfigured()
+            ? 'configured'
+            : 'disabled';
         const ok = database === 'ok';
 
         return {

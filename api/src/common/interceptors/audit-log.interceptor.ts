@@ -21,7 +21,10 @@ export class AuditLogInterceptor implements NestInterceptor {
         private readonly audit: AuditService,
     ) {}
 
-    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    intercept(
+        context: ExecutionContext,
+        next: CallHandler,
+    ): Observable<unknown> {
         const meta = this.reflector.get<AuditLogMeta | undefined>(
             AUDIT_LOG_KEY,
             context.getHandler(),
@@ -35,7 +38,9 @@ export class AuditLogInterceptor implements NestInterceptor {
 
         const orgIdParam = meta.orgIdParam ?? 'orgId';
         const organizationId = params[orgIdParam] ?? null;
-        const entityId = meta.entityIdParam ? (params[meta.entityIdParam] ?? null) : null;
+        const entityId = meta.entityIdParam
+            ? (params[meta.entityIdParam] ?? null)
+            : null;
         const actorUserId = user?.userId ?? null;
 
         return next.handle().pipe(

@@ -104,13 +104,14 @@ export class RentReminderService {
             data: { status: PaymentStatus.LATE },
         });
 
-        const { count: utilCount } = await this.prisma.leaseUtilityBill.updateMany({
-            where: {
-                status: PaymentStatus.PENDING,
-                dueDate: { lt: startOfToday },
-            },
-            data: { status: PaymentStatus.LATE },
-        });
+        const { count: utilCount } =
+            await this.prisma.leaseUtilityBill.updateMany({
+                where: {
+                    status: PaymentStatus.PENDING,
+                    dueDate: { lt: startOfToday },
+                },
+                data: { status: PaymentStatus.LATE },
+            });
 
         if (count > 0 || utilCount > 0) {
             this.logger.log(

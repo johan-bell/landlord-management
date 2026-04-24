@@ -15,6 +15,18 @@ const FILTER_ACTIONS = new Set([
     'groupBy',
 ]);
 
+type SoftDeleteQueryParams = {
+    model: string;
+    operation: string;
+    args: unknown;
+    query: (args: unknown) => Promise<unknown>;
+};
+
+type PrismaClientWithLifecycle = PrismaClient & {
+    onModuleInit: () => Promise<void>;
+    onModuleDestroy: () => Promise<void>;
+};
+
 @Injectable()
 export class PrismaService
     extends PrismaClient
@@ -40,22 +52,27 @@ export class PrismaService
         const extended = this.$extends({
             query: {
                 $allModels: {
-                    async $allOperations({ model, operation, args, query }: any) {
+                    $allOperations({
+                        model,
+                        operation,
+                        args,
+                        query,
+                    }: SoftDeleteQueryParams): Promise<unknown> {
                         if (
-                            SOFT_DELETE_MODELS.has(model as string) &&
-                            FILTER_ACTIONS.has(operation as string)
+                            SOFT_DELETE_MODELS.has(model) &&
+                            FILTER_ACTIONS.has(operation)
                         ) {
                             const a = args as Record<string, unknown>;
                             a.where = {
                                 deletedAt: null,
-                                ...(a.where as object ?? {}),
+                                ...((a.where as object | undefined) ?? {}),
                             };
                         }
                         return query(args);
                     },
                 },
             },
-        }) as any;
+        }) as PrismaClientWithLifecycle;
 
         // Attach NestJS lifecycle methods to the extended client because the
         // constructor return replaces `this` as the DI-injected instance.

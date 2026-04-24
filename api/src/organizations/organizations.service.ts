@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import { stripPlatformInternalNotes } from '../common/strip-platform-internal-notes';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -55,11 +56,10 @@ export class OrganizationsService {
         });
         return rows.map((row) => {
             const { members, ...raw } = row;
-            const { platformInternalNotes: _n, ...org } = raw as typeof raw & {
-                platformInternalNotes?: string | null;
-            };
             return {
-                ...org,
+                ...stripPlatformInternalNotes(
+                    raw as typeof raw & Record<string, unknown>,
+                ),
                 myRole: members[0].role,
             };
         });
@@ -72,10 +72,9 @@ export class OrganizationsService {
         if (!org) {
             throw new NotFoundException(`Organization ${id} not found`);
         }
-        const { platformInternalNotes: _notes, ...rest } = org as typeof org & {
-            platformInternalNotes?: string | null;
-        };
-        return rest;
+        return stripPlatformInternalNotes(
+            org as typeof org & Record<string, unknown>,
+        );
     }
 
     async update(id: string, dto: UpdateOrganizationDto, actorUserId?: string) {
