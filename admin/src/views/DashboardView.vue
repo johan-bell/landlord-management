@@ -331,9 +331,8 @@ const statCards = computed(() => {
                     Tenant self-signup
                 </p>
                 <p class="mt-1 text-sm text-slate-600">
-                    Share the <strong>organization ID</strong> or
-                    <strong>slug</strong> with renters so they can request
-                    access in the tenant app.
+                    Share the <strong>organization ID</strong> with renters so
+                    they can request access in the tenant app.
                 </p>
                 <dl class="mt-3 flex-1 space-y-2 text-sm">
                     <div class="flex flex-wrap items-center gap-2">
@@ -349,26 +348,6 @@ const statCards = computed(() => {
                             Copy
                         </button>
                     </div>
-                    <div
-                        v-if="currentOrg.slug"
-                        class="flex flex-wrap items-center gap-2"
-                    >
-                        <dt class="text-slate-500">Slug</dt>
-                        <dd class="font-mono text-xs text-slate-800">
-                            {{ currentOrg.slug }}
-                        </dd>
-                        <button
-                            type="button"
-                            class="rounded-lg border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                            @click="copyText('Slug', currentOrg.slug!)"
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <p v-else class="text-xs text-slate-500">
-                        No slug set — renters can use the organization ID only
-                        (or add a slug via API later).
-                    </p>
                 </dl>
                 <p v-if="copyMsg" class="mt-2 text-xs text-emerald-700">
                     {{ copyMsg }}

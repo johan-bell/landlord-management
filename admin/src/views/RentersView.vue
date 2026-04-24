@@ -91,18 +91,6 @@ function applySearch() {
     void load();
 }
 
-async function copyTenantInvite(r: Renter) {
-    try {
-        const res = await api<{ registerUrl: string }>(
-            orgApi(`/renters/${r.id}/tenant-invite`),
-            { method: 'POST' },
-        );
-        await navigator.clipboard.writeText(res.registerUrl);
-        toast.success(`Invite link copied for ${r.fullName}`);
-    } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not create invite');
-    }
-}
 
 async function save() {
     const fullName = form.value.fullName.trim();
@@ -353,14 +341,6 @@ watch(page, () => void load());
                                         @click="openHistory(r)"
                                     >
                                         History
-                                    </button>
-                                    <button
-                                        v-if="r.email && !r.userId"
-                                        type="button"
-                                        class="mr-3 text-sm font-medium text-emerald-700 hover:underline"
-                                        @click="copyTenantInvite(r)"
-                                    >
-                                        Copy invite
                                     </button>
                                     <button
                                         type="button"
