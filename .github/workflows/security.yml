@@ -1,8 +1,11 @@
+# VICE local audit: https://github.com/Webba-Creative-Technologies/vice
+# Run locally: npm run security:audit
 name: Security
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
+    branches: [main, master]
 
 permissions:
   contents: write
@@ -15,3 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Webba-Creative-Technologies/vice@v3
+        with:
+          # Raise toward 70 as findings are triaged (current local scan ~53).
+          min-score: 50

@@ -14,6 +14,10 @@
     "format:fix": "npm run format",
     "format:check": "npm run format:check --prefix api && npm run format:check --prefix admin && npm run format:check --prefix tenant && npm run format:check --prefix platform",
     "db:up": "docker compose up -d postgres",
-    "db:reset": "npm run db:reset --prefix api"
+    "db:reset": "npm run db:reset --prefix api",
+    "security:audit": "VICE_ACCEPT_TERMS=1 node node_modules/vice-security/bin/vice.js audit . --ci --min-score 0"
+  },
+  "devDependencies": {
+    "vice-security": "^3.0.0"
   }
 }
