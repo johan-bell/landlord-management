@@ -1,0 +1,17 @@
+name: Security
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+  security-events: write
+
+jobs:
+  vice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Webba-Creative-Technologies/vice@v3
