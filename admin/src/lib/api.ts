@@ -1,6 +1,8 @@
 import { useAuthStore } from '../stores/auth';
 import type { AuthUser } from '../stores/auth';
 
+let refreshInFlight: Promise<boolean> | null = null;
+
 function apiBase(): string {
     const raw = import.meta.env.VITE_API_URL as string | undefined;
     if (raw) {
@@ -22,6 +24,10 @@ export function getAuthHeaders(): Record<string, string> {
 }
 
 export async function tryRefreshAccess(): Promise<boolean> {
+    if (refreshInFlight) {
+        return refreshInFlight;
+    }
+    refreshInFlight = (async () => {
     const auth = useAuthStore();
     const rt = auth.refreshToken;
     if (!rt || !auth.user) {
@@ -46,6 +52,12 @@ export async function tryRefreshAccess(): Promise<boolean> {
         return true;
     } catch {
         return false;
+    }
+    })();
+    try {
+        return await refreshInFlight;
+    } finally {
+        refreshInFlight = null;
     }
 }
 

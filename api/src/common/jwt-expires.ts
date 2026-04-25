@@ -1,8 +1,8 @@
 import type { ConfigService } from '@nestjs/config';
 
-/** Parses JWT_ACCESS_EXPIRES env (e.g. `15m`, `900`, `1h`) to seconds for @nestjs/jwt. */
+/** Parses JWT_ACCESS_EXPIRES env (e.g. `8h`, `900`, `1d`) to seconds for @nestjs/jwt. */
 export function accessExpiresSeconds(config: ConfigService): number {
-    const raw = config.get<string>('JWT_ACCESS_EXPIRES', '15m').trim();
+    const raw = config.get<string>('JWT_ACCESS_EXPIRES', '8h').trim();
     if (/^\d+$/.test(raw)) {
         return parseInt(raw, 10);
     }
@@ -15,5 +15,5 @@ export function accessExpiresSeconds(config: ConfigService): number {
     if (raw.endsWith('d')) {
         return parseInt(raw.slice(0, -1), 10) * 86400;
     }
-    return 900;
+    return 8 * 3600;
 }
