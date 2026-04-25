@@ -992,9 +992,7 @@ onUnmounted(() => {
                                             class="text-slate-400"
                                         >
                                             ·
-                                            {{
-                                                whatsDueNext.upcomingCount - 1
-                                            }}
+                                            {{ whatsDueNext.upcomingCount - 1 }}
                                             more in queue
                                         </span>
                                     </p>
@@ -1040,9 +1038,7 @@ onUnmounted(() => {
                                             )
                                         }}
                                         on
-                                        {{
-                                            formatDate(lastPaidPayment.paidAt)
-                                        }}
+                                        {{ formatDate(lastPaidPayment.paidAt) }}
                                         · {{ lastPaidPayment.place }}
                                     </p>
                                 </template>

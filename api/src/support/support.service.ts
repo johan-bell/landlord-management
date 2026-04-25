@@ -137,11 +137,7 @@ export class SupportService {
         if (!existing) {
             throw new NotFoundException('Support request not found');
         }
-        return this.applySupportRequestUpdate(
-            requestId,
-            handler.userId,
-            dto,
-        );
+        return this.applySupportRequestUpdate(requestId, handler.userId, dto);
     }
 
     /**

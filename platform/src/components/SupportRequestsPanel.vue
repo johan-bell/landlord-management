@@ -235,14 +235,10 @@ watch(
                                 >
                                     Organization
                                 </th>
-                                <th
-                                    class="hidden px-4 py-3 sm:table-cell"
-                                >
+                                <th class="hidden px-4 py-3 sm:table-cell">
                                     Category
                                 </th>
-                                <th
-                                    class="hidden px-4 py-3 sm:table-cell"
-                                >
+                                <th class="hidden px-4 py-3 sm:table-cell">
                                     Urgency
                                 </th>
                                 <th class="px-4 py-3">From</th>

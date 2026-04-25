@@ -141,16 +141,28 @@ async function load() {
 }
 
 function computeSummary(items: PaymentWithLease[]) {
-    if (!items.length) { summaryStats.value = null; return; }
+    if (!items.length) {
+        summaryStats.value = null;
+        return;
+    }
     const currency = items[0]?.currency ?? 'XAF';
-    let totalDue = 0, totalPaid = 0, overdueCount = 0, pendingCount = 0;
+    let totalDue = 0,
+        totalPaid = 0,
+        overdueCount = 0,
+        pendingCount = 0;
     for (const p of items) {
         totalDue += Number(p.amount);
         if (p.status === 'PAID') totalPaid += Number(p.amount);
         if (p.status === 'LATE') overdueCount++;
         if (p.status === 'PENDING') pendingCount++;
     }
-    summaryStats.value = { totalDue, totalPaid, overdueCount, pendingCount, currency };
+    summaryStats.value = {
+        totalDue,
+        totalPaid,
+        overdueCount,
+        pendingCount,
+        currency,
+    };
 }
 
 function proofLabel(p: Payment) {
@@ -285,27 +297,79 @@ watch(renterFilter, () => scheduleSearchReload());
                 v-if="summaryStats"
                 class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4"
             >
-                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total due</p>
-                    <p class="mt-1 text-lg font-bold tabular-nums text-slate-900">
-                        {{ formatMoney(summaryStats.totalDue, summaryStats.currency) }}
+                <div
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium uppercase tracking-wide text-slate-500"
+                    >
+                        Total due
+                    </p>
+                    <p
+                        class="mt-1 text-lg font-bold tabular-nums text-slate-900"
+                    >
+                        {{
+                            formatMoney(
+                                summaryStats.totalDue,
+                                summaryStats.currency,
+                            )
+                        }}
                     </p>
                 </div>
-                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Collected</p>
-                    <p class="mt-1 text-lg font-bold tabular-nums text-emerald-700">
-                        {{ formatMoney(summaryStats.totalPaid, summaryStats.currency) }}
+                <div
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium uppercase tracking-wide text-slate-500"
+                    >
+                        Collected
+                    </p>
+                    <p
+                        class="mt-1 text-lg font-bold tabular-nums text-emerald-700"
+                    >
+                        {{
+                            formatMoney(
+                                summaryStats.totalPaid,
+                                summaryStats.currency,
+                            )
+                        }}
                     </p>
                 </div>
-                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Overdue</p>
-                    <p class="mt-1 text-lg font-bold tabular-nums" :class="summaryStats.overdueCount > 0 ? 'text-red-700' : 'text-slate-400'">
+                <div
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium uppercase tracking-wide text-slate-500"
+                    >
+                        Overdue
+                    </p>
+                    <p
+                        class="mt-1 text-lg font-bold tabular-nums"
+                        :class="
+                            summaryStats.overdueCount > 0
+                                ? 'text-red-700'
+                                : 'text-slate-400'
+                        "
+                    >
                         {{ summaryStats.overdueCount }}
                     </p>
                 </div>
-                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Pending</p>
-                    <p class="mt-1 text-lg font-bold tabular-nums" :class="summaryStats.pendingCount > 0 ? 'text-amber-700' : 'text-slate-400'">
+                <div
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium uppercase tracking-wide text-slate-500"
+                    >
+                        Pending
+                    </p>
+                    <p
+                        class="mt-1 text-lg font-bold tabular-nums"
+                        :class="
+                            summaryStats.pendingCount > 0
+                                ? 'text-amber-700'
+                                : 'text-slate-400'
+                        "
+                    >
                         {{ summaryStats.pendingCount }}
                     </p>
                 </div>
@@ -504,9 +568,14 @@ watch(renterFilter, () => scheduleSearchReload());
                                         {{ formatDateTime(row.paidAt) }}
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <div class="flex items-center justify-end gap-3">
+                                        <div
+                                            class="flex items-center justify-end gap-3"
+                                        >
                                             <button
-                                                v-if="row.status !== 'PAID' && row.status !== 'CANCELLED'"
+                                                v-if="
+                                                    row.status !== 'PAID' &&
+                                                    row.status !== 'CANCELLED'
+                                                "
                                                 type="button"
                                                 class="text-sm font-medium text-indigo-600 hover:underline"
                                                 @click="sendReminder(row)"
@@ -535,7 +604,9 @@ watch(renterFilter, () => scheduleSearchReload());
                                                 >Use Receipts</span
                                             >
                                             <span
-                                                v-else-if="row.status === 'PAID'"
+                                                v-else-if="
+                                                    row.status === 'PAID'
+                                                "
                                                 class="text-xs text-slate-400"
                                                 >—</span
                                             >

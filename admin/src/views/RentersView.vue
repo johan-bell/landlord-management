@@ -91,7 +91,6 @@ function applySearch() {
     void load();
 }
 
-
 async function save() {
     const fullName = form.value.fullName.trim();
     if (!fullName) return;

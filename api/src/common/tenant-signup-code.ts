@@ -61,7 +61,9 @@ export function shouldMatchTenantSignUpCode(raw: string): boolean {
 export function isPrismaUniqueConstraint(
     e: unknown,
 ): e is Prisma.PrismaClientKnownRequestError {
-    return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+    return (
+        e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002'
+    );
 }
 
 /** Allocate a new unique sign-up code (random; retries on rare collisions). */
@@ -87,6 +89,6 @@ export async function allocateUniqueTenantSignUpCode(
  */
 export function tenantSignUpCodeFromOrgId(id: string): string {
     const h = createHash('sha256').update(`tenantSignUp:${id}`).digest();
-    const pick = (i: number) => ALPHABET[h[i]! % ALPHABET.length];
+    const pick = (i: number) => ALPHABET[h[i] % ALPHABET.length];
     return `${pick(0)}${pick(1)}${pick(2)}${pick(3)}-${pick(4)}${pick(5)}${pick(6)}${pick(7)}`;
 }

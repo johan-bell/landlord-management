@@ -35,7 +35,13 @@ const filteredItems = computed(() => {
     const q = search.value.trim().toLowerCase();
     return items.value.filter((r) => {
         if (statusFilter.value && r.status !== statusFilter.value) return false;
-        if (q && !`${r.lease.renter.fullName} ${r.lease.unit.label} ${r.lease.unit.property.name}`.toLowerCase().includes(q)) return false;
+        if (
+            q &&
+            !`${r.lease.renter.fullName} ${r.lease.unit.label} ${r.lease.unit.property.name}`
+                .toLowerCase()
+                .includes(q)
+        )
+            return false;
         return true;
     });
 });
@@ -218,8 +224,11 @@ watch([() => route.params.orgId, page], () => void load(), { immediate: true });
                     class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-sm"
                 >
                     <span class="text-slate-500">
-                        Page {{ page }} of {{ totalPages || 1 }} · {{ total }} payments
-                        <template v-if="filteredItems.length !== items.length"> · {{ filteredItems.length }} shown</template>
+                        Page {{ page }} of {{ totalPages || 1 }} ·
+                        {{ total }} payments
+                        <template v-if="filteredItems.length !== items.length">
+                            · {{ filteredItems.length }} shown</template
+                        >
                     </span>
                     <div class="flex gap-2">
                         <button

@@ -94,7 +94,11 @@ export class TenantAuthService {
         if (!org) {
             throw new NotFoundException('Organization not found');
         }
-        return { id: org.id, name: org.name, tenantSignUpCode: org.tenantSignUpCode };
+        return {
+            id: org.id,
+            name: org.name,
+            tenantSignUpCode: org.tenantSignUpCode,
+        };
     }
 
     private async findOrganizationForSelfSignup(idOrCode: string) {
@@ -120,7 +124,9 @@ export class TenantAuthService {
             try {
                 await this.prisma.organization.update({
                     where: { id: org.id },
-                    data: { tenantSignUpCode: tenantSignUpCodeFromOrgId(org.id) },
+                    data: {
+                        tenantSignUpCode: tenantSignUpCodeFromOrgId(org.id),
+                    },
                 });
             } catch (e) {
                 if (isPrismaUniqueConstraint(e)) {

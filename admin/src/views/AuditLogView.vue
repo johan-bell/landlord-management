@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { ClipboardDocumentListIcon, ChevronDownIcon } from '@heroicons/vue/24/outline';
+import {
+    ClipboardDocumentListIcon,
+    ChevronDownIcon,
+} from '@heroicons/vue/24/outline';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
@@ -50,9 +53,11 @@ const distinctEntityTypes = computed(() => {
 const filteredRows = computed(() => {
     return rows.value.filter((r) => {
         if (filterAction.value && r.action !== filterAction.value) return false;
-        if (filterEntityType.value && r.entityType !== filterEntityType.value) return false;
+        if (filterEntityType.value && r.entityType !== filterEntityType.value)
+            return false;
         if (filterFrom.value && r.createdAt < filterFrom.value) return false;
-        if (filterTo.value && r.createdAt > filterTo.value + 'T23:59:59') return false;
+        if (filterTo.value && r.createdAt > filterTo.value + 'T23:59:59')
+            return false;
         return true;
     });
 });
@@ -109,14 +114,36 @@ function fmtMetaShort(m: unknown): string {
 }
 
 function actionColor(action: string) {
-    if (action.startsWith('CREATE') || action.includes('CREATED') || action.includes('APPROVED')) return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
-    if (action.startsWith('DELETE') || action.includes('DELETED') || action.includes('REJECTED') || action.includes('SUSPEND')) return 'bg-red-50 text-red-800 ring-red-200';
-    if (action.includes('UPDATE') || action.includes('PATCH') || action.includes('CHANGE')) return 'bg-blue-50 text-blue-800 ring-blue-200';
+    if (
+        action.startsWith('CREATE') ||
+        action.includes('CREATED') ||
+        action.includes('APPROVED')
+    )
+        return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+    if (
+        action.startsWith('DELETE') ||
+        action.includes('DELETED') ||
+        action.includes('REJECTED') ||
+        action.includes('SUSPEND')
+    )
+        return 'bg-red-50 text-red-800 ring-red-200';
+    if (
+        action.includes('UPDATE') ||
+        action.includes('PATCH') ||
+        action.includes('CHANGE')
+    )
+        return 'bg-blue-50 text-blue-800 ring-blue-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
 }
 
 const activeFilters = computed(
-    () => [filterAction.value, filterEntityType.value, filterFrom.value, filterTo.value].filter(Boolean).length,
+    () =>
+        [
+            filterAction.value,
+            filterEntityType.value,
+            filterFrom.value,
+            filterTo.value,
+        ].filter(Boolean).length,
 );
 
 onMounted(() => void load());
@@ -139,27 +166,45 @@ watch([hasOrg, page, canView], () => void load());
 
             <!-- Filters -->
             <div class="mb-4 flex flex-wrap items-end gap-3">
-                <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                <label
+                    class="flex flex-col gap-1 text-xs font-medium text-slate-700"
+                >
                     Action
                     <select
                         v-model="filterAction"
                         class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
                     >
                         <option value="">All actions</option>
-                        <option v-for="a in distinctActions" :key="a" :value="a">{{ a }}</option>
+                        <option
+                            v-for="a in distinctActions"
+                            :key="a"
+                            :value="a"
+                        >
+                            {{ a }}
+                        </option>
                     </select>
                 </label>
-                <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                <label
+                    class="flex flex-col gap-1 text-xs font-medium text-slate-700"
+                >
                     Entity type
                     <select
                         v-model="filterEntityType"
                         class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
                     >
                         <option value="">All entities</option>
-                        <option v-for="e in distinctEntityTypes" :key="e" :value="e">{{ e }}</option>
+                        <option
+                            v-for="e in distinctEntityTypes"
+                            :key="e"
+                            :value="e"
+                        >
+                            {{ e }}
+                        </option>
                     </select>
                 </label>
-                <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                <label
+                    class="flex flex-col gap-1 text-xs font-medium text-slate-700"
+                >
                     From
                     <input
                         v-model="filterFrom"
@@ -167,7 +212,9 @@ watch([hasOrg, page, canView], () => void load());
                         class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
                     />
                 </label>
-                <label class="flex flex-col gap-1 text-xs font-medium text-slate-700">
+                <label
+                    class="flex flex-col gap-1 text-xs font-medium text-slate-700"
+                >
                     To
                     <input
                         v-model="filterTo"
@@ -216,17 +263,29 @@ watch([hasOrg, page, canView], () => void load());
                             <template v-for="r in filteredRows" :key="r.id">
                                 <tr
                                     class="cursor-pointer hover:bg-slate-50/80"
-                                    :class="expandedId === r.id ? 'bg-slate-50' : ''"
+                                    :class="
+                                        expandedId === r.id ? 'bg-slate-50' : ''
+                                    "
                                     @click="toggleExpand(r.id)"
                                 >
                                     <td class="px-4 py-3 text-slate-400">
                                         <ChevronDownIcon
                                             class="h-3.5 w-3.5 transition-transform"
-                                            :class="expandedId === r.id ? 'rotate-180' : ''"
+                                            :class="
+                                                expandedId === r.id
+                                                    ? 'rotate-180'
+                                                    : ''
+                                            "
                                         />
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600">
-                                        {{ new Date(r.createdAt).toLocaleString() }}
+                                    <td
+                                        class="whitespace-nowrap px-4 py-3 text-xs text-slate-600"
+                                    >
+                                        {{
+                                            new Date(
+                                                r.createdAt,
+                                            ).toLocaleString()
+                                        }}
                                     </td>
                                     <td class="px-4 py-3">
                                         <span
@@ -241,18 +300,29 @@ watch([hasOrg, page, canView], () => void load());
                                         <span
                                             v-if="r.entityId"
                                             class="mt-0.5 block font-mono text-xs text-slate-500"
-                                        >{{ r.entityId }}</span>
+                                            >{{ r.entityId }}</span
+                                        >
                                     </td>
-                                    <td class="max-w-30 truncate px-4 py-3 font-mono text-xs text-slate-500">
+                                    <td
+                                        class="max-w-30 truncate px-4 py-3 font-mono text-xs text-slate-500"
+                                    >
                                         {{ r.actorUserId ?? '—' }}
                                     </td>
-                                    <td class="max-w-xs truncate px-4 py-3 text-xs text-slate-600">
+                                    <td
+                                        class="max-w-xs truncate px-4 py-3 text-xs text-slate-600"
+                                    >
                                         {{ fmtMetaShort(r.metadata) }}
                                     </td>
                                 </tr>
-                                <tr v-if="expandedId === r.id" class="bg-slate-50">
+                                <tr
+                                    v-if="expandedId === r.id"
+                                    class="bg-slate-50"
+                                >
                                     <td colspan="6" class="px-6 pb-4 pt-0">
-                                        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-200 leading-relaxed">{{ fmtMeta(r.metadata) }}</pre>
+                                        <pre
+                                            class="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-200 leading-relaxed"
+                                            >{{ fmtMeta(r.metadata) }}</pre
+                                        >
                                     </td>
                                 </tr>
                             </template>
@@ -262,8 +332,16 @@ watch([hasOrg, page, canView], () => void load());
                 <div v-if="!filteredRows.length" class="px-6 py-10">
                     <EmptyState
                         :icon="ClipboardDocumentListIcon"
-                        :title="activeFilters > 0 ? 'No entries match your filters' : 'No audit entries yet'"
-                        :description="activeFilters > 0 ? 'Try adjusting or clearing the filters above.' : 'Actions on payments, team, signups, and settings will appear here.'"
+                        :title="
+                            activeFilters > 0
+                                ? 'No entries match your filters'
+                                : 'No audit entries yet'
+                        "
+                        :description="
+                            activeFilters > 0
+                                ? 'Try adjusting or clearing the filters above.'
+                                : 'Actions on payments, team, signups, and settings will appear here.'
+                        "
                     />
                 </div>
                 <div
@@ -271,8 +349,11 @@ watch([hasOrg, page, canView], () => void load());
                     class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-sm"
                 >
                     <span class="text-slate-500">
-                        Page {{ page }} of {{ totalPages || 1 }} · {{ total }} entries
-                        <template v-if="activeFilters > 0"> · {{ filteredRows.length }} shown</template>
+                        Page {{ page }} of {{ totalPages || 1 }} ·
+                        {{ total }} entries
+                        <template v-if="activeFilters > 0">
+                            · {{ filteredRows.length }} shown</template
+                        >
                     </span>
                     <div class="flex gap-2">
                         <button

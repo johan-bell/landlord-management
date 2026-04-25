@@ -575,95 +575,236 @@ const statCards = computed(() => {
             </div>
             <template v-if="analytics">
                 <!-- KPI cards -->
-                <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                <div
+                    class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm"
+                >
                     <!-- Vacancy rate -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">Vacancy rate</p>
-                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="vacancyColor">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
+                            Vacancy rate
+                        </p>
+                        <p
+                            class="mt-1 text-2xl font-bold tabular-nums"
+                            :class="vacancyColor"
+                        >
                             {{ Math.round(analytics.vacancyRate * 100) }}%
                         </p>
-                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                            class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                        >
                             <div
                                 class="h-full rounded-full transition-all"
-                                :class="analytics.vacancyRate <= 0.15 ? 'bg-emerald-500' : analytics.vacancyRate <= 0.3 ? 'bg-amber-400' : 'bg-red-500'"
-                                :style="{ width: `${Math.round(analytics.vacancyRate * 100)}%` }"
+                                :class="
+                                    analytics.vacancyRate <= 0.15
+                                        ? 'bg-emerald-500'
+                                        : analytics.vacancyRate <= 0.3
+                                          ? 'bg-amber-400'
+                                          : 'bg-red-500'
+                                "
+                                :style="{
+                                    width: `${Math.round(analytics.vacancyRate * 100)}%`,
+                                }"
                             />
                         </div>
                         <p class="mt-1 text-xs text-slate-600">
-                            {{ analytics.vacancyRate <= 0.15 ? 'Healthy occupancy' : analytics.vacancyRate <= 0.3 ? 'Moderate vacancy' : 'High vacancy' }}
+                            {{
+                                analytics.vacancyRate <= 0.15
+                                    ? 'Healthy occupancy'
+                                    : analytics.vacancyRate <= 0.3
+                                      ? 'Moderate vacancy'
+                                      : 'High vacancy'
+                            }}
                         </p>
                     </div>
                     <!-- Collection rate -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">Collection (30d)</p>
-                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="collectionColor">
-                            {{ analytics.collectionRateLast30Days == null ? '—' : `${Math.round(analytics.collectionRateLast30Days * 100)}%` }}
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
+                            Collection (30d)
                         </p>
-                        <div v-if="analytics.collectionRateLast30Days != null" class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <p
+                            class="mt-1 text-2xl font-bold tabular-nums"
+                            :class="collectionColor"
+                        >
+                            {{
+                                analytics.collectionRateLast30Days == null
+                                    ? '—'
+                                    : `${Math.round(analytics.collectionRateLast30Days * 100)}%`
+                            }}
+                        </p>
+                        <div
+                            v-if="analytics.collectionRateLast30Days != null"
+                            class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                        >
                             <div
                                 class="h-full rounded-full transition-all"
-                                :class="analytics.collectionRateLast30Days >= 0.8 ? 'bg-emerald-500' : analytics.collectionRateLast30Days >= 0.5 ? 'bg-amber-400' : 'bg-red-500'"
-                                :style="{ width: `${Math.round(analytics.collectionRateLast30Days * 100)}%` }"
+                                :class="
+                                    analytics.collectionRateLast30Days >= 0.8
+                                        ? 'bg-emerald-500'
+                                        : analytics.collectionRateLast30Days >=
+                                            0.5
+                                          ? 'bg-amber-400'
+                                          : 'bg-red-500'
+                                "
+                                :style="{
+                                    width: `${Math.round(analytics.collectionRateLast30Days * 100)}%`,
+                                }"
                             />
                         </div>
                         <p class="mt-1 text-xs text-slate-600">
-                            {{ analytics.collectionRateLast30Days == null ? 'No charges yet' : analytics.collectionRateLast30Days >= 0.8 ? 'On track' : analytics.collectionRateLast30Days >= 0.5 ? 'Needs attention' : 'Critical' }}
+                            {{
+                                analytics.collectionRateLast30Days == null
+                                    ? 'No charges yet'
+                                    : analytics.collectionRateLast30Days >= 0.8
+                                      ? 'On track'
+                                      : analytics.collectionRateLast30Days >=
+                                          0.5
+                                        ? 'Needs attention'
+                                        : 'Critical'
+                            }}
                         </p>
                     </div>
                     <!-- Overdue charges -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">Overdue charges</p>
-                        <p class="mt-1 text-2xl font-bold tabular-nums" :class="analytics.overduePaymentCount === 0 ? 'text-emerald-400' : analytics.overduePaymentCount < 5 ? 'text-amber-300' : 'text-red-400'">
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
+                            Overdue charges
+                        </p>
+                        <p
+                            class="mt-1 text-2xl font-bold tabular-nums"
+                            :class="
+                                analytics.overduePaymentCount === 0
+                                    ? 'text-emerald-400'
+                                    : analytics.overduePaymentCount < 5
+                                      ? 'text-amber-300'
+                                      : 'text-red-400'
+                            "
+                        >
                             {{ analytics.overduePaymentCount }}
                         </p>
                         <p class="mt-1 text-xs text-slate-600">
-                            {{ analytics.overduePaymentCount === 0 ? 'All current' : analytics.overduePaymentCount === 1 ? '1 payment past due' : `${analytics.overduePaymentCount} payments past due` }}
+                            {{
+                                analytics.overduePaymentCount === 0
+                                    ? 'All current'
+                                    : analytics.overduePaymentCount === 1
+                                      ? '1 payment past due'
+                                      : `${analytics.overduePaymentCount} payments past due`
+                            }}
                         </p>
                     </div>
                     <!-- Rent roll -->
                     <div class="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-                        <p class="text-xs uppercase tracking-wide text-slate-500">Rent roll (30d)</p>
-                        <p class="mt-1 text-base font-semibold text-white tabular-nums leading-snug">
-                            {{ formatMoney(analytics.rentRollLast30Days.totalPaid, 'XAF') }}
-                            <span class="text-slate-500 text-sm font-normal"> / {{ formatMoney(analytics.rentRollLast30Days.totalDue, 'XAF') }}</span>
+                        <p
+                            class="text-xs uppercase tracking-wide text-slate-500"
+                        >
+                            Rent roll (30d)
                         </p>
-                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <p
+                            class="mt-1 text-base font-semibold text-white tabular-nums leading-snug"
+                        >
+                            {{
+                                formatMoney(
+                                    analytics.rentRollLast30Days.totalPaid,
+                                    'XAF',
+                                )
+                            }}
+                            <span class="text-slate-500 text-sm font-normal">
+                                /
+                                {{
+                                    formatMoney(
+                                        analytics.rentRollLast30Days.totalDue,
+                                        'XAF',
+                                    )
+                                }}</span
+                            >
+                        </p>
+                        <div
+                            class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                        >
                             <div
                                 class="h-full rounded-full bg-emerald-500 transition-all"
                                 :style="{ width: `${rentRollPct}%` }"
                             />
                         </div>
-                        <p class="mt-1 text-xs text-slate-600">{{ rentRollPct }}% collected</p>
+                        <p class="mt-1 text-xs text-slate-600">
+                            {{ rentRollPct }}% collected
+                        </p>
                     </div>
                 </div>
 
                 <!-- Arrears aging bar chart -->
                 <div class="mt-6">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p
+                        class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                    >
                         Arrears aging — open charges by overdue period
                     </p>
                     <div class="mt-3 space-y-2">
                         <div
                             v-for="b in [
-                                { k: '0_30', label: '0–30 days', color: 'bg-amber-400' },
-                                { k: '31_60', label: '31–60 days', color: 'bg-orange-500' },
-                                { k: '61_90', label: '61–90 days', color: 'bg-red-500' },
-                                { k: '91_plus', label: '91+ days', color: 'bg-red-700' },
+                                {
+                                    k: '0_30',
+                                    label: '0–30 days',
+                                    color: 'bg-amber-400',
+                                },
+                                {
+                                    k: '31_60',
+                                    label: '31–60 days',
+                                    color: 'bg-orange-500',
+                                },
+                                {
+                                    k: '61_90',
+                                    label: '61–90 days',
+                                    color: 'bg-red-500',
+                                },
+                                {
+                                    k: '91_plus',
+                                    label: '91+ days',
+                                    color: 'bg-red-700',
+                                },
                             ]"
                             :key="b.k"
                             class="flex items-center gap-3 text-sm"
                         >
-                            <span class="w-22 shrink-0 text-xs text-slate-500">{{ b.label }}</span>
-                            <div class="h-5 flex-1 overflow-hidden rounded bg-white/5">
+                            <span
+                                class="w-22 shrink-0 text-xs text-slate-500"
+                                >{{ b.label }}</span
+                            >
+                            <div
+                                class="h-5 flex-1 overflow-hidden rounded bg-white/5"
+                            >
                                 <div
                                     class="flex h-full items-center rounded transition-all"
                                     :class="b.color"
-                                    :style="{ width: `${arrearsMax > 0 ? Math.round(((analytics.arrearsAgingDays[b.k]?.paymentCount ?? 0) / arrearsMax) * 100) : 0}%`, minWidth: analytics.arrearsAgingDays[b.k]?.paymentCount ? '2px' : '0' }"
+                                    :style="{
+                                        width: `${arrearsMax > 0 ? Math.round(((analytics.arrearsAgingDays[b.k]?.paymentCount ?? 0) / arrearsMax) * 100) : 0}%`,
+                                        minWidth: analytics.arrearsAgingDays[
+                                            b.k
+                                        ]?.paymentCount
+                                            ? '2px'
+                                            : '0',
+                                    }"
                                 />
                             </div>
-                            <span class="w-32 shrink-0 text-right text-xs text-slate-400 tabular-nums">
-                                {{ analytics.arrearsAgingDays[b.k]?.paymentCount ?? 0 }} ·
-                                {{ formatMoney(analytics.arrearsAgingDays[b.k]?.totalAmount ?? 0, 'XAF') }}
+                            <span
+                                class="w-32 shrink-0 text-right text-xs text-slate-400 tabular-nums"
+                            >
+                                {{
+                                    analytics.arrearsAgingDays[b.k]
+                                        ?.paymentCount ?? 0
+                                }}
+                                ·
+                                {{
+                                    formatMoney(
+                                        analytics.arrearsAgingDays[b.k]
+                                            ?.totalAmount ?? 0,
+                                        'XAF',
+                                    )
+                                }}
                             </span>
                         </div>
                     </div>

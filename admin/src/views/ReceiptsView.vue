@@ -171,14 +171,18 @@ watch(hasOrg, () => void load());
             </p>
 
             <div
-                v-if="!loading && (payments.length + utilityBills.length) > 0"
+                v-if="!loading && payments.length + utilityBills.length > 0"
                 class="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
             >
                 <span class="text-lg">🔔</span>
                 <p class="text-sm font-medium text-amber-900">
-                    {{ payments.length + utilityBills.length }} receipt{{ payments.length + utilityBills.length > 1 ? 's' : '' }} need your review
+                    {{ payments.length + utilityBills.length }} receipt{{
+                        payments.length + utilityBills.length > 1 ? 's' : ''
+                    }}
+                    need your review
                     <span class="font-normal text-amber-800">
-                        — {{ payments.length }} rent, {{ utilityBills.length }} utility
+                        — {{ payments.length }} rent,
+                        {{ utilityBills.length }} utility
                     </span>
                 </p>
             </div>
@@ -207,16 +211,25 @@ watch(hasOrg, () => void load());
                         Rent receipts awaiting verification
                         <span
                             class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1"
-                            :class="payments.length > 0 ? 'bg-amber-100 text-amber-800 ring-amber-200' : 'bg-slate-100 text-slate-600 ring-slate-200'"
-                        >{{ payments.length }}</span>
+                            :class="
+                                payments.length > 0
+                                    ? 'bg-amber-100 text-amber-800 ring-amber-200'
+                                    : 'bg-slate-100 text-slate-600 ring-slate-200'
+                            "
+                            >{{ payments.length }}</span
+                        >
                     </h2>
                     <div
                         v-if="!payments.length"
                         class="flex flex-col items-center gap-2 px-4 py-10 text-center"
                     >
                         <span class="text-2xl">✓</span>
-                        <p class="text-sm font-medium text-slate-700">All clear</p>
-                        <p class="text-xs text-slate-500">No rent receipts pending review right now.</p>
+                        <p class="text-sm font-medium text-slate-700">
+                            All clear
+                        </p>
+                        <p class="text-xs text-slate-500">
+                            No rent receipts pending review right now.
+                        </p>
                     </div>
                     <ul v-else class="divide-y divide-slate-100">
                         <li
@@ -281,16 +294,25 @@ watch(hasOrg, () => void load());
                         Utility receipts awaiting verification
                         <span
                             class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1"
-                            :class="utilityBills.length > 0 ? 'bg-amber-100 text-amber-800 ring-amber-200' : 'bg-slate-100 text-slate-600 ring-slate-200'"
-                        >{{ utilityBills.length }}</span>
+                            :class="
+                                utilityBills.length > 0
+                                    ? 'bg-amber-100 text-amber-800 ring-amber-200'
+                                    : 'bg-slate-100 text-slate-600 ring-slate-200'
+                            "
+                            >{{ utilityBills.length }}</span
+                        >
                     </h2>
                     <div
                         v-if="!utilityBills.length"
                         class="flex flex-col items-center gap-2 px-4 py-10 text-center"
                     >
                         <span class="text-2xl">✓</span>
-                        <p class="text-sm font-medium text-slate-700">All clear</p>
-                        <p class="text-xs text-slate-500">No utility receipts pending review right now.</p>
+                        <p class="text-sm font-medium text-slate-700">
+                            All clear
+                        </p>
+                        <p class="text-xs text-slate-500">
+                            No utility receipts pending review right now.
+                        </p>
                     </div>
                     <ul v-else class="divide-y divide-slate-100">
                         <li

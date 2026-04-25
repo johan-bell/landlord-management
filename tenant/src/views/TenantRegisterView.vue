@@ -150,8 +150,7 @@ async function submit() {
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700"
-                            >Full name
-                            <span class="text-red-500">*</span></span
+                            >Full name <span class="text-red-500">*</span></span
                         >
                         <input
                             v-model="fullName"
@@ -180,8 +179,7 @@ async function submit() {
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700"
-                            >Email
-                            <span class="text-red-500">*</span></span
+                            >Email <span class="text-red-500">*</span></span
                         >
                         <input
                             v-model="email"
@@ -194,8 +192,7 @@ async function submit() {
 
                     <label class="block">
                         <span class="text-sm font-medium text-slate-700"
-                            >Password
-                            <span class="text-red-500">*</span></span
+                            >Password <span class="text-red-500">*</span></span
                         >
                         <input
                             v-model="password"

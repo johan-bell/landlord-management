@@ -99,7 +99,8 @@ function statusLabel(s: string) {
 function statusClass(s: string) {
     if (s === 'OPEN') return 'bg-blue-50 text-blue-800 ring-blue-200';
     if (s === 'IN_PROGRESS') return 'bg-amber-50 text-amber-800 ring-amber-200';
-    if (s === 'RESOLVED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+    if (s === 'RESOLVED')
+        return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
     if (s === 'CLOSED') return 'bg-slate-100 text-slate-600 ring-slate-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
 }
@@ -168,16 +169,13 @@ async function saveSupportDetail() {
     if (!detail.value || !canManageSupport.value) return;
     savingId.value = detail.value.id;
     try {
-        await api<SupportRow>(
-            orgApi(`/support-requests/${detail.value.id}`),
-            {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    status: editStatus.value || undefined,
-                    resolutionNote: editNote.value,
-                }),
-            },
-        );
+        await api<SupportRow>(orgApi(`/support-requests/${detail.value.id}`), {
+            method: 'PATCH',
+            body: JSON.stringify({
+                status: editStatus.value || undefined,
+                resolutionNote: editNote.value,
+            }),
+        });
         toast.success('Ticket updated');
         await load();
         const updated = rows.value.find((r) => r.id === detail.value!.id);
@@ -246,8 +244,10 @@ watch([hasOrg, selectedOrgId], () => void load());
 
             <div class="mb-4 flex flex-wrap items-center gap-3">
                 <label class="flex min-w-48 flex-1 items-center gap-2 text-sm">
-                    <span class="shrink-0 font-medium text-slate-700">Search</span>
-                        <input
+                    <span class="shrink-0 font-medium text-slate-700"
+                        >Search</span
+                    >
+                    <input
                         v-model="filterSearch"
                         type="search"
                         placeholder="Subject, message, category, urgency…"
@@ -289,14 +289,10 @@ watch([hasOrg, selectedOrgId], () => void load());
                         >
                             <tr>
                                 <th class="px-4 py-3">Subject</th>
-                                <th
-                                    class="hidden px-4 py-3 sm:table-cell"
-                                >
+                                <th class="hidden px-4 py-3 sm:table-cell">
                                     Category
                                 </th>
-                                <th
-                                    class="hidden px-4 py-3 sm:table-cell"
-                                >
+                                <th class="hidden px-4 py-3 sm:table-cell">
                                     Urgency
                                 </th>
                                 <th class="px-4 py-3">From</th>
@@ -364,7 +360,9 @@ watch([hasOrg, selectedOrgId], () => void load());
                                         class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                                         @click="openDetail(row)"
                                     >
-                                        {{ canManageSupport ? 'Manage' : 'View' }}
+                                        {{
+                                            canManageSupport ? 'Manage' : 'View'
+                                        }}
                                     </button>
                                 </td>
                             </tr>
@@ -376,10 +374,18 @@ watch([hasOrg, selectedOrgId], () => void load());
                     class="px-4 py-10 text-center"
                 >
                     <p class="text-sm font-medium text-slate-700">
-                        {{ filterSearch || filterStatus ? 'No tickets match your filters' : 'No support requests yet' }}
+                        {{
+                            filterSearch || filterStatus
+                                ? 'No tickets match your filters'
+                                : 'No support requests yet'
+                        }}
                     </p>
                     <p class="mt-1 text-xs text-slate-500">
-                        {{ filterSearch || filterStatus ? 'Try clearing the search or status filter.' : 'Tickets from renters and your team to the platform will appear here.' }}
+                        {{
+                            filterSearch || filterStatus
+                                ? 'Try clearing the search or status filter.'
+                                : 'Tickets from renters and your team to the platform will appear here.'
+                        }}
                     </p>
                 </div>
             </div>
@@ -585,9 +591,7 @@ watch([hasOrg, selectedOrgId], () => void load());
                     v-else
                     class="mt-6 space-y-3 border-t border-slate-200 pt-4"
                 >
-                    <h3
-                        class="text-sm font-semibold text-slate-900"
-                    >
+                    <h3 class="text-sm font-semibold text-slate-900">
                         Update ticket
                     </h3>
                     <label class="block text-sm">

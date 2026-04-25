@@ -204,17 +204,24 @@ watch([hasOrg, selectedOrgId], () => void load());
                     :key="tab.value || 'all'"
                     type="button"
                     class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition"
-                    :class="filterStatus === tab.value
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                    :class="
+                        filterStatus === tab.value
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    "
                     @click="filterStatus = tab.value"
                 >
                     {{ tab.label }}
                     <span
                         v-if="tab.value && (countByStatus[tab.value] ?? 0) > 0"
                         class="rounded-full px-1.5 py-0.5 text-xs font-semibold"
-                        :class="filterStatus === tab.value ? 'bg-white/20 text-white' : 'bg-slate-300 text-slate-700'"
-                    >{{ countByStatus[tab.value] }}</span>
+                        :class="
+                            filterStatus === tab.value
+                                ? 'bg-white/20 text-white'
+                                : 'bg-slate-300 text-slate-700'
+                        "
+                        >{{ countByStatus[tab.value] }}</span
+                    >
                 </button>
             </div>
 
@@ -294,15 +301,22 @@ watch([hasOrg, selectedOrgId], () => void load());
                         </tr>
                     </tbody>
                 </table>
-                <div
-                    v-if="!filteredRows.length"
-                    class="px-4 py-10 text-center"
-                >
+                <div v-if="!filteredRows.length" class="px-4 py-10 text-center">
                     <p class="text-sm font-medium text-slate-700">
-                        {{ filterStatus === 'PENDING' ? 'No pending signups' : filterStatus ? `No ${filterStatus.toLowerCase()} signups` : 'No signups yet' }}
+                        {{
+                            filterStatus === 'PENDING'
+                                ? 'No pending signups'
+                                : filterStatus
+                                  ? `No ${filterStatus.toLowerCase()} signups`
+                                  : 'No signups yet'
+                        }}
                     </p>
                     <p class="mt-1 text-xs text-slate-500">
-                        {{ filterStatus === 'PENDING' ? 'New requests will appear here when tenants sign up.' : 'Try a different status tab.' }}
+                        {{
+                            filterStatus === 'PENDING'
+                                ? 'New requests will appear here when tenants sign up.'
+                                : 'Try a different status tab.'
+                        }}
                     </p>
                 </div>
             </div>
