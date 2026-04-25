@@ -13,17 +13,18 @@ const props = withDefaults(
     defineProps<{
         initials: string;
         menuLabel: string;
-        showPassword?: boolean;
+        /** Show "Change password" in menu */
+        showCredentialMenu?: boolean;
         showSupport?: boolean;
         locale?: string;
         dark?: boolean;
     }>(),
-    { showPassword: false, showSupport: false, locale: 'en', dark: false },
+    { showCredentialMenu: false, showSupport: false, locale: 'en', dark: false },
 );
 
 const emit = defineEmits<{
     signOut: [];
-    goPassword: [];
+    goCredentialChange: [];
     goSupport: [];
     changeLang: [code: string];
     toggleDark: [];
@@ -50,7 +51,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 function onPassword() {
-    emit('goPassword');
+    emit('goCredentialChange');
     close();
 }
 
@@ -179,7 +180,7 @@ onUnmounted(() => {
                 />
 
                 <button
-                    v-if="showPassword"
+                    v-if="showCredentialMenu"
                     type="button"
                     class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700/60"
                     role="menuitem"
@@ -206,7 +207,7 @@ onUnmounted(() => {
                 </button>
 
                 <div
-                    v-if="showPassword || showSupport"
+                    v-if="showCredentialMenu || showSupport"
                     class="my-1 border-t border-slate-100 dark:border-slate-700/60"
                     role="presentation"
                 />

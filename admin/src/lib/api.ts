@@ -100,7 +100,7 @@ export async function api<T>(
     return (await res.json()) as T;
 }
 
-/** Fetch with Bearer header; retries once after refresh on 401. */
+/** Fetch with `Authorization` header; retries once after refresh on 401. */
 export async function authorizedFetch(
     path: string,
     init?: RequestInit,
