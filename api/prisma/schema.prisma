@@ -92,6 +92,8 @@ model Organization {
   id        String   @id @default(cuid())
   name      String
   slug      String?  @unique
+  /// Alphanumeric code (e.g. `AB12-CD34`) for tenant app self-signup. Unique; also resolvable with internal cuid.
+  tenantSignUpCode String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

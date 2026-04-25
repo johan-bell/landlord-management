@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { accessExpiresSeconds } from '../common/jwt-expires';
+import { allocateUniqueTenantSignUpCode } from '../common/tenant-signup-code';
 import { hashSecretToken, newRawSecretToken } from '../common/crypto-token';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -53,10 +54,14 @@ export class AuthService {
                     name: dto.name?.trim(),
                 },
             });
+            const tenantSignUpCode = await allocateUniqueTenantSignUpCode(
+                tx.organization,
+            );
             const org = await tx.organization.create({
                 data: {
                     name: dto.organizationName.trim(),
                     slug: dto.slug?.trim() || undefined,
+                    tenantSignUpCode,
                 },
             });
             await tx.organizationMember.create({

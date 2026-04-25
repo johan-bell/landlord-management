@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import {
+    allocateUniqueTenantSignUpCode,
+    isPrismaUniqueConstraint,
+    tenantSignUpCodeFromOrgId,
+} from '../common/tenant-signup-code';
 import { stripPlatformInternalNotes } from '../common/strip-platform-internal-notes';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -22,10 +27,14 @@ export class OrganizationsService {
 
     async createForUser(userId: string, dto: CreateOrganizationDto) {
         return this.prisma.$transaction(async (tx) => {
+            const tenantSignUpCode = await allocateUniqueTenantSignUpCode(
+                tx.organization,
+            );
             const org = await tx.organization.create({
                 data: {
                     name: dto.name,
                     slug: dto.slug,
+                    tenantSignUpCode,
                 },
             });
             await tx.organizationMember.create({
@@ -40,7 +49,7 @@ export class OrganizationsService {
     }
 
     async findAllForUser(userId: string) {
-        const rows = await this.prisma.organization.findMany({
+        let rows = await this.prisma.organization.findMany({
             where: {
                 members: { some: { userId } },
                 suspendedAt: null,
@@ -54,6 +63,27 @@ export class OrganizationsService {
                 },
             },
         });
+        if (rows.some((r) => !r.tenantSignUpCode)) {
+            await Promise.all(
+                rows
+                    .filter((r) => !r.tenantSignUpCode)
+                    .map((r) => this.backfillTenantSignUpCode(r.id)),
+            );
+            rows = await this.prisma.organization.findMany({
+                where: {
+                    members: { some: { userId } },
+                    suspendedAt: null,
+                },
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    members: {
+                        where: { userId },
+                        select: { role: true },
+                        take: 1,
+                    },
+                },
+            });
+        }
         return rows.map((row) => {
             const { members, ...raw } = row;
             return {
@@ -63,6 +93,26 @@ export class OrganizationsService {
                 myRole: members[0].role,
             };
         });
+    }
+
+    private async backfillTenantSignUpCode(id: string) {
+        try {
+            await this.prisma.organization.update({
+                where: { id },
+                data: { tenantSignUpCode: tenantSignUpCodeFromOrgId(id) },
+            });
+        } catch (e) {
+            if (!isPrismaUniqueConstraint(e)) {
+                throw e;
+            }
+            const code = await allocateUniqueTenantSignUpCode(
+                this.prisma.organization,
+            );
+            await this.prisma.organization.update({
+                where: { id },
+                data: { tenantSignUpCode: code },
+            });
+        }
     }
 
     async findOneOrThrow(id: string) {

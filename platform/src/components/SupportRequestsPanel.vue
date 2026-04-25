@@ -14,6 +14,8 @@ type SupportRow = {
     subject: string;
     message: string;
     status: string;
+    category: string;
+    urgency: string;
     fromTenant: boolean;
     createdAt: string;
     updatedAt: string;
@@ -127,6 +129,27 @@ function formatDate(iso: string | null) {
     }
 }
 
+function categoryLabel(c: string) {
+    if (c === 'MAINTENANCE') return 'Maintenance';
+    if (c === 'BILLING') return 'Billing';
+    if (c === 'GENERAL') return 'General';
+    if (c === 'OTHER') return 'Other';
+    return c;
+}
+
+function urgencyLabel(u: string) {
+    if (u === 'LOW') return 'Low';
+    if (u === 'NORMAL') return 'Normal';
+    if (u === 'HIGH') return 'High';
+    return u;
+}
+
+function urgencyPillClass(u: string) {
+    if (u === 'HIGH') return 'bg-red-100 text-red-900';
+    if (u === 'LOW') return 'bg-slate-200 text-slate-800';
+    return 'bg-violet-100 text-violet-900';
+}
+
 onMounted(() => {
     syncFleetFilterFromRoute();
     void load();
@@ -212,6 +235,16 @@ watch(
                                 >
                                     Organization
                                 </th>
+                                <th
+                                    class="hidden px-4 py-3 sm:table-cell"
+                                >
+                                    Category
+                                </th>
+                                <th
+                                    class="hidden px-4 py-3 sm:table-cell"
+                                >
+                                    Urgency
+                                </th>
                                 <th class="px-4 py-3">From</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="hidden px-4 py-3 lg:table-cell">
@@ -250,6 +283,19 @@ watch(
                                         {{ row.organization.name }}
                                     </RouterLink>
                                     <span v-else class="text-slate-400">—</span>
+                                </td>
+                                <td
+                                    class="hidden px-4 py-3 text-sm text-slate-800 sm:table-cell"
+                                >
+                                    {{ categoryLabel(row.category) }}
+                                </td>
+                                <td class="hidden px-4 py-3 sm:table-cell">
+                                    <span
+                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                        :class="urgencyPillClass(row.urgency)"
+                                    >
+                                        {{ urgencyLabel(row.urgency) }}
+                                    </span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-700">
                                     {{ row.fromTenant ? 'Tenant' : 'Staff' }}
@@ -347,6 +393,23 @@ watch(
                             >
                                 {{ detail.organization.name }}
                             </RouterLink>
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt>Category</dt>
+                        <dd class="text-right">
+                            {{ categoryLabel(detail.category) }}
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt>Urgency</dt>
+                        <dd class="text-right">
+                            <span
+                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                :class="urgencyPillClass(detail.urgency)"
+                            >
+                                {{ urgencyLabel(detail.urgency) }}
+                            </span>
                         </dd>
                     </div>
                     <div class="flex justify-between gap-2">

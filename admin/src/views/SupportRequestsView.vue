@@ -10,6 +10,8 @@ type SupportRow = {
     subject: string;
     message: string;
     status: string;
+    category: string;
+    urgency: string;
     fromTenant: boolean;
     createdAt: string;
     updatedAt: string;
@@ -43,9 +45,37 @@ function filteredRows() {
     const q = filterSearch.value.trim().toLowerCase();
     return rows.value.filter((r) => {
         if (filterStatus.value && r.status !== filterStatus.value) return false;
-        if (q && !`${r.subject} ${r.message}`.toLowerCase().includes(q)) return false;
+        if (
+            q &&
+            !`${r.subject} ${r.message} ${r.category} ${r.urgency} ${categoryLabel(r.category)} ${urgencyLabel(r.urgency)}`
+                .toLowerCase()
+                .includes(q)
+        ) {
+            return false;
+        }
         return true;
     });
+}
+
+function categoryLabel(c: string) {
+    if (c === 'MAINTENANCE') return 'Maintenance';
+    if (c === 'BILLING') return 'Billing';
+    if (c === 'GENERAL') return 'General';
+    if (c === 'OTHER') return 'Other';
+    return c;
+}
+
+function urgencyLabel(u: string) {
+    if (u === 'LOW') return 'Low';
+    if (u === 'NORMAL') return 'Normal';
+    if (u === 'HIGH') return 'High';
+    return u;
+}
+
+function urgencyClass(u: string) {
+    if (u === 'HIGH') return 'bg-red-50 text-red-800 ring-red-200';
+    if (u === 'LOW') return 'bg-slate-100 text-slate-700 ring-slate-200';
+    return 'bg-violet-50 text-violet-800 ring-violet-200';
 }
 
 function statusLabel(s: string) {
@@ -169,10 +199,10 @@ watch([hasOrg, selectedOrgId], () => void load());
             <div class="mb-4 flex flex-wrap items-center gap-3">
                 <label class="flex min-w-48 flex-1 items-center gap-2 text-sm">
                     <span class="shrink-0 font-medium text-slate-700">Search</span>
-                    <input
+                        <input
                         v-model="filterSearch"
                         type="search"
-                        placeholder="Subject or message…"
+                        placeholder="Subject, message, category, urgency…"
                         class="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-900"
                     />
                 </label>
@@ -211,6 +241,16 @@ watch([hasOrg, selectedOrgId], () => void load());
                         >
                             <tr>
                                 <th class="px-4 py-3">Subject</th>
+                                <th
+                                    class="hidden px-4 py-3 sm:table-cell"
+                                >
+                                    Category
+                                </th>
+                                <th
+                                    class="hidden px-4 py-3 sm:table-cell"
+                                >
+                                    Urgency
+                                </th>
                                 <th class="px-4 py-3">From</th>
                                 <th class="px-4 py-3">Status</th>
                                 <th class="hidden px-4 py-3 lg:table-cell">
@@ -236,6 +276,19 @@ watch([hasOrg, selectedOrgId], () => void load());
                                     >
                                         {{ row.message }}
                                     </p>
+                                </td>
+                                <td
+                                    class="hidden px-4 py-3 text-sm text-slate-800 sm:table-cell"
+                                >
+                                    {{ categoryLabel(row.category) }}
+                                </td>
+                                <td class="hidden px-4 py-3 sm:table-cell">
+                                    <span
+                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+                                        :class="urgencyClass(row.urgency)"
+                                    >
+                                        {{ urgencyLabel(row.urgency) }}
+                                    </span>
                                 </td>
                                 <td class="px-4 py-3 text-xs text-slate-700">
                                     {{ row.fromTenant ? 'Renter' : 'Staff' }}
@@ -395,6 +448,23 @@ watch([hasOrg, selectedOrgId], () => void load());
                         <dd class="text-right">
                             {{ detail.fromTenant ? 'Renter' : 'Staff' }} ·
                             {{ detail.submitter.email }}
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt>Category</dt>
+                        <dd class="text-right">
+                            {{ categoryLabel(detail.category) }}
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt>Urgency</dt>
+                        <dd class="text-right">
+                            <span
+                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+                                :class="urgencyClass(detail.urgency)"
+                            >
+                                {{ urgencyLabel(detail.urgency) }}
+                            </span>
                         </dd>
                     </div>
                     <div class="flex justify-between gap-2">

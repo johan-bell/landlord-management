@@ -11,6 +11,14 @@ import * as bcrypt from 'bcrypt';
 import { accessExpiresSeconds } from '../common/jwt-expires';
 import { hashSecretToken, newRawSecretToken } from '../common/crypto-token';
 import { EmailService } from '../email/email.service';
+import {
+    allocateUniqueTenantSignUpCode,
+    formatTenantSignUpKeyNormalized,
+    isPrismaUniqueConstraint,
+    normalizeTenantSignUpKey,
+    shouldMatchTenantSignUpCode,
+    tenantSignUpCodeFromOrgId,
+} from '../common/tenant-signup-code';
 import { PrismaService } from '../prisma/prisma.service';
 import { RefreshTokensService } from '../auth/refresh-tokens.service';
 import { TenantLoginDto } from './dto/tenant-login.dto';
@@ -82,24 +90,65 @@ export class TenantAuthService {
         if (!i) {
             throw new BadRequestException('Provide id query parameter');
         }
-        const org = await this.prisma.organization.findFirst({
-            where: { id: i, suspendedAt: null },
-            select: { id: true, name: true },
-        });
+        const org = await this.findOrganizationForSelfSignup(i);
         if (!org) {
             throw new NotFoundException('Organization not found');
+        }
+        return { id: org.id, name: org.name, tenantSignUpCode: org.tenantSignUpCode };
+    }
+
+    private async findOrganizationForSelfSignup(idOrCode: string) {
+        const trimmed = idOrCode.trim();
+        const or: { tenantSignUpCode: string; suspendedAt: null }[] = [];
+        if (shouldMatchTenantSignUpCode(trimmed)) {
+            const n = normalizeTenantSignUpKey(trimmed);
+            if (n.length === 8) {
+                or.push({
+                    tenantSignUpCode: formatTenantSignUpKeyNormalized(n),
+                    suspendedAt: null,
+                });
+            }
+        }
+        let org = await this.prisma.organization.findFirst({
+            where: {
+                suspendedAt: null,
+                OR: [{ id: trimmed }, ...or],
+            },
+            select: { id: true, name: true, tenantSignUpCode: true },
+        });
+        if (org && !org.tenantSignUpCode) {
+            try {
+                await this.prisma.organization.update({
+                    where: { id: org.id },
+                    data: { tenantSignUpCode: tenantSignUpCodeFromOrgId(org.id) },
+                });
+            } catch (e) {
+                if (isPrismaUniqueConstraint(e)) {
+                    const code = await allocateUniqueTenantSignUpCode(
+                        this.prisma.organization,
+                    );
+                    await this.prisma.organization.update({
+                        where: { id: org.id },
+                        data: { tenantSignUpCode: code },
+                    });
+                } else {
+                    throw e;
+                }
+            }
+            org = await this.prisma.organization.findFirst({
+                where: { id: org.id, suspendedAt: null },
+                select: { id: true, name: true, tenantSignUpCode: true },
+            });
         }
         return org;
     }
 
     async register(dto: TenantRegisterDto) {
         const email = dto.email.toLowerCase().trim();
-        const orgId = dto.organizationId.trim();
+        const orgIdOrCode = dto.organizationId.trim();
         const fullName = dto.fullName.trim();
 
-        const org = await this.prisma.organization.findFirst({
-            where: { id: orgId, suspendedAt: null },
-        });
+        const org = await this.findOrganizationForSelfSignup(orgIdOrCode);
         if (!org) {
             throw new NotFoundException('Organization not found or suspended');
         }

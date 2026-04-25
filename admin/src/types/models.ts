@@ -12,6 +12,8 @@ export type Organization = {
     id: string;
     name: string;
     slug: string | null;
+    /** Shown to renters for self-signup (letters and digits, e.g. `AB12-CD34`). */
+    tenantSignUpCode?: string | null;
     createdAt?: string;
     /** Your role in this org (landlord console). Not related to JWT `typ`. */
     myRole?: OrgMembershipRole;

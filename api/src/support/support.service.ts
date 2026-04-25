@@ -72,6 +72,8 @@ export class SupportService {
             data: {
                 subject: dto.subject.trim(),
                 message: dto.message.trim(),
+                category: dto.category ?? 'GENERAL',
+                urgency: dto.urgency ?? 'NORMAL',
                 submitterId: actor.userId,
                 fromTenant: false,
                 organizationId: orgId,

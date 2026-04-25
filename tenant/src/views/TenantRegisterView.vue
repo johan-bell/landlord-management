@@ -16,7 +16,11 @@ const password = ref('');
 const error = ref<string | null>(null);
 const loading = ref(false);
 
-const orgPreview = ref<{ id: string; name: string } | null>(null);
+const orgPreview = ref<{
+    id: string;
+    name: string;
+    tenantSignUpCode: string | null;
+} | null>(null);
 const orgPreviewError = ref<string | null>(null);
 
 async function loadOrgPreview() {
@@ -28,9 +32,11 @@ async function loadOrgPreview() {
     }
     orgPreviewError.value = null;
     try {
-        orgPreview.value = await api<{ id: string; name: string }>(
-            `/tenant/organizations/preview?id=${encodeURIComponent(id)}`,
-        );
+        orgPreview.value = await api<{
+            id: string;
+            name: string;
+            tenantSignUpCode: string | null;
+        }>(`/tenant/organizations/preview?id=${encodeURIComponent(id)}`);
     } catch (e) {
         orgPreview.value = null;
         orgPreviewError.value =
@@ -97,14 +103,15 @@ async function submit() {
                     Create your access
                 </h1>
                 <p class="mt-2 text-center text-sm text-slate-600">
-                    Enter the organization ID your landlord shared with you.
+                    Enter the sign-up code (letters and numbers) or organization
+                    ID your landlord shared with you.
                 </p>
 
                 <form class="mt-8 space-y-4" @submit.prevent="submit">
                     <div>
                         <label class="block">
                             <span class="text-sm font-medium text-slate-700"
-                                >Organization ID
+                                >Organization code
                                 <span class="text-red-500">*</span></span
                             >
                             <input
@@ -113,17 +120,25 @@ async function submit() {
                                 required
                                 autocomplete="off"
                                 class="tenant-input mt-2 font-mono text-sm"
-                                placeholder="Provided by your landlord"
+                                placeholder="e.g. AB12-CD34"
                             />
                         </label>
                         <div
                             v-if="orgPreview"
-                            class="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm"
+                            class="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm"
                         >
-                            <span class="text-emerald-600">✓</span>
-                            <span class="font-medium text-emerald-900">{{
-                                orgPreview.name
-                            }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-emerald-600">✓</span>
+                                <span class="font-medium text-emerald-900">{{
+                                    orgPreview.name
+                                }}</span>
+                            </div>
+                            <p
+                                v-if="orgPreview.tenantSignUpCode"
+                                class="mt-1 pl-6 font-mono text-xs text-emerald-800/90"
+                            >
+                                Code {{ orgPreview.tenantSignUpCode }}
+                            </p>
                         </div>
                         <p
                             v-else-if="orgPreviewError"
