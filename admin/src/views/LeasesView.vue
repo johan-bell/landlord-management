@@ -82,6 +82,47 @@ const utilForm = ref({
 const confirmLeaseDelete = ref<Lease | null>(null);
 const confirmUtilDelete = ref<LeaseUtilityBill | null>(null);
 
+const renewLease = ref<Lease | null>(null);
+const renewForm = ref({ endDate: '', rentAmount: '', renewMonths: '3' });
+const renewSaving = ref(false);
+
+function openRenew(l: Lease) {
+    renewForm.value = {
+        endDate: l.endDate
+            ? new Date(l.endDate).toISOString().slice(0, 10)
+            : new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+                  .toISOString()
+                  .slice(0, 10),
+        rentAmount: String(l.rentAmount),
+        renewMonths: '3',
+    };
+    renewLease.value = l;
+}
+
+async function doRenew() {
+    const l = renewLease.value;
+    if (!l) return;
+    renewSaving.value = true;
+    try {
+        const months = Number.parseInt(renewForm.value.renewMonths, 10);
+        await api(orgApi(`/leases/${l.id}`), {
+            method: 'PATCH',
+            body: JSON.stringify({
+                endDate: new Date(renewForm.value.endDate).toISOString(),
+                rentAmount: Number.parseFloat(renewForm.value.rentAmount),
+                ...(months > 0 ? { renewMonths: months } : {}),
+            }),
+        });
+        toast.success('Lease renewed');
+        renewLease.value = null;
+        await load();
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Renewal failed');
+    } finally {
+        renewSaving.value = false;
+    }
+}
+
 function defaultUtilityDueIso(lease: Lease, year: number, month: number) {
     const day = Math.min(Math.max(1, lease.dueDay), 28);
     const d = new Date(year, month - 1, day);
@@ -544,6 +585,13 @@ watch(page, () => void load());
                                             @click="openUtilities(l)"
                                         >
                                             Utilities
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="mr-3 text-sm font-medium text-indigo-600 hover:underline"
+                                            @click="openRenew(l)"
+                                        >
+                                            Renew
                                         </button>
                                         <button
                                             type="button"
@@ -1230,5 +1278,84 @@ watch(page, () => void load());
             @update:open="confirmUtilDelete = null"
             @confirm="doDeleteUtilBill"
         />
+
+        <Teleport to="body">
+            <div
+                v-if="renewLease"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                @click.self="renewLease = null"
+            >
+                <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Renew lease — {{ renewLease.renter.fullName }}
+                    </h2>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ renewLease.unit.label }} ·
+                        {{ renewLease.unit.property.name }}
+                    </p>
+                    <form class="mt-5 space-y-4" @submit.prevent="doRenew">
+                        <label class="block text-sm">
+                            <span class="font-medium text-slate-700"
+                                >New end date</span
+                            >
+                            <input
+                                v-model="renewForm.endDate"
+                                type="date"
+                                required
+                                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                            />
+                        </label>
+                        <label class="block text-sm">
+                            <span class="font-medium text-slate-700"
+                                >Rent amount</span
+                            >
+                            <input
+                                v-model="renewForm.rentAmount"
+                                type="number"
+                                min="0"
+                                step="any"
+                                required
+                                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                            />
+                        </label>
+                        <label class="block text-sm">
+                            <span class="font-medium text-slate-700"
+                                >Generate payment records</span
+                            >
+                            <select
+                                v-model="renewForm.renewMonths"
+                                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
+                            >
+                                <option value="0">None</option>
+                                <option value="1">1 month</option>
+                                <option value="3">3 months</option>
+                                <option value="6">6 months</option>
+                                <option value="12">12 months</option>
+                            </select>
+                            <span class="mt-1 block text-xs text-slate-400"
+                                >Creates PENDING payment records starting from
+                                the next unpaid month.</span
+                            >
+                        </label>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                class="rounded-xl px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                                @click="renewLease = null"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                                :disabled="renewSaving"
+                            >
+                                {{ renewSaving ? 'Saving…' : 'Confirm renewal' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>

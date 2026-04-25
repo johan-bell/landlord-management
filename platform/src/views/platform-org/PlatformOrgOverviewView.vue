@@ -49,6 +49,10 @@ type OrgAnalytics = {
     collectionRateLast30Days: number | null;
     overduePaymentCount: number;
     rentRollLast30Days: { totalDue: number; totalPaid: number };
+    paymentsThisMonth: number;
+    revenueThisMonth: number;
+    newRentersThisMonth: number;
+    openSupportTickets: number;
 };
 
 const route = useRoute();
@@ -475,6 +479,44 @@ watch(
                             />
                         </div>
                         <p class="mt-1 text-xs text-slate-500">collected</p>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="platformFeatures.analyticsCard && analytics"
+                class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+                <h2 class="text-sm font-semibold text-slate-900">This month</h2>
+                <p class="mt-1 text-xs text-slate-500">Activity since the 1st of the current calendar month.</p>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-500">Payments collected</p>
+                        <p class="mt-0.5 text-2xl font-bold tabular-nums text-slate-900">{{ analytics.paymentsThisMonth }}</p>
+                        <p class="mt-1 text-xs text-slate-500">transactions paid</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-500">Revenue this month</p>
+                        <p class="mt-0.5 text-lg font-bold tabular-nums text-slate-900 leading-snug">
+                            {{ formatMoney(analytics.revenueThisMonth, 'XAF') }}
+                        </p>
+                        <p class="mt-1 text-xs text-slate-500">total collected</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-500">New renters</p>
+                        <p
+                            class="mt-0.5 text-2xl font-bold tabular-nums"
+                            :class="analytics.newRentersThisMonth > 0 ? 'text-emerald-700' : 'text-slate-400'"
+                        >{{ analytics.newRentersThisMonth }}</p>
+                        <p class="mt-1 text-xs text-slate-500">added this month</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-500">Open tickets</p>
+                        <p
+                            class="mt-0.5 text-2xl font-bold tabular-nums"
+                            :class="analytics.openSupportTickets === 0 ? 'text-emerald-700' : analytics.openSupportTickets < 5 ? 'text-amber-700' : 'text-red-700'"
+                        >{{ analytics.openSupportTickets }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ analytics.openSupportTickets === 0 ? 'All resolved' : 'support requests open' }}</p>
                     </div>
                 </div>
             </div>

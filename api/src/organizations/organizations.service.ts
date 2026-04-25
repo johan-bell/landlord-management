@@ -202,6 +202,44 @@ export class OrganizationsService {
             arrears[key].totalAmount += amt;
         }
 
+        const monthStart = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+        );
+        const monthEnd = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+        );
+
+        const [paidThisMonthRows, newRentersThisMonth, openTickets] =
+            await Promise.all([
+                this.prisma.payment.findMany({
+                    where: {
+                        lease: {
+                            unit: { property: { organizationId: orgId } },
+                        },
+                        status: 'PAID',
+                        paidAt: { gte: monthStart, lt: monthEnd },
+                    },
+                    select: { amount: true, currency: true },
+                }),
+                this.prisma.renter.count({
+                    where: {
+                        organizationId: orgId,
+                        createdAt: { gte: monthStart, lt: monthEnd },
+                    },
+                }),
+                this.prisma.supportRequest.count({
+                    where: {
+                        organizationId: orgId,
+                        status: { in: ['OPEN', 'IN_PROGRESS'] },
+                    },
+                }),
+            ]);
+
+        let revenueThisMonth = 0;
+        for (const p of paidThisMonthRows) {
+            revenueThisMonth += Number(p.amount);
+        }
+
         return {
             organizationId: orgId,
             unitCount,
@@ -215,6 +253,10 @@ export class OrganizationsService {
             },
             arrearsAgingDays: arrears,
             overduePaymentCount: overdue.length,
+            paymentsThisMonth: paidThisMonthRows.length,
+            revenueThisMonth,
+            newRentersThisMonth,
+            openSupportTickets: openTickets,
         };
     }
 

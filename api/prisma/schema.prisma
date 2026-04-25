@@ -68,6 +68,19 @@ enum SupportRequestStatus {
   CLOSED
 }
 
+enum SupportCategory {
+  MAINTENANCE
+  BILLING
+  GENERAL
+  OTHER
+}
+
+enum SupportUrgency {
+  LOW
+  NORMAL
+  HIGH
+}
+
 enum ProofVerificationStatus {
   NONE
   PENDING_VERIFICATION
@@ -239,6 +252,8 @@ model SupportRequest {
   subject        String
   message        String               @db.Text
   status         SupportRequestStatus @default(OPEN)
+  category       SupportCategory      @default(GENERAL)
+  urgency        SupportUrgency       @default(NORMAL)
   fromTenant     Boolean              @default(false)
   submitterId    String
   organizationId String?

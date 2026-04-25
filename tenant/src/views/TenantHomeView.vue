@@ -120,6 +120,10 @@ const pwdSaving = ref(false);
 const supportTickets = ref<SupportTicket[]>([]);
 const supportSubject = ref('');
 const supportMessage = ref('');
+const supportCategory = ref<'MAINTENANCE' | 'BILLING' | 'GENERAL' | 'OTHER'>(
+    'GENERAL',
+);
+const supportUrgency = ref<'LOW' | 'NORMAL' | 'HIGH'>('NORMAL');
 const supportBusy = ref(false);
 const supportErr = ref<string | null>(null);
 const supportOk = ref(false);
@@ -343,6 +347,36 @@ function nextDueTitle(item: NextDueItem) {
     return item.utilityLabel;
 }
 
+const activeLeases = computed(() => {
+    const now = new Date();
+    return leases.value.filter((l) => !l.endDate || new Date(l.endDate) >= now);
+});
+
+const lastPaidPayment = computed(() => {
+    let best: {
+        paidAt: string;
+        amount: string;
+        currency: string;
+        place: string;
+    } | null = null;
+    for (const lease of leases.value) {
+        const place = `${lease.unit.property.name} · ${lease.unit.label}`;
+        for (const p of lease.payments) {
+            if (p.status === 'PAID' && p.paidAt) {
+                if (!best || p.paidAt > best.paidAt) {
+                    best = {
+                        paidAt: p.paidAt,
+                        amount: p.amount,
+                        currency: lease.currency,
+                        place,
+                    };
+                }
+            }
+        }
+    }
+    return best;
+});
+
 function rentPaymentsNewestFirst(lease: LeaseRow) {
     return [...lease.payments].sort(
         (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
@@ -446,6 +480,56 @@ async function onUtilityProofPick(
     }
 }
 
+function printReceipt(
+    payment: LeaseRow['payments'][0],
+    lease: LeaseRow,
+    orgName: string,
+    renterName: string,
+) {
+    const w = window.open('', '_blank', 'width=680,height=820');
+    if (!w) return;
+    const amount = money(payment.amount, lease.currency);
+    const paidAt = payment.paidAt ? formatDate(payment.paidAt) : '—';
+    const dueDate = formatDate(payment.dueDate);
+    const place = `${lease.unit.property.name} — ${lease.unit.label}`;
+    w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Receipt</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;color:#111;padding:48px;max-width:600px;margin:0 auto}
+    h1{font-size:22px;font-weight:700;margin-bottom:4px}
+    .sub{font-size:13px;color:#555;margin-bottom:32px}
+    table{width:100%;border-collapse:collapse;margin-bottom:32px}
+    td{padding:10px 0;border-bottom:1px solid #eee;font-size:14px}
+    td:last-child{text-align:right;font-weight:500}
+    .amount{font-size:28px;font-weight:700;color:#059669;margin-bottom:4px}
+    .label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:24px}
+    .footer{font-size:11px;color:#aaa;margin-top:32px}
+    @media print{.no-print{display:none}}
+  </style>
+</head>
+<body>
+  <h1>${orgName}</h1>
+  <p class="sub">Payment Receipt</p>
+  <p class="amount">${amount}</p>
+  <p class="label">Rent payment</p>
+  <table>
+    <tr><td>Renter</td><td>${renterName}</td></tr>
+    <tr><td>Property / Unit</td><td>${place}</td></tr>
+    <tr><td>Due date</td><td>${dueDate}</td></tr>
+    <tr><td>Paid on</td><td>${paidAt}</td></tr>
+    <tr><td>Status</td><td>Paid</td></tr>
+  </table>
+  <button class="no-print" onclick="window.print()" style="padding:10px 24px;background:#111;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Print / Save PDF</button>
+  <p class="footer">Generated ${new Date().toLocaleDateString()}</p>
+</body>
+</html>`);
+    w.document.close();
+}
+
 function logout() {
     auth.clearSession();
     void router.push('/login');
@@ -537,11 +621,15 @@ async function submitSupport(orgId: string) {
             body: JSON.stringify({
                 subject: supportSubject.value.trim(),
                 message: supportMessage.value.trim(),
+                category: supportCategory.value,
+                urgency: supportUrgency.value,
                 organizationId: orgId,
             }),
         });
         supportSubject.value = '';
         supportMessage.value = '';
+        supportCategory.value = 'GENERAL';
+        supportUrgency.value = 'NORMAL';
         supportOk.value = true;
         window.setTimeout(() => {
             supportOk.value = false;
@@ -679,7 +767,7 @@ onUnmounted(() => {
                                 class="mt-3 text-xs leading-relaxed text-amber-800/90"
                             >
                                 You can leave this page open or sign out and
-                                return later — we’ll show your lease here once
+                                return later — we'll show your lease here once
                                 your landlord assigns your unit.
                             </p>
                         </div>
@@ -803,7 +891,10 @@ onUnmounted(() => {
                 </section>
 
                 <!-- Tab navigation -->
-                <nav class="mt-6 flex gap-1 rounded-2xl border border-slate-200/80 bg-slate-100/60 p-1" aria-label="Sections">
+                <nav
+                    class="mt-6 flex gap-1 rounded-2xl border border-slate-200/80 bg-slate-100/60 p-1"
+                    aria-label="Sections"
+                >
                     <button
                         v-for="tab in [
                             { id: 'overview', label: 'Overview' },
@@ -813,126 +904,262 @@ onUnmounted(() => {
                         :key="tab.id"
                         type="button"
                         class="flex-1 rounded-xl px-3 py-2 text-sm font-medium transition"
-                        :class="activeTab === tab.id
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-900'"
-                        @click="activeTab = tab.id as typeof activeTab.value"
+                        :class="
+                            activeTab === tab.id
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                        "
+                        @click="activeTab = tab.id as typeof activeTab"
                     >
                         {{ tab.label }}
                         <span
-                            v-if="tab.id === 'support' && supportTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length > 0"
+                            v-if="
+                                tab.id === 'support' &&
+                                supportTickets.filter(
+                                    (t) =>
+                                        t.status === 'OPEN' ||
+                                        t.status === 'IN_PROGRESS',
+                                ).length > 0
+                            "
                             class="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-bold text-white"
-                        >{{ supportTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length }}</span>
+                            >{{
+                                supportTickets.filter(
+                                    (t) =>
+                                        t.status === 'OPEN' ||
+                                        t.status === 'IN_PROGRESS',
+                                ).length
+                            }}</span
+                        >
                     </button>
                 </nav>
 
-                <section
-                    v-if="(whatsDueNext.next || pendingProofCount > 0) && activeTab === 'overview'"
-                    class="tenant-card mt-6 border border-emerald-200/90 bg-linear-to-br from-emerald-50/95 to-teal-50/50 p-5 sm:p-6"
-                    aria-live="polite"
-                >
-                    <div
-                        class="flex flex-wrap items-start justify-between gap-3"
+                <template v-if="activeTab === 'overview'">
+                    <!-- What's due next -->
+                    <section
+                        class="tenant-card mt-6 p-5 sm:p-6"
+                        :class="
+                            whatsDueNext.next
+                                ? 'border border-emerald-200/90 bg-linear-to-br from-emerald-50/95 to-teal-50/50'
+                                : 'border border-slate-200 bg-white'
+                        "
+                        aria-live="polite"
                     >
-                        <div>
-                            <p
-                                class="text-xs font-semibold uppercase tracking-widest text-emerald-700"
-                            >
-                                What’s due next
-                            </p>
-                            <template v-if="whatsDueNext.next">
+                        <div
+                            class="flex flex-wrap items-start justify-between gap-3"
+                        >
+                            <div>
                                 <p
-                                    class="mt-2 text-lg font-semibold tracking-tight text-slate-900"
+                                    class="text-xs font-semibold uppercase tracking-widest"
+                                    :class="
+                                        whatsDueNext.next
+                                            ? 'text-emerald-700'
+                                            : 'text-slate-500'
+                                    "
                                 >
-                                    {{ nextDueTitle(whatsDueNext.next) }}
-                                    <span class="font-normal text-slate-600">
-                                        ·
+                                    What's due next
+                                </p>
+                                <template v-if="whatsDueNext.next">
+                                    <p
+                                        class="mt-2 text-lg font-semibold tracking-tight text-slate-900"
+                                    >
+                                        {{ nextDueTitle(whatsDueNext.next) }}
+                                        <span
+                                            class="font-normal text-slate-600"
+                                        >
+                                            ·
+                                            {{
+                                                money(
+                                                    whatsDueNext.next.amount,
+                                                    whatsDueNext.next.currency,
+                                                )
+                                            }}
+                                        </span>
+                                    </p>
+                                    <p class="mt-1 text-sm text-slate-600">
+                                        {{ whatsDueNext.next.placeLabel }}
+                                    </p>
+                                    <p class="mt-0.5 text-sm text-slate-500">
+                                        Due
                                         {{
-                                            money(
-                                                whatsDueNext.next.amount,
-                                                whatsDueNext.next.currency,
+                                            formatDate(
+                                                whatsDueNext.next.dueDate,
                                             )
                                         }}
-                                    </span>
-                                </p>
-                                <p class="mt-1 text-sm text-slate-600">
-                                    {{ whatsDueNext.next.placeLabel }}
-                                </p>
-                                <p class="mt-0.5 text-sm text-slate-500">
-                                    Due
-                                    {{ formatDate(whatsDueNext.next.dueDate) }}
-                                    <span
-                                        v-if="whatsDueNext.upcomingCount > 1"
-                                        class="text-slate-400"
+                                        <span
+                                            v-if="
+                                                whatsDueNext.upcomingCount > 1
+                                            "
+                                            class="text-slate-400"
+                                        >
+                                            ·
+                                            {{
+                                                whatsDueNext.upcomingCount - 1
+                                            }}
+                                            more in queue
+                                        </span>
+                                    </p>
+                                    <p
+                                        v-if="pendingProofCount"
+                                        class="mt-2 text-xs text-emerald-900/85"
                                     >
-                                        · {{ whatsDueNext.upcomingCount - 1 }}
-                                        more in queue
-                                    </span>
-                                </p>
-                            </template>
-                            <p
+                                        {{ pendingProofCount }} receipt(s) still
+                                        awaiting verification.
+                                    </p>
+                                </template>
+                                <template v-else>
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <span
+                                            class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-sm"
+                                            >✓</span
+                                        >
+                                        <p
+                                            class="text-sm font-medium text-slate-800"
+                                        >
+                                            You're all caught up!
+                                        </p>
+                                    </div>
+                                    <p class="mt-1 text-sm text-slate-500">
+                                        No open charges at the moment.
+                                    </p>
+                                    <p
+                                        v-if="pendingProofCount"
+                                        class="mt-2 text-xs text-amber-800"
+                                    >
+                                        {{ pendingProofCount }} receipt(s) are
+                                        with your landlord for review.
+                                    </p>
+                                    <p
+                                        v-if="lastPaidPayment"
+                                        class="mt-2 text-xs text-slate-400"
+                                    >
+                                        Last payment:
+                                        {{
+                                            money(
+                                                lastPaidPayment.amount,
+                                                lastPaidPayment.currency,
+                                            )
+                                        }}
+                                        on
+                                        {{
+                                            formatDate(lastPaidPayment.paidAt)
+                                        }}
+                                        · {{ lastPaidPayment.place }}
+                                    </p>
+                                </template>
+                            </div>
+                            <button
+                                v-if="whatsDueNext.next"
+                                type="button"
+                                class="inline-flex shrink-0 items-center justify-center rounded-xl border border-emerald-300/80 bg-white/90 px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+                                @click="activeTab = 'leases'"
+                            >
+                                View leases
+                            </button>
+                            <button
                                 v-else
-                                class="mt-2 text-sm font-medium text-emerald-900"
+                                type="button"
+                                class="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                                @click="activeTab = 'leases'"
                             >
-                                No open charges right now
-                                <span
-                                    v-if="pendingProofCount"
-                                    class="block pt-1 font-normal text-emerald-800/95"
-                                >
-                                    {{ pendingProofCount }} receipt(s) are with
-                                    your landlord for review.
-                                </span>
-                            </p>
-                            <p
-                                v-if="whatsDueNext.next && pendingProofCount"
-                                class="mt-2 text-xs text-emerald-900/85"
-                            >
-                                {{ pendingProofCount }} receipt(s) still
-                                awaiting verification.
-                            </p>
+                                View leases
+                            </button>
                         </div>
-                        <button
-                            v-if="whatsDueNext.next"
-                            type="button"
-                            class="inline-flex shrink-0 items-center justify-center rounded-xl border border-emerald-300/80 bg-white/90 px-4 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
-                            @click="activeTab = 'leases'"
+                        <ul
+                            v-if="whatsDueNext.timeline.length > 1"
+                            class="mt-5 space-y-4 border-l-2 border-emerald-200/90 pl-5"
+                            aria-label="Upcoming charges timeline"
                         >
-                            View leases
-                        </button>
-                    </div>
-                    <ul
-                        v-if="whatsDueNext.timeline.length > 1"
-                        class="mt-5 space-y-4 border-l-2 border-emerald-200/90 pl-5"
-                        aria-label="Upcoming charges timeline"
-                    >
-                        <li
-                            v-for="(item, idx) in whatsDueNext.timeline"
-                            :key="`${item.kind}-${item.dueDate}-${idx}`"
-                            class="relative"
-                        >
-                            <span
-                                class="absolute -left-[1.15rem] top-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"
-                                aria-hidden="true"
-                            />
-                            <p class="text-sm font-semibold text-slate-900">
-                                {{ nextDueTitle(item) }}
-                                <span class="font-normal text-slate-600">
-                                    ·
-                                    {{ money(item.amount, item.currency) }}
-                                </span>
+                            <li
+                                v-for="(item, idx) in whatsDueNext.timeline"
+                                :key="`${item.kind}-${item.dueDate}-${idx}`"
+                                class="relative"
+                            >
                                 <span
-                                    v-if="idx === 0"
-                                    class="ml-2 rounded-md bg-emerald-600/10 px-1.5 py-0.5 text-xs font-medium text-emerald-800"
-                                    >Next</span
+                                    class="absolute -left-[1.15rem] top-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"
+                                    aria-hidden="true"
+                                />
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ nextDueTitle(item) }}
+                                    <span class="font-normal text-slate-600"
+                                        >·
+                                        {{
+                                            money(item.amount, item.currency)
+                                        }}</span
+                                    >
+                                    <span
+                                        v-if="idx === 0"
+                                        class="ml-2 rounded-md bg-emerald-600/10 px-1.5 py-0.5 text-xs font-medium text-emerald-800"
+                                        >Next</span
+                                    >
+                                </p>
+                                <p class="mt-0.5 text-xs text-slate-500">
+                                    Due {{ formatDate(item.dueDate) }} ·
+                                    {{ item.placeLabel }}
+                                </p>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- Active leases summary -->
+                    <section v-if="activeLeases.length" class="mt-4 space-y-3">
+                        <h3
+                            class="text-xs font-semibold uppercase tracking-widest text-slate-500"
+                        >
+                            Active leases
+                        </h3>
+                        <div
+                            v-for="lease in activeLeases"
+                            :key="lease.id"
+                            class="tenant-card flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white p-4"
+                        >
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ lease.unit.property.name }}
+                                    <span class="font-normal text-slate-500"
+                                        >· {{ lease.unit.label }}</span
+                                    >
+                                </p>
+                                <p class="mt-0.5 text-xs text-slate-500">
+                                    {{
+                                        money(lease.rentAmount, lease.currency)
+                                    }}
+                                    / month · due day {{ lease.dueDay }}
+                                    <template v-if="lease.endDate">
+                                        · ends {{ formatDate(lease.endDate) }}
+                                    </template>
+                                    <template v-else> · open-ended </template>
+                                </p>
+                                <p
+                                    v-if="lease.unit.property.address"
+                                    class="mt-0.5 text-xs text-slate-400"
                                 >
-                            </p>
-                            <p class="mt-0.5 text-xs text-slate-500">
-                                Due {{ formatDate(item.dueDate) }} ·
-                                {{ item.placeLabel }}
-                            </p>
-                        </li>
-                    </ul>
-                </section>
+                                    {{ lease.unit.property.address }}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="text-xs font-semibold text-teal-700 hover:underline"
+                                @click="activeTab = 'leases'"
+                            >
+                                Details →
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- No leases at all -->
+                    <div
+                        v-else-if="!loading && leases.length === 0"
+                        class="mt-6 rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center"
+                    >
+                        <p class="text-sm font-medium text-slate-700">
+                            No leases on file yet
+                        </p>
+                        <p class="mt-1 text-xs text-slate-400">
+                            Your landlord will link a unit to your account once
+                            approved.
+                        </p>
+                    </div>
+                </template>
 
                 <section v-show="activeTab === 'leases'" class="mt-6">
                     <h2
@@ -1395,6 +1622,21 @@ onUnmounted(() => {
                                                     {{ rentProofLabel(p) }}
                                                 </span>
                                             </div>
+                                            <button
+                                                v-if="p.status === 'PAID'"
+                                                type="button"
+                                                class="tenant-action-link self-start text-xs"
+                                                @click="
+                                                    printReceipt(
+                                                        p,
+                                                        lease,
+                                                        me.organization.name,
+                                                        me.renter.fullName,
+                                                    )
+                                                "
+                                            >
+                                                Print receipt
+                                            </button>
                                             <p
                                                 v-if="
                                                     p.proofVerification ===
@@ -1840,7 +2082,7 @@ onUnmounted(() => {
                     class="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900"
                     role="status"
                 >
-                    Thanks — your request was sent. We’ll get back to you as
+                    Thanks — your request was sent. We'll get back to you as
                     soon as we can.
                 </div>
 
@@ -1965,6 +2207,31 @@ onUnmounted(() => {
                 email on your account when available.
             </p>
             <form class="space-y-3" @submit.prevent="onSubmitSupport">
+                <div class="flex gap-3">
+                    <label class="block flex-1 text-sm">
+                        <span class="text-slate-700">Category</span>
+                        <select
+                            v-model="supportCategory"
+                            class="tenant-input mt-1.5"
+                        >
+                            <option value="MAINTENANCE">Maintenance</option>
+                            <option value="BILLING">Billing</option>
+                            <option value="GENERAL">General</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </label>
+                    <label class="block flex-1 text-sm">
+                        <span class="text-slate-700">Urgency</span>
+                        <select
+                            v-model="supportUrgency"
+                            class="tenant-input mt-1.5"
+                        >
+                            <option value="LOW">Low</option>
+                            <option value="NORMAL">Normal</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </label>
+                </div>
                 <label class="block text-sm">
                     <span class="text-slate-700">Subject</span>
                     <input

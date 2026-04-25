@@ -9,10 +9,15 @@ import {
     parsePagination,
     toPaginated,
 } from '../common/dto/pagination-query.dto';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { RentersService } from '../renters/renters.service';
-import { createPrepaidRentPayments } from '../common/rent-prepaid-payments';
+import {
+    createPrepaidRentPayments,
+    rentDueDateForMonthIndex,
+    firstRentDueOnOrAfter,
+} from '../common/rent-prepaid-payments';
 import { CreateLeaseDto } from './dto/create-lease.dto';
 import { UpdateLeaseDto } from './dto/update-lease.dto';
 
@@ -22,6 +27,7 @@ export class LeasesService {
         private readonly prisma: PrismaService,
         private readonly organizationsService: OrganizationsService,
         private readonly rentersService: RentersService,
+        private readonly email: EmailService,
     ) {}
 
     private async getUnitInOrg(orgId: string, unitId: string) {
@@ -230,6 +236,36 @@ export class LeasesService {
                     data: { status: 'VACANT' },
                 });
             }
+
+            if (dto.renewMonths && dto.renewMonths > 0) {
+                const latest = await tx.payment.findFirst({
+                    where: { leaseId, status: { notIn: ['CANCELLED'] } },
+                    orderBy: { dueDate: 'desc' },
+                });
+                const anchor = latest?.dueDate ?? updated.startDate;
+                const anchorNext = new Date(anchor);
+                anchorNext.setMonth(anchorNext.getMonth() + 1);
+                anchorNext.setDate(1);
+                const first = firstRentDueOnOrAfter(anchorNext, updated.dueDay);
+                for (let i = 0; i < dto.renewMonths; i++) {
+                    const dueDate = rentDueDateForMonthIndex(
+                        first,
+                        updated.dueDay,
+                        i,
+                    );
+                    await tx.payment.create({
+                        data: {
+                            leaseId,
+                            amount: updated.rentAmount,
+                            currency: updated.currency,
+                            dueDate,
+                            status: 'PENDING',
+                            method: 'OTHER',
+                        },
+                    });
+                }
+            }
+
             return updated;
         });
     }
@@ -244,5 +280,48 @@ export class LeasesService {
             });
             return { id: leaseId, deleted: true };
         });
+    }
+
+    async sendPaymentReminder(
+        orgId: string,
+        leaseId: string,
+        paymentId: string,
+    ) {
+        const lease = await this.prisma.lease.findFirst({
+            where: {
+                id: leaseId,
+                unit: { property: { organizationId: orgId } },
+            },
+            include: {
+                renter: true,
+                unit: {
+                    include: {
+                        property: { include: { organization: true } },
+                    },
+                },
+                payments: { where: { id: paymentId } },
+            },
+        });
+        if (!lease) throw new NotFoundException('Lease not found');
+        const payment = lease.payments[0];
+        if (!payment) throw new NotFoundException('Payment not found');
+        if (payment.status === 'PAID' || payment.status === 'CANCELLED') {
+            throw new BadRequestException(
+                'Cannot send reminder for a paid or cancelled payment',
+            );
+        }
+        const dueLabel = new Date(payment.dueDate).toLocaleDateString('en', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+        const amountLabel = `${Number(payment.amount).toLocaleString()} ${payment.currency}`;
+        await this.email.sendRentDueReminder({
+            to: lease.renter.email,
+            organizationName: lease.unit.property.organization.name,
+            dueDateLabel: dueLabel,
+            amountLabel,
+        });
+        return { ok: true };
     }
 }

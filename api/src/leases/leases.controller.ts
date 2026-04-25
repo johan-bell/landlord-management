@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    HttpCode,
     Param,
     Patch,
     Post,
@@ -48,5 +49,19 @@ export class LeasesController {
     @Delete(':leaseId')
     remove(@Param('orgId') orgId: string, @Param('leaseId') leaseId: string) {
         return this.leasesService.remove(orgId, leaseId);
+    }
+
+    @Post(':leaseId/payments/:paymentId/remind')
+    @HttpCode(200)
+    remind(
+        @Param('orgId') orgId: string,
+        @Param('leaseId') leaseId: string,
+        @Param('paymentId') paymentId: string,
+    ) {
+        return this.leasesService.sendPaymentReminder(
+            orgId,
+            leaseId,
+            paymentId,
+        );
     }
 }

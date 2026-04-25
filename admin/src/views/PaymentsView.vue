@@ -192,6 +192,17 @@ async function markPaid(row: Row) {
     }
 }
 
+async function sendReminder(row: Row) {
+    try {
+        await api(orgApi(`/leases/${row.leaseId}/payments/${row.id}/remind`), {
+            method: 'POST',
+        });
+        toast.success(`Reminder sent to ${row.renterName}`);
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Could not send reminder');
+    }
+}
+
 async function bulkMarkPaid() {
     const ids = [...selectedIds.value];
     if (!ids.length || bulkBusy.value) return;
@@ -493,32 +504,42 @@ watch(renterFilter, () => scheduleSearchReload());
                                         {{ formatDateTime(row.paidAt) }}
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <button
-                                            v-if="
-                                                canMarkPaid &&
-                                                row.status !== 'PAID' &&
-                                                row.proofVerification !==
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button
+                                                v-if="row.status !== 'PAID' && row.status !== 'CANCELLED'"
+                                                type="button"
+                                                class="text-sm font-medium text-indigo-600 hover:underline"
+                                                @click="sendReminder(row)"
+                                            >
+                                                Remind
+                                            </button>
+                                            <button
+                                                v-if="
+                                                    canMarkPaid &&
+                                                    row.status !== 'PAID' &&
+                                                    row.proofVerification !==
+                                                        'PENDING_VERIFICATION'
+                                                "
+                                                type="button"
+                                                class="text-sm font-semibold text-emerald-600 hover:underline"
+                                                @click="markPaid(row)"
+                                            >
+                                                Mark paid
+                                            </button>
+                                            <span
+                                                v-else-if="
+                                                    row.proofVerification ===
                                                     'PENDING_VERIFICATION'
-                                            "
-                                            type="button"
-                                            class="text-sm font-semibold text-emerald-600 hover:underline"
-                                            @click="markPaid(row)"
-                                        >
-                                            Mark paid
-                                        </button>
-                                        <span
-                                            v-else-if="
-                                                row.proofVerification ===
-                                                'PENDING_VERIFICATION'
-                                            "
-                                            class="text-xs text-amber-800"
-                                            >Use Receipts</span
-                                        >
-                                        <span
-                                            v-else
-                                            class="text-xs text-slate-400"
-                                            >—</span
-                                        >
+                                                "
+                                                class="text-xs text-amber-800"
+                                                >Use Receipts</span
+                                            >
+                                            <span
+                                                v-else-if="row.status === 'PAID'"
+                                                class="text-xs text-slate-400"
+                                                >—</span
+                                            >
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
