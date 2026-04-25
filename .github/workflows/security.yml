@@ -8,6 +8,8 @@ on:
     branches: [main, master]
 
 permissions:
+  # VICE reads workflow run metadata (API: GET /repos/.../actions/runs/...)
+  actions: read
   contents: write
   pull-requests: write
   security-events: write
