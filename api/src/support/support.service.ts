@@ -137,6 +137,38 @@ export class SupportService {
         if (!existing) {
             throw new NotFoundException('Support request not found');
         }
+        return this.applySupportRequestUpdate(
+            requestId,
+            handler.userId,
+            dto,
+        );
+    }
+
+    /**
+     * Owner or manager (or platform via org route) may update tickets for their org.
+     * Staff without those roles use read-only list/detail.
+     */
+    async updateByOrgManager(
+        orgId: string,
+        requestId: string,
+        actor: RequestUser,
+        dto: UpdateSupportRequestDto,
+    ) {
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, actor);
+        const existing = await this.prisma.supportRequest.findFirst({
+            where: { id: requestId, organizationId: orgId },
+        });
+        if (!existing) {
+            throw new NotFoundException('Support request not found');
+        }
+        return this.applySupportRequestUpdate(requestId, actor.userId, dto);
+    }
+
+    private async applySupportRequestUpdate(
+        requestId: string,
+        handlerUserId: string,
+        dto: UpdateSupportRequestDto,
+    ) {
         let closedAt: Date | null | undefined;
         if (dto.status !== undefined) {
             if (
@@ -155,7 +187,7 @@ export class SupportService {
                 ...(dto.resolutionNote !== undefined
                     ? { resolutionNote: dto.resolutionNote }
                     : {}),
-                handledById: handler.userId,
+                handledById: handlerUserId,
                 ...(closedAt !== undefined ? { closedAt } : {}),
             },
             include: this.listInclude(),

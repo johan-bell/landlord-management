@@ -4,6 +4,7 @@ import {
     ForbiddenException,
     Get,
     Param,
+    Patch,
     Post,
     UseGuards,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrgMembershipGuard } from '../auth/guards/org-membership.guard';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { CreateSupportRequestDto } from './dto/create-support-request.dto';
+import { UpdateSupportRequestDto } from './dto/update-support-request.dto';
 import { SupportService } from './support.service';
 
 @Controller('organizations/:orgId/support-requests')
@@ -37,5 +39,18 @@ export class SupportOrgController {
             throw new ForbiddenException();
         }
         return this.support.createForOrgMember(orgId, user, dto);
+    }
+
+    @Patch(':requestId')
+    update(
+        @Param('orgId') orgId: string,
+        @Param('requestId') requestId: string,
+        @CurrentUser() user: RequestUser,
+        @Body() dto: UpdateSupportRequestDto,
+    ) {
+        if (user.typ === 'tenant') {
+            throw new ForbiddenException();
+        }
+        return this.support.updateByOrgManager(orgId, requestId, user, dto);
     }
 }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { api } from '../lib/api';
 import { useOrgContext } from '../composables/useOrgContext';
+import { useOrgStore } from '../stores/org';
 import { useToastStore } from '../stores/toast';
 import SelectOrgPrompt from '../components/SelectOrgPrompt.vue';
 
@@ -23,7 +25,15 @@ type SupportRow = {
 };
 
 const { hasOrg, orgApi, selectedOrgId } = useOrgContext();
+const orgStore = useOrgStore();
+const { selectedOrgMyRole } = storeToRefs(orgStore);
 const toast = useToastStore();
+
+const canManageSupport = computed(
+    () =>
+        selectedOrgMyRole.value === 'OWNER' ||
+        selectedOrgMyRole.value === 'MANAGER',
+);
 
 const loading = ref(true);
 const creating = ref(false);
@@ -40,6 +50,9 @@ const newSubject = ref('');
 const newMessage = ref('');
 
 const detail = ref<SupportRow | null>(null);
+const editStatus = ref('');
+const editNote = ref('');
+const savingId = ref<string | null>(null);
 
 function filteredRows() {
     const q = filterSearch.value.trim().toLowerCase();
@@ -142,10 +155,44 @@ async function submitCreate() {
 
 function openDetail(row: SupportRow) {
     detail.value = row;
+    editStatus.value = row.status;
+    editNote.value = row.resolutionNote ?? '';
 }
 
 function closeDetail() {
     detail.value = null;
+    savingId.value = null;
+}
+
+async function saveSupportDetail() {
+    if (!detail.value || !canManageSupport.value) return;
+    savingId.value = detail.value.id;
+    try {
+        await api<SupportRow>(
+            orgApi(`/support-requests/${detail.value.id}`),
+            {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status: editStatus.value || undefined,
+                    resolutionNote: editNote.value,
+                }),
+            },
+        );
+        toast.success('Ticket updated');
+        await load();
+        const updated = rows.value.find((r) => r.id === detail.value!.id);
+        detail.value = updated ?? null;
+        if (detail.value) {
+            editStatus.value = detail.value.status;
+            editNote.value = detail.value.resolutionNote ?? '';
+        } else {
+            closeDetail();
+        }
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Update failed');
+    } finally {
+        savingId.value = null;
+    }
 }
 
 function formatDate(iso: string | null) {
@@ -175,9 +222,10 @@ watch([hasOrg, selectedOrgId], () => void load());
                     </h2>
                     <p class="mt-1 max-w-prose text-sm text-slate-600">
                         Tickets from renters in your organization and messages
-                        your team sends to the platform. Status and resolution
-                        are updated by platform operators; renters see the
-                        resolution note when a ticket is closed or resolved.
+                        your team sends to the platform. The owner or a manager
+                        can set status and resolution here; the platform team
+                        can also. Renters see the resolution note when a ticket
+                        is closed or resolved.
                     </p>
                 </div>
                 <button
@@ -316,7 +364,7 @@ watch([hasOrg, selectedOrgId], () => void load());
                                         class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                                         @click="openDetail(row)"
                                     >
-                                        View
+                                        {{ canManageSupport ? 'Manage' : 'View' }}
                                     </button>
                                 </td>
                             </tr>
@@ -524,6 +572,63 @@ watch([hasOrg, selectedOrgId], () => void load());
                 >
                     No resolution note was added by the platform team.
                 </p>
+
+                <p
+                    v-if="!canManageSupport"
+                    class="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600"
+                >
+                    Only an <strong>owner</strong> or <strong>manager</strong>
+                    can change status or the resolution note. Ask the portfolio
+                    lead if you need an update.
+                </p>
+                <div
+                    v-else
+                    class="mt-6 space-y-3 border-t border-slate-200 pt-4"
+                >
+                    <h3
+                        class="text-sm font-semibold text-slate-900"
+                    >
+                        Update ticket
+                    </h3>
+                    <label class="block text-sm">
+                        <span class="text-slate-700">Status</span>
+                        <select
+                            v-model="editStatus"
+                            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        >
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="CLOSED">Closed</option>
+                        </select>
+                    </label>
+                    <label class="block text-sm">
+                        <span class="text-slate-700">Resolution note</span>
+                        <textarea
+                            v-model="editNote"
+                            rows="4"
+                            class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                            placeholder="Visible to the renter when status is resolved or closed…"
+                        />
+                    </label>
+                    <div class="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                            @click="closeDetail"
+                        >
+                            Close
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            :disabled="savingId === detail.id"
+                            @click="saveSupportDetail"
+                        >
+                            {{ savingId === detail.id ? 'Saving…' : 'Save' }}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
