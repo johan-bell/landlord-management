@@ -36,6 +36,21 @@ const historyLeases = ref<Lease[]>([]);
 
 const confirmRemoveRenter = ref<Renter | null>(null);
 
+type RenterDoc = {
+    id: string;
+    label: string;
+    mimeType: string;
+    createdAt: string;
+};
+
+const docs = ref<RenterDoc[]>([]);
+const docsLoading = ref(false);
+const docsErr = ref<string | null>(null);
+const docUploadBusy = ref(false);
+const docDeleteBusy = ref<string | null>(null);
+const docLabelInput = ref('');
+const showDocUpload = ref(false);
+
 const PAGE_SIZE = 20;
 
 const renterReliability = computed(() => {
@@ -212,9 +227,89 @@ function reliabilityColors(grade: string) {
     };
 }
 
+async function loadDocs() {
+    const r = historyRenter.value;
+    if (!r) return;
+    docsLoading.value = true;
+    docsErr.value = null;
+    try {
+        docs.value = await api<RenterDoc[]>(orgApi(`/renters/${r.id}/documents`));
+    } catch (e) {
+        docsErr.value = e instanceof Error ? e.message : 'Could not load documents';
+    } finally {
+        docsLoading.value = false;
+    }
+}
+
+async function downloadDoc(docId: string) {
+    const r = historyRenter.value;
+    if (!r) return;
+    try {
+        const { viewUrl } = await api<{ viewUrl: string }>(
+            orgApi(`/renters/${r.id}/documents/${docId}/download`),
+        );
+        window.open(viewUrl, '_blank', 'noopener');
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Download failed');
+    }
+}
+
+async function deleteDoc(docId: string) {
+    const r = historyRenter.value;
+    if (!r) return;
+    docDeleteBusy.value = docId;
+    try {
+        await api(orgApi(`/renters/${r.id}/documents/${docId}`), { method: 'DELETE' });
+        await loadDocs();
+    } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+        docDeleteBusy.value = null;
+    }
+}
+
+async function onDocFilePick(ev: Event) {
+    const r = historyRenter.value;
+    if (!r) return;
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const label = docLabelInput.value.trim() || file.name;
+    docUploadBusy.value = true;
+    docsErr.value = null;
+    try {
+        const contentType = file.type || 'application/octet-stream';
+        const { uploadUrl, objectKey } = await api<{ uploadUrl: string; objectKey: string }>(
+            orgApi(`/renters/${r.id}/documents/upload-intent`),
+            {
+                method: 'POST',
+                body: JSON.stringify({ label, contentType }),
+            },
+        );
+        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } });
+        await api(orgApi(`/renters/${r.id}/documents`), {
+            method: 'POST',
+            body: JSON.stringify({ label, objectKey, contentType }),
+        });
+        docLabelInput.value = '';
+        showDocUpload.value = false;
+        await loadDocs();
+        toast.success('Document uploaded');
+    } catch (e) {
+        docsErr.value = e instanceof Error ? e.message : 'Upload failed';
+    } finally {
+        docUploadBusy.value = false;
+    }
+}
+
 onMounted(() => void load());
 watch(hasOrg, () => void load());
 watch(page, () => void load());
+watch(historyRenter, (r) => {
+    if (r) void loadDocs();
+    else { docs.value = []; showDocUpload.value = false; docLabelInput.value = ''; }
+});
 </script>
 
 <template>
@@ -748,6 +843,76 @@ watch(page, () => void load());
                                     </template>
                                 </section>
                             </div>
+                        </div>
+
+                        <div class="border-t border-slate-100 px-5 py-4 sm:px-6">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="text-sm font-semibold text-slate-900">Documents</h4>
+                                <button
+                                    type="button"
+                                    class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                    @click="showDocUpload = !showDocUpload"
+                                >
+                                    {{ showDocUpload ? 'Cancel' : '+ Upload' }}
+                                </button>
+                            </div>
+                            <p class="mt-0.5 text-xs text-slate-500">Lease copies, ID scans, signed agreements, etc.</p>
+
+                            <div v-if="showDocUpload" class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                                <label class="block">
+                                    <span class="text-xs font-medium text-slate-700">Label (optional)</span>
+                                    <input
+                                        v-model="docLabelInput"
+                                        type="text"
+                                        maxlength="200"
+                                        placeholder="e.g. Signed lease 2025"
+                                        class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs"
+                                    />
+                                </label>
+                                <label class="mt-2 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs text-slate-600 hover:border-slate-400">
+                                    {{ docUploadBusy ? 'Uploading…' : 'Choose file (PDF, JPG, PNG)' }}
+                                    <input
+                                        type="file"
+                                        accept="application/pdf,image/jpeg,image/png,image/webp"
+                                        class="sr-only"
+                                        :disabled="docUploadBusy"
+                                        @change="onDocFilePick"
+                                    />
+                                </label>
+                                <p v-if="docsErr" class="mt-1.5 text-xs text-red-600">{{ docsErr }}</p>
+                            </div>
+
+                            <div v-if="docsLoading" class="mt-3 text-xs text-slate-400">Loading…</div>
+                            <ul v-else-if="docs.length" class="mt-3 space-y-1.5">
+                                <li
+                                    v-for="doc in docs"
+                                    :key="doc.id"
+                                    class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
+                                >
+                                    <div class="min-w-0">
+                                        <p class="truncate font-medium text-slate-900">{{ doc.label }}</p>
+                                        <p class="text-slate-400">{{ doc.mimeType }} · {{ new Date(doc.createdAt).toLocaleDateString() }}</p>
+                                    </div>
+                                    <div class="flex shrink-0 gap-2">
+                                        <button
+                                            type="button"
+                                            class="font-semibold text-teal-700 hover:underline"
+                                            @click="downloadDoc(doc.id)"
+                                        >
+                                            Download
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="font-semibold text-red-600 hover:underline disabled:opacity-40"
+                                            :disabled="docDeleteBusy === doc.id"
+                                            @click="deleteDoc(doc.id)"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                            <p v-else class="mt-3 text-xs text-slate-400">No documents yet — use Upload to attach files.</p>
                         </div>
 
                         <div

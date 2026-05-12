@@ -11,6 +11,7 @@ import {
     StreamableFile,
     UseGuards,
 } from '@nestjs/common';
+import { IsIn } from 'class-validator';
 import {
     PaginationQueryDto,
     parsePagination,
@@ -124,6 +125,21 @@ export class OrganizationsController {
             dto,
             user.typ === 'staff' ? user.userId : undefined,
         );
+    }
+
+    @Post(':orgId/bulk-actions/send-reminders')
+    @UseGuards(JwtAuthGuard, OrgMembershipGuard)
+    async sendBulkReminders(
+        @Param('orgId') orgId: string,
+        @CurrentUser() user: RequestUser,
+        @Body() body: { type: 'PENDING' | 'LATE' },
+    ) {
+        if (user.typ !== 'staff' && user.typ !== 'platform') {
+            throw new ForbiddenException();
+        }
+        await this.orgTeam.assertTeamManagerOrPlatform(orgId, user);
+        const type = body.type === 'LATE' ? 'LATE' : 'PENDING';
+        return this.organizationsService.sendBulkReminders(orgId, type);
     }
 
     @Delete(':orgId')

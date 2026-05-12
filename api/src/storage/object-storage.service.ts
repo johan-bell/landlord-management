@@ -9,6 +9,8 @@ import { randomUUID } from 'crypto';
 import { Client as MinioClient } from 'minio';
 
 const RECEIPT_PREFIX = 'receipts';
+const DOCUMENT_PREFIX = 'documents';
+const SUPPORT_PHOTO_PREFIX = 'support-photos';
 
 function parseMinioEndpoint(raw: string): {
     endPoint: string;
@@ -134,6 +136,32 @@ export class ObjectStorageService implements OnModuleInit {
 
     keyBelongsToOrg(orgId: string, objectKey: string): boolean {
         return objectKey.startsWith(`org/${orgId}/${RECEIPT_PREFIX}/`);
+    }
+
+    buildDocumentObjectKey(orgId: string, renterId: string, contentType: string): string {
+        const ext = this.extFromMime(contentType);
+        return `org/${orgId}/${DOCUMENT_PREFIX}/${renterId}/${randomUUID()}${ext}`;
+    }
+
+    documentKeyBelongsToOrg(orgId: string, objectKey: string): boolean {
+        return objectKey.startsWith(`org/${orgId}/${DOCUMENT_PREFIX}/`);
+    }
+
+    buildSupportPhotoObjectKey(orgId: string, contentType: string): string {
+        const ext = this.extFromMime(contentType);
+        return `org/${orgId}/${SUPPORT_PHOTO_PREFIX}/${randomUUID()}${ext}`;
+    }
+
+    supportPhotoKeyBelongsToOrg(orgId: string, objectKey: string): boolean {
+        return objectKey.startsWith(`org/${orgId}/${SUPPORT_PHOTO_PREFIX}/`);
+    }
+
+    private extFromMime(contentType: string): string {
+        if (contentType === 'image/png') return '.png';
+        if (contentType === 'image/webp') return '.webp';
+        if (contentType === 'image/jpeg' || contentType === 'image/jpg') return '.jpg';
+        if (contentType === 'application/pdf') return '.pdf';
+        return '';
     }
 
     /**

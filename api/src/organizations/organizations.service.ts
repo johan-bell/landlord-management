@@ -7,6 +7,7 @@ import {
     tenantSignUpCodeFromOrgId,
 } from '../common/tenant-signup-code';
 import { stripPlatformInternalNotes } from '../common/strip-platform-internal-notes';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -23,6 +24,7 @@ export class OrganizationsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly audit: AuditService,
+        private readonly email: EmailService,
     ) {}
 
     async createForUser(userId: string, dto: CreateOrganizationDto) {
@@ -432,6 +434,64 @@ export class OrganizationsService {
             totalSteps: steps.length,
             completionPercent: Math.round((doneCount / steps.length) * 100),
         };
+    }
+
+    async sendBulkReminders(
+        orgId: string,
+        type: 'PENDING' | 'LATE',
+    ): Promise<{ sent: number }> {
+        await this.findOneOrThrow(orgId);
+        const org = await this.prisma.organization.findUnique({
+            where: { id: orgId },
+            select: { name: true },
+        });
+        const orgName = org!.name;
+
+        const now = new Date();
+        const startOfToday = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+        );
+
+        const where =
+            type === 'LATE'
+                ? {
+                      status: PaymentStatus.LATE,
+                      lease: { unit: { property: { organizationId: orgId } } },
+                  }
+                : {
+                      status: PaymentStatus.PENDING,
+                      dueDate: { lte: startOfToday },
+                      lease: { unit: { property: { organizationId: orgId } } },
+                  };
+
+        const payments = await this.prisma.payment.findMany({
+            where,
+            include: {
+                lease: {
+                    include: {
+                        renter: {
+                            include: { user: { select: { email: true } } },
+                        },
+                    },
+                },
+            },
+        });
+
+        let sent = 0;
+        for (const p of payments) {
+            const renter = p.lease.renter;
+            const to =
+                renter.user?.email?.trim() || renter.email?.trim() || undefined;
+            if (!to) continue;
+            void this.email.sendRentDueReminder({
+                to,
+                organizationName: orgName,
+                dueDateLabel: p.dueDate.toISOString().slice(0, 10),
+                amountLabel: `${p.amount.toString()} ${p.currency}`,
+            });
+            sent++;
+        }
+        return { sent };
     }
 
     async buildRentRollCsv(orgId: string): Promise<string> {

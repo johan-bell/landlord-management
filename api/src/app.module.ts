@@ -20,6 +20,7 @@ import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProofsModule } from './proofs/proofs.module';
 import { PropertiesModule } from './properties/properties.module';
+import { RenterDocumentsModule } from './renter-documents/renter-documents.module';
 import { RentersModule } from './renters/renters.module';
 import { RentReminderService } from './schedules/rent-reminder.service';
 import { StorageModule } from './storage/storage.module';
@@ -62,6 +63,7 @@ import { UnitsModule } from './units/units.module';
         PropertiesModule,
         UnitsModule,
         RentersModule,
+        RenterDocumentsModule,
         LeasesModule,
         PaymentsModule,
         TenantModule,

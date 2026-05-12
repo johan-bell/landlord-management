@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ForbiddenException,
     Injectable,
     NotFoundException,
@@ -7,6 +8,7 @@ import { SupportRequestStatus } from '@prisma/client';
 import type { RequestUser } from '../auth/types/jwt-payload';
 import { OrgTeamService } from '../organizations/org-team.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ObjectStorageService } from '../storage/object-storage.service';
 import { CreateSupportRequestDto } from './dto/create-support-request.dto';
 import { UpdateSupportRequestDto } from './dto/update-support-request.dto';
 
@@ -15,6 +17,7 @@ export class SupportService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly orgTeam: OrgTeamService,
+        private readonly storage: ObjectStorageService,
     ) {}
 
     private async assertTenantCanUseOrg(
@@ -158,6 +161,66 @@ export class SupportService {
             throw new NotFoundException('Support request not found');
         }
         return this.applySupportRequestUpdate(requestId, actor.userId, dto);
+    }
+
+    async createPhotoUploadIntent(
+        requestId: string,
+        orgId: string,
+        user: RequestUser,
+        contentType: string,
+    ) {
+        this.storage.assertEnabled();
+        const ticket = await this.prisma.supportRequest.findFirst({
+            where: { id: requestId, submitterId: user.userId },
+        });
+        if (!ticket) {
+            throw new NotFoundException('Support request not found');
+        }
+        if (ticket.photoObjectKey) {
+            throw new BadRequestException('Photo already attached to this ticket');
+        }
+        const key = this.storage.buildSupportPhotoObjectKey(orgId, contentType);
+        const uploadUrl = await this.storage.getPresignedPutUrl(key, contentType);
+        return { uploadUrl, objectKey: key, expiresInSeconds: 900 };
+    }
+
+    async attachPhoto(
+        requestId: string,
+        user: RequestUser,
+        orgId: string,
+        objectKey: string,
+        contentType: string,
+    ) {
+        this.storage.assertEnabled();
+        if (!this.storage.supportPhotoKeyBelongsToOrg(orgId, objectKey)) {
+            throw new BadRequestException('Invalid object key');
+        }
+        const ticket = await this.prisma.supportRequest.findFirst({
+            where: { id: requestId, submitterId: user.userId },
+        });
+        if (!ticket) {
+            throw new NotFoundException('Support request not found');
+        }
+        return this.prisma.supportRequest.update({
+            where: { id: requestId },
+            data: { photoObjectKey: objectKey, photoMimeType: contentType },
+            include: this.listInclude(),
+        });
+    }
+
+    async getPhotoViewUrl(requestId: string, orgId: string, actor: RequestUser) {
+        await this.orgTeam.assertOrganizationAccess(orgId, actor);
+        const ticket = await this.prisma.supportRequest.findFirst({
+            where: { id: requestId, organizationId: orgId },
+        });
+        if (!ticket) {
+            throw new NotFoundException('Support request not found');
+        }
+        if (!ticket.photoObjectKey) {
+            throw new NotFoundException('No photo attached to this ticket');
+        }
+        const viewUrl = await this.storage.getPresignedGetUrl(ticket.photoObjectKey);
+        return { viewUrl, mimeType: ticket.photoMimeType };
     }
 
     private async applySupportRequestUpdate(

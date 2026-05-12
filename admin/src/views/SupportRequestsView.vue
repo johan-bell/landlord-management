@@ -54,6 +54,12 @@ const editStatus = ref('');
 const editNote = ref('');
 const savingId = ref<string | null>(null);
 
+const photoViewUrl = ref<string | null>(null);
+const photoLoadingId = ref<string | null>(null);
+
+const bulkReminderBusy = ref(false);
+const bulkReminderMsg = ref<string | null>(null);
+
 function filteredRows() {
     const q = filterSearch.value.trim().toLowerCase();
     return rows.value.filter((r) => {

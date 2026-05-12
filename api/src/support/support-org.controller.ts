@@ -53,4 +53,16 @@ export class SupportOrgController {
         }
         return this.support.updateByOrgManager(orgId, requestId, user, dto);
     }
+
+    @Get(':requestId/photo')
+    getPhoto(
+        @Param('orgId') orgId: string,
+        @Param('requestId') requestId: string,
+        @CurrentUser() user: RequestUser,
+    ) {
+        if (user.typ === 'tenant') {
+            throw new ForbiddenException();
+        }
+        return this.support.getPhotoViewUrl(requestId, orgId, user);
+    }
 }
